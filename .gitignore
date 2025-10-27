@@ -36,8 +36,9 @@ coverage
 junit.xml
 
 # Build outputs
-build
 dist
+dist-electron
+release
 docs
 
 # TypeDoc
