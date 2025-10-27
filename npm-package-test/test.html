@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IFC Viewer NPM Package Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: white;
+    }
+
+    .header {
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      text-align: center;
+    }
+
+    .header h1 {
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+    }
+
+    #viewer-container {
+      width: 100vw;
+      height: calc(100vh - 100px);
+      background: #1a1a1a;
+    }
+
+    .status {
+      position: fixed;
+      top: 120px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px 20px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      max-width: 300px;
+      z-index: 1000;
+    }
+
+    .status h3 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #333;
+      font-size: 13px;
+    }
+
+    .status-item:last-child {
+      border-bottom: none;
+    }
+
+    .status-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .success {
+      background: #10b981;
+    }
+
+    .error {
+      background: #ef4444;
+    }
+
+    .loading {
+      background: #f59e0b;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🏗️ IFC Viewer NPM Package Test</h1>
+    <p>Testing @ifc-viewer/core@0.1.3 from npm registry</p>
+  </div>
+
+  <div id="viewer-container"></div>
+
+  <div class="status">
+    <h3>Package Test Status</h3>
+    <div class="status-item">
+      <div class="status-icon loading">⏳</div>
+      <div id="import-status">Importing package...</div>
+    </div>
+    <div class="status-item">
+      <div class="status-icon loading">⏳</div>
+      <div id="init-status">Waiting...</div>
+    </div>
+    <div class="status-item">
+      <div class="status-icon loading">⏳</div>
+      <div id="viewer-status">Waiting...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    function updateStatus(id, text, state) {
+      const element = document.getElementById(id);
+      const icon = element.previousElementSibling;
+      element.textContent = text;
+      icon.className = 'status-icon ' + state;
+      icon.textContent = state === 'success' ? '✓' : state === 'error' ? '✗' : '⏳';
+    }
+
+    try {
+      // Test 1: Import package
+      updateStatus('import-status', 'Importing @ifc-viewer/core...', 'loading');
+
+      const { createIFCViewer } = await import('@ifc-viewer/core');
+      await import('@ifc-viewer/core/styles');
+
+      updateStatus('import-status', 'Package imported successfully!', 'success');
+
+      // Test 2: Initialize viewer
+      updateStatus('init-status', 'Creating viewer instance...', 'loading');
+
+      const container = document.getElementById('viewer-container');
+
+      const viewer = createIFCViewer({
+        container,
+        onModelLoaded: (meta) => {
+          console.log('Model loaded:', meta);
+          updateStatus('viewer-status', 'Model loaded!', 'success');
+        },
+        onObjectSelected: (selection) => {
+          console.log('Selection:', selection);
+        },
+        onError: (error) => {
+          console.error('Viewer error:', error);
+          updateStatus('viewer-status', 'Error: ' + error.message, 'error');
+        }
+      });
+
+      updateStatus('init-status', 'Viewer initialized!', 'success');
+      updateStatus('viewer-status', 'Ready - Load an IFC file', 'success');
+
+      console.log('✅ NPM Package Test: SUCCESS');
+      console.log('Package @ifc-viewer/core is working correctly!');
+      console.log('Viewer instance:', viewer);
+
+    } catch (error) {
+      console.error('❌ NPM Package Test: FAILED');
+      console.error(error);
+
+      updateStatus('import-status', 'Failed: ' + error.message, 'error');
+      updateStatus('init-status', 'Skipped', 'error');
+      updateStatus('viewer-status', 'Skipped', 'error');
+    }
+  </script>
+</body>
+</html>

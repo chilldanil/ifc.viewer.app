@@ -1,0 +1,106 @@
+{
+  "name": "@ifc-viewer/core",
+  "private": false,
+  "version": "0.1.3",
+  "description": "Professional IFC viewer library built with React and Three.js",
+  "type": "module",
+  "keywords": [
+    "ifc",
+    "bim",
+    "viewer",
+    "3d",
+    "three.js",
+    "react",
+    "architecture",
+    "construction"
+  ],
+  "author": "IFC Viewer Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ifc-viewer-project.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ifc-viewer-project/issues"
+  },
+  "homepage": "https://github.com/yourusername/ifc-viewer-project#readme",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.build.json && vite build",
+    "build:lib": "tsc -p tsconfig.build.json && vite build",
+    "preview": "vite preview",
+    "intro": "cd intro && npm start",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\"",
+    "type-check": "tsc --noEmit"
+  },
+  "main": "./dist/ifc-viewer.umd.js",
+  "module": "./dist/ifc-viewer.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/ifc-viewer.es.js",
+      "require": "./dist/ifc-viewer.umd.js"
+    },
+    "./styles": "./dist/core.css"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "dependencies": {
+    "@gradio/client": "2.0.0-dev.1",
+    "@huggingface/inference": "4.12.0",
+    "@mlightcad/three-viewcube": "^0.0.10",
+    "@thatopen/components": "^2.4.10",
+    "@thatopen/components-front": "^2.4.10",
+    "@thatopen/fragments": "~3.0.0",
+    "@thatopen/ui": "^2.4.0",
+    "@thatopen/ui-obc": "^2.4.4",
+    "camera-controls": "^2.7.3",
+    "form-data": "4.0.4",
+    "replicate": "1.3.0",
+    "stats.js": "^0.17.0",
+    "three": "0.175.0",
+    "web-ifc": "^0.0.68"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.9.1",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@types/stats": "^0.16.30",
+    "@types/stats.js": "^0.17.4",
+    "@types/three": "^0.175.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "dotenv": "^17.2.3",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "node-fetch": "^2.7.0",
+    "prettier": "^3.2.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.3.3",
+    "vite": "^6.3.5",
+    "vite-plugin-dts": "^3.7.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

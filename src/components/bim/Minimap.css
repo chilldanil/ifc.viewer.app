@@ -1,0 +1,37 @@
+.ifc-viewer-library-container .minimap-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  transition: opacity 0.3s ease;
+}
+
+.ifc-viewer-library-container .minimap-container.visible {
+  opacity: 1;
+}
+
+.ifc-viewer-library-container .minimap-container.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ifc-viewer-library-container .minimap-container canvas {
+  display: block;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background-color: rgba(248, 249, 250, 0.95);
+}
+
+/* Adjust position for tablets (769px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .ifc-viewer-library-container .minimap-container {
+    top: 60px; /* Account for mobile menu toggle */
+    right: 10px;
+  }
+}
+
+/* Hide minimap on mobile (768px and below) */
+@media (max-width: 768px) {
+  .ifc-viewer-library-container .minimap-container {
+    display: none !important;
+  }
+} 

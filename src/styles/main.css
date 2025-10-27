@@ -1,0 +1,24 @@
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  background-color: #0b1018;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  color: #eef2fb;
+}
+
+.ifc-viewer-library-container {
+  --bim-ui_color-base: rgba(32, 40, 56, 0.94);
+  --bim-ui_color-contrast: #eef2fb;
+  --bim-ui_text-color: #eef2fb;
+  --bim-button-color: #5e7cff;
+  --bim-button-text-color: #0b1018;
+  --bim-ui_panel-bg: transparent;
+}
+
+.ifc-viewer-library-container bim-panel {
+  background-color: transparent;
+  color: inherit;
+}

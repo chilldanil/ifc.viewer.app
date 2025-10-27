@@ -1,0 +1,57 @@
+.ifc-viewer-library-container .clipping-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: 'Nunito', sans-serif;
+  padding: 4px;
+}
+
+.ifc-viewer-library-container .clipping-panel-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ifc-viewer-library-container .clipping-panel-buttons button {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #f4f4f4;
+  cursor: pointer;
+}
+
+.ifc-viewer-library-container .clipping-panel-buttons button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ifc-viewer-library-container .clipping-panel-planes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ifc-viewer-library-container .plane-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ifc-viewer-library-container .plane-label {
+  width: 50px;
+  font-weight: bold;
+}
+
+.ifc-viewer-library-container .plane-row input[type="range"] {
+  flex: 1;
+}
+
+.ifc-viewer-library-container button.small {
+  padding: 2px 6px;
+  font-size: 11px;
+}
+.ifc-viewer-library-container button.danger {
+  color: #fff;
+  background: #c0392b;
+} 

@@ -1,0 +1,515 @@
+.ifc-viewer-library-container .floor-plan-section {
+  width: 100%;
+  padding: 0;
+}
+
+.ifc-viewer-library-container .floor-plan-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.ifc-viewer-library-container .floor-plan-mode-indicator {
+  background: linear-gradient(135deg, #007acc, #0099ff);
+  color: white;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid #005a99;
+}
+
+.ifc-viewer-library-container .floor-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.ifc-viewer-library-container .floor-buttons bim-button {
+  width: 100%;
+  transition: all 0.2s ease;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #dee2e6 !important;
+  font-weight: 500 !important;
+  font-size: 0.85rem !important;
+  padding: 8px 12px !important;
+  border-radius: 5px !important;
+  text-shadow: none !important;
+}
+
+.ifc-viewer-library-container .floor-buttons bim-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: #f8f9fa !important;
+  color: #000000 !important;
+  border-color: #007acc !important;
+  text-shadow: none !important;
+}
+
+/* Active floor styling */
+.ifc-viewer-library-container .floor-buttons bim-button[style*="background-color: #007acc"] {
+  background-color: #007acc !important;
+  color: #ffffff !important;
+  border: 2px solid #005a99 !important;
+  font-weight: 700 !important;
+  text-shadow: none !important;
+}
+
+.ifc-viewer-library-container .floor-info {
+  font-size: 0.85rem;
+  color: #000000;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  line-height: 1.4;
+}
+
+.ifc-viewer-library-container .floor-info strong {
+  color: #000000;
+  font-weight: 600;
+}
+
+/* Active floor display */
+.ifc-viewer-library-container .active-floor-display {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #e8f4fd;
+  border: 1px solid #b8e0ff;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #0066cc;
+}
+
+.ifc-viewer-library-container .active-floor-display strong {
+  color: #004499;
+}
+
+/* Button groups */
+.ifc-viewer-library-container .floor-plan-controls > div {
+  margin-bottom: 12px;
+}
+
+.ifc-viewer-library-container .floor-plan-controls bim-button {
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 2px solid #007acc;
+  background: #ffffff !important;
+  color: #000000 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  text-shadow: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ifc-viewer-library-container .floor-plan-controls bim-button:hover {
+  background: #f8f9fa !important;
+  border-color: #0056b3 !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.ifc-viewer-library-container .floor-plan-controls bim-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Special styling for reset button */
+.ifc-viewer-library-container .floor-plan-controls bim-button[style*="background-color: #f0f0f0"] {
+  background-color: #e9ecef !important;
+  border: 2px solid #6c757d !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.ifc-viewer-library-container .floor-plan-controls bim-button[style*="background-color: #f0f0f0"]:hover {
+  background-color: #dee2e6 !important;
+  border-color: #000000 !important;
+  color: #000000 !important;
+}
+
+/* Labels */
+.floor-plan-controls bim-label {
+  display: block;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  text-shadow: none;
+  background: rgba(248, 249, 250, 0.8);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border-left: 3px solid #007acc;
+}
+
+/* View controls section */
+.view-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.view-controls bim-button {
+  background: #f8f9fa !important;
+  border: 2px solid #dee2e6 !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  text-shadow: none !important;
+}
+
+.view-controls bim-button:hover {
+  background: #e9ecef !important;
+  border-color: #007acc !important;
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+/* Toggle button special styling */
+.floor-plan-controls > div:first-child bim-button {
+  background: linear-gradient(135deg, #28a745, #20c997) !important;
+  color: #ffffff !important;
+  border: 2px solid #1e7e34 !important;
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  padding: 12px 16px !important;
+}
+
+.floor-plan-controls > div:first-child bim-button:hover {
+  background: linear-gradient(135deg, #218838, #1c7a66) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+  color: #ffffff !important;
+}
+
+/* Exit floor plan button styling when in floor plan mode */
+.floor-plan-mode-active .floor-plan-controls > div:first-child bim-button {
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  border-color: #bd2130 !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+.floor-plan-mode-active .floor-plan-controls > div:first-child bim-button:hover
+{
+  background: linear-gradient(135deg, #c82333, #a71e2a) !important;
+  color: #ffffff !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .floor-plan-controls {
+    gap: 8px;
+  }
+  
+  .floor-plan-controls bim-button {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  .floor-info {
+    font-size: 0.8rem;
+    padding: 10px;
+  }
+}
+
+/* Loading state */
+.floor-plan-loading {
+  text-align: center;
+  padding: 20px;
+  color: #000000;
+  font-style: italic;
+}
+
+/* Error state */
+.floor-plan-error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #f5c6cb;
+  margin: 12px 0;
+  font-size: 0.85rem;
+}
+
+/* Success feedback */
+.floor-plan-success {
+  background: #d4edda;
+  color: #155724;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #c3e6cb;
+  margin: 8px 0;
+  font-size: 0.85rem;
+}
+.floor-plan-section {
+  width: 100%;
+  padding: 0;
+}
+
+.floor-plan-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.floor-plan-mode-indicator {
+  background: linear-gradient(135deg, #007acc, #0099ff);
+  color: white;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid #005a99;
+}
+
+.floor-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.floor-buttons bim-button {
+  width: 100%;
+  transition: all 0.2s ease;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #dee2e6 !important;
+  font-weight: 500 !important;
+  font-size: 0.85rem !important;
+  padding: 8px 12px !important;
+  border-radius: 5px !important;
+  text-shadow: none !important;
+}
+
+.floor-buttons bim-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: #f8f9fa !important;
+  color: #000000 !important;
+  border-color: #007acc !important;
+  text-shadow: none !important;
+}
+
+/* Active floor styling */
+.floor-buttons bim-button[style*="background-color: #007acc"] {
+  background-color: #007acc !important;
+  color: #ffffff !important;
+  border: 2px solid #005a99 !important;
+  font-weight: 700 !important;
+  text-shadow: none !important;
+}
+
+.floor-info {
+  font-size: 0.85rem;
+  color: #000000;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  line-height: 1.4;
+}
+
+.floor-info strong {
+  color: #000000;
+  font-weight: 600;
+}
+
+/* Active floor display */
+.active-floor-display {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #e8f4fd;
+  border: 1px solid #b8e0ff;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #0066cc;
+}
+
+.active-floor-display strong {
+  color: #004499;
+}
+
+/* Button groups */
+.floor-plan-controls > div {
+  margin-bottom: 12px;
+}
+
+.floor-plan-controls bim-button {
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 2px solid #007acc;
+  background: #ffffff !important;
+  color: #000000 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  text-shadow: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.floor-plan-controls bim-button:hover {
+  background: #f8f9fa !important;
+  border-color: #0056b3 !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.floor-plan-controls bim-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Special styling for reset button */
+.floor-plan-controls bim-button[style*="background-color: #f0f0f0"] {
+  background-color: #e9ecef !important;
+  border: 2px solid #6c757d !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.floor-plan-controls bim-button[style*="background-color: #f0f0f0"]:hover {
+  background-color: #dee2e6 !important;
+  border-color: #000000 !important;
+  color: #000000 !important;
+}
+
+/* Labels */
+.floor-plan-controls bim-label {
+  display: block;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  text-shadow: none;
+  background: rgba(248, 249, 250, 0.8);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border-left: 3px solid #007acc;
+}
+
+/* View controls section */
+.view-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.view-controls bim-button {
+  background: #f8f9fa !important;
+  border: 2px solid #dee2e6 !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  text-shadow: none !important;
+}
+
+.view-controls bim-button:hover {
+  background: #e9ecef !important;
+  border-color: #007acc !important;
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+/* Toggle button special styling */
+.floor-plan-controls > div:first-child bim-button {
+  background: linear-gradient(135deg, #28a745, #20c997) !important;
+  color: #ffffff !important;
+  border: 2px solid #1e7e34 !important;
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  padding: 12px 16px !important;
+}
+
+.floor-plan-controls > div:first-child bim-button:hover {
+  background: linear-gradient(135deg, #218838, #1c7a66) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+  color: #ffffff !important;
+}
+
+/* Exit floor plan button styling when in floor plan mode */
+.floor-plan-mode-active .floor-plan-controls > div:first-child bim-button {
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  border-color: #bd2130 !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+.floor-plan-mode-active .floor-plan-controls > div:first-child bim-button:hover {
+  background: linear-gradient(135deg, #c82333, #a71e2a) !important;
+  color: #ffffff !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .floor-plan-controls {
+    gap: 8px;
+  }
+  
+  .floor-plan-controls bim-button {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  .floor-info {
+    font-size: 0.8rem;
+    padding: 10px;
+  }
+}
+
+/* Loading state */
+.floor-plan-loading {
+  text-align: center;
+  padding: 20px;
+  color: #000000;
+  font-style: italic;
+}
+
+/* Error state */
+.floor-plan-error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #f5c6cb;
+  margin: 12px 0;
+  font-size: 0.85rem;
+}
+
+/* Success feedback */
+.floor-plan-success {
+  background: #d4edda;
+  color: #155724;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #c3e6cb;
+  margin: 8px 0;
+  font-size: 0.85rem;
+} 

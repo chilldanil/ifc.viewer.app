@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IFC Viewer Package - Demo Selection</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 60px;
+      color: white;
+    }
+
+    .header h1 {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 15px;
+      text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .header p {
+      font-size: 20px;
+      opacity: 0.95;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .version-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 15px;
+      backdrop-filter: blur(10px);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    .card-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #1a1a1a;
+    }
+
+    .card-description {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .card-features {
+      list-style: none;
+      margin-bottom: 25px;
+    }
+
+    .card-features li {
+      padding: 8px 0;
+      color: #888;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-features li::before {
+      content: "✓";
+      color: #667eea;
+      font-weight: bold;
+    }
+
+    .card-button {
+      display: inline-block;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+
+    .card-button:hover {
+      transform: translateX(5px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .info-section {
+      text-align: center;
+      color: white;
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+    }
+
+    .info-section h3 {
+      font-size: 24px;
+      margin-bottom: 15px;
+    }
+
+    .info-section p {
+      font-size: 16px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+
+    .links {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .links a {
+      color: white;
+      text-decoration: none;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .links a:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 36px;
+      }
+
+      .header p {
+        font-size: 16px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏗️ IFC Viewer Package</h1>
+      <p>Professional BIM visualization library - Choose your demo</p>
+      <div class="version-badge">@ifc-viewer/core@0.1.3</div>
+    </div>
+
+    <div class="cards">
+      <a href="test.html" class="card">
+        <span class="card-icon">🧪</span>
+        <h2 class="card-title">Integration Test</h2>
+        <p class="card-description">
+          Technical test page for verifying npm package installation and functionality.
+        </p>
+        <ul class="card-features">
+          <li>Package import validation</li>
+          <li>Viewer initialization test</li>
+          <li>Real-time status monitoring</li>
+          <li>Console debugging output</li>
+        </ul>
+        <span class="card-button">Open Test Page →</span>
+      </a>
+
+      <a href="landing.html" class="card">
+        <span class="card-icon">🎨</span>
+        <h2 class="card-title">Landing Page Demo</h2>
+        <p class="card-description">
+          Beautiful landing page showcase with integrated IFC viewer component.
+        </p>
+        <ul class="card-features">
+          <li>Modern UI design</li>
+          <li>Feature highlights</li>
+          <li>Live viewer integration</li>
+          <li>Production-ready example</li>
+        </ul>
+        <span class="card-button">View Landing Page →</span>
+      </a>
+    </div>
+
+    <div class="info-section">
+      <h3>About This Package</h3>
+      <p>
+        @ifc-viewer/core is a professional IFC viewer library built with React and Three.js.
+        It provides powerful BIM visualization capabilities with zero native installations,
+        running entirely in the browser.
+      </p>
+      <div class="links">
+        <a href="https://www.npmjs.com/package/@ifc-viewer/core" target="_blank">📦 npm Package</a>
+        <a href="https://github.com/yourusername/ifc-viewer-project" target="_blank">📚 Documentation</a>
+        <a href="https://github.com/yourusername/ifc-viewer-project" target="_blank">💻 GitHub</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

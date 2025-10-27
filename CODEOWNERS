@@ -1,0 +1,18 @@
+# CODEOWNERS file for IFC Viewer Project
+# Lines starting with '#' are comments.
+# Each line is a file pattern followed by one or more owners.
+# These owners will be the default owners for everything in the repo.
+
+
+# CI/CD and DevOps
+/.gitlab-ci.yml @000000000014BA09F
+/vitest.config.ts @000000000014BA09F
+/.eslintrc.json @000000000014BA09F
+/tsconfig.json @000000000014BA09F
+
+# Documentation
+/README.md @000000000014BA09F
+/docs/ @000000000014BA09F
+/typedoc.json @000000000014BA09F
+
+

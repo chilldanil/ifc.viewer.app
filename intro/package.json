@@ -1,0 +1,17 @@
+{
+  "name": "ifc-viewer-intro",
+  "version": "1.0.0",
+  "description": "Introduction page for IFC Viewer",
+  "type": "module",
+  "scripts": {
+    "start": "npx http-server . -p 4000 -o --cors"
+  },
+  "keywords": [
+    "ifc",
+    "viewer",
+    "introduction"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+

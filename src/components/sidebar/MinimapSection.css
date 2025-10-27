@@ -1,0 +1,50 @@
+.ifc-viewer-library-container .minimap-section {
+  width: 100%;
+}
+
+.ifc-viewer-library-container .minimap-controls-wrapper {
+  width: 100%;
+}
+
+.ifc-viewer-library-container .minimap-controls-wrapper > bim-checkbox {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.ifc-viewer-library-container .minimap-controls-container {
+  width: 100%;
+  padding: 0; /* Remove extra padding since panel-section provides it */
+}
+
+.ifc-viewer-library-container .minimap-controls-container bim-checkbox,
+.ifc-viewer-library-container .minimap-controls-container bim-number-input {
+  margin-bottom: 8px;
+  pointer-events: auto; /* Ensure controls are clickable */
+  display: block;
+}
+
+.ifc-viewer-library-container .minimap-controls-container bim-number-input[slider] {
+  width: 100%;
+  pointer-events: auto; /* Ensure sliders are interactive */
+}
+
+/* Ensure proper spacing for the size controls */
+.ifc-viewer-library-container .minimap-controls-container bim-number-input[pref="Width"],
+.ifc-viewer-library-container .minimap-controls-container bim-number-input[pref="Height"] {
+  flex: 1;
+  margin-bottom: 0;
+  pointer-events: auto; /* Ensure size controls are clickable */
+}
+
+/* Prevent any click interference */
+.ifc-viewer-library-container .minimap-controls-container * {
+  pointer-events: auto;
+}
+
+/* Ensure the controls don't trigger panel collapse */
+.ifc-viewer-library-container .minimap-section bim-checkbox,
+.ifc-viewer-library-container .minimap-section bim-number-input,
+.ifc-viewer-library-container .minimap-section .slider,
+.ifc-viewer-library-container .minimap-section input[type="range"] {
+  pointer-events: auto !important;
+} 

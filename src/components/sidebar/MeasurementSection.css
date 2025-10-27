@@ -1,0 +1,39 @@
+.ifc-viewer-library-container .measurement-tool-placeholder {
+  padding: 12px;
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 4px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.ifc-viewer-library-container .volume-measurement-section {
+  width: 100%;
+}
+
+.ifc-viewer-library-container .volume-measurement-controls {
+  padding: 0.25rem;
+}
+
+.ifc-viewer-library-container .volume-display {
+  transition: background-color 0.2s ease;
+}
+
+.ifc-viewer-library-container .volume-display:hover {
+  background: #e9ecef !important;
+}
+
+.ifc-viewer-library-container .dimension-ruler-section {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.ifc-viewer-library-container .dimension-label {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 1000;
+}

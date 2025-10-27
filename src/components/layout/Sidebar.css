@@ -1,0 +1,132 @@
+.ifc-viewer-library-container .sidebar {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 20px 26px;
+  background: transparent;
+  color: var(--ifc-text-primary, #eef2fb);
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.ifc-viewer-library-container .sidebar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--ifc-text-muted, #9aa3b8);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ifc-viewer-library-container .sidebar bim-panel {
+  flex: 1;
+  width: 100%;
+  background: transparent;
+  color: inherit;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(144, 153, 172, 0.75) transparent;
+}
+
+.ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar-thumb {
+  background: rgba(144, 153, 172, 0.55);
+  border-radius: 999px;
+}
+
+.ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(144, 153, 172, 0.75);
+}
+
+.ifc-viewer-library-container .sidebar bim-panel-section {
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ifc-viewer-library-container .sidebar bim-panel-section[collapsed] {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.ifc-viewer-library-container .sidebar bim-panel-section::part(content) {
+  padding: 14px 16px;
+  color: inherit;
+  font-size: 0.9rem;
+}
+
+.ifc-viewer-library-container .sidebar bim-panel-section::part(header) {
+  padding: 14px 16px;
+  color: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  letter-spacing: 0.01em;
+}
+
+.ifc-viewer-library-container .sidebar bim-panel-section::part(toggle) {
+  color: inherit;
+}
+
+.ifc-viewer-library-container .sidebar bim-button,
+.ifc-viewer-library-container .sidebar bim-text-input,
+.ifc-viewer-library-container .sidebar bim-checkbox,
+.ifc-viewer-library-container .sidebar bim-color-input,
+.ifc-viewer-library-container .sidebar bim-number-input {
+  font-family: inherit;
+}
+
+.ifc-viewer-library-container .sidebar bim-text-input,
+.ifc-viewer-library-container .sidebar bim-number-input {
+  width: 100%;
+}
+
+.ifc-viewer-library-container .sidebar .visibility-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .ifc-viewer-library-container .sidebar {
+    padding: 18px 16px 22px;
+  }
+}
+
+/* Add some padding to the panel content to prevent content from touching scrollbar */
+.ifc-viewer-library-container .sidebar bim-panel > * {
+  padding-right: 4px;
+}
+
+/* Mobile-friendly touch scrolling */
+@media (max-width: 768px) {
+  .ifc-viewer-library-container .sidebar bim-panel {
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scrollbar-width: thin; /* Keep thin scrollbar on mobile */
+  }
+  
+  /* Make webkit scrollbar thinner on mobile */
+  .ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar {
+    width: 4px;
+  }
+}
+
+/* Focus states for accessibility */
+.ifc-viewer-library-container .sidebar bim-panel:focus {
+  outline: 2px solid var(--ifc-accent, #5e7cff);
+  outline-offset: -2px;
+}
