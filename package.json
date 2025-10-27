@@ -29,6 +29,9 @@
     "build": "tsc -p tsconfig.build.json && vite build",
     "build:lib": "tsc -p tsconfig.build.json && vite build",
     "preview": "vite preview",
+    "electron:dev": "tsc --project tsconfig.electron.json && vite --config vite.electron.config.ts",
+    "electron:build": "tsc --project tsconfig.electron.json && vite build --config vite.electron.config.ts && electron-builder",
+    "electron:preview": "tsc --project tsconfig.electron.json && vite build --config vite.electron.config.ts && electron .",
     "intro": "cd intro && npm start",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext ts,tsx --fix",
@@ -36,7 +39,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\"",
     "type-check": "tsc --noEmit"
   },
-  "main": "./dist/ifc-viewer.umd.js",
+  "main": "./dist-electron/main.js",
   "module": "./dist/ifc-viewer.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -86,6 +89,8 @@
     "@typescript-eslint/parser": "^6.21.0",
     "@vitejs/plugin-react": "^4.2.1",
     "dotenv": "^17.2.3",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.33.2",
@@ -102,5 +107,38 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "build": {
+    "appId": "com.ifcviewer.app",
+    "productName": "IFC Viewer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-electron",
+      "dist"
+    ],
+    "mac": {
+      "category": "public.app-category.graphics-design",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Graphics"
+    }
   }
 }

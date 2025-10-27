@@ -7,6 +7,7 @@ import * as OBC from '@thatopen/components';
 import * as THREE from 'three';
 import './Sidebar.css';
 import { bridge } from '../../utils/bridge';
+import { useElectronFileOpen } from '../../hooks/useElectronFileOpen';
 const ClippingSection = React.lazy(() => import('../sidebar/ClippingSection').then(m => ({ default: m.ClippingSection })));
 const MinimapSection = React.lazy(() => import('../sidebar/MinimapSection').then(m => ({ default: m.MinimapSection })));
 const CameraSection = React.lazy(() => import('../sidebar/CameraSection').then(m => ({ default: m.CameraSection })));
@@ -24,6 +25,10 @@ export const Sidebar: React.FC = () => {
   const { components, world, visibilityPanelRef: visibilityPanelContextRef, minimapConfig, setMinimapConfig, onObjectSelected } = useBIM();
   const loadButtonContainerRef = useRef<HTMLDivElement>(null);
   const treeContainerRef = useRef<HTMLDivElement>(null);
+
+  // Enable Electron file opening from menu
+  useElectronFileOpen(components);
+
   // References for visibility controls container and panel
   const visibilityContainerRef = useRef<HTMLDivElement>(null);
   const visibilityPanelWrapperRef = useRef<HTMLElement>(null);
