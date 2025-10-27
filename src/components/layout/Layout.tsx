@@ -1,22 +1,139 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import { Viewport } from '../bim/Viewport';
 import { Sidebar } from './Sidebar';
 import { useBIM } from '../../context/BIMContext';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import './Layout.css';
 
+const MIN_SIDEBAR_WIDTH = 260;
+const MAX_SIDEBAR_WIDTH = 680;
+
+const getDefaultSidebarWidth = () => {
+  if (typeof window === 'undefined') {
+    return 320;
+  }
+
+  const viewportWidth = window.innerWidth;
+  const preferredWidth = 0.26 * viewportWidth;
+
+  return Math.max(MIN_SIDEBAR_WIDTH, Math.min(preferredWidth, 360));
+};
+
 export const Layout: React.FC = () => {
   const { isInitialized, isLoading, error, retry } = useBIM();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isSidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => getDefaultSidebarWidth());
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeStateRef = useRef({ startX: 0, startWidth: 0 });
+  const isResizingRef = useRef(false);
 
   const containerClassName = useMemo(() => {
-    return `layout ifc-viewer-library-container${isSidebarVisible ? '' : ' sidebar-hidden'}`;
-  }, [isSidebarVisible]);
+    const base = `layout ifc-viewer-library-container${isSidebarVisible ? '' : ' sidebar-hidden'}`;
+    return isResizing ? `${base} sidebar-resizing` : base;
+  }, [isSidebarVisible, isResizing]);
+
+  const layoutStyle = useMemo<React.CSSProperties>(() => {
+    return {
+      '--ifc-sidebar-width': `${sidebarWidth}px`,
+    } as React.CSSProperties;
+  }, [sidebarWidth]);
 
   const toggleSidebar = () => {
     setSidebarVisible((prev) => !prev);
   };
+
+  const clampSidebarWidth = useCallback((width: number) => {
+    const viewportLimitedMax = typeof window === 'undefined'
+      ? MAX_SIDEBAR_WIDTH
+      : Math.max(
+          MIN_SIDEBAR_WIDTH,
+          Math.min(MAX_SIDEBAR_WIDTH, Math.round(window.innerWidth * 0.92))
+        );
+
+    return Math.min(Math.max(width, MIN_SIDEBAR_WIDTH), viewportLimitedMax);
+  }, []);
+
+  const handlePointerMove = useCallback((event: PointerEvent) => {
+    if (!isResizingRef.current) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const delta = event.clientX - resizeStateRef.current.startX;
+    const newWidth = clampSidebarWidth(resizeStateRef.current.startWidth + delta);
+    setSidebarWidth(newWidth);
+  }, [clampSidebarWidth]);
+
+  const stopResizing = useCallback(() => {
+    if (!isResizingRef.current) {
+      return;
+    }
+
+    isResizingRef.current = false;
+    setIsResizing(false);
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopResizing);
+      window.removeEventListener('pointercancel', stopResizing);
+    }
+  }, [handlePointerMove]);
+
+  const handlePointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    resizeStateRef.current = {
+      startX: event.clientX,
+      startWidth: sidebarWidth,
+    };
+
+    isResizingRef.current = true;
+    setIsResizing(true);
+
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', stopResizing);
+      window.addEventListener('pointercancel', stopResizing);
+    }
+  }, [handlePointerMove, sidebarWidth, stopResizing]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleResize = () => {
+      setSidebarWidth((currentWidth) => clampSidebarWidth(currentWidth));
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [clampSidebarWidth]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', stopResizing);
+        window.removeEventListener('pointercancel', stopResizing);
+      }
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      isResizingRef.current = false;
+    };
+  }, [handlePointerMove, stopResizing]);
 
   if (isLoading) {
     return (
@@ -54,7 +171,7 @@ export const Layout: React.FC = () => {
   }
 
   return (
-    <div ref={containerRef} className={containerClassName}>
+    <div ref={containerRef} className={containerClassName} style={layoutStyle}>
       <DragAndDropOverlay container={containerRef.current} />
       <button
         type="button"
@@ -89,6 +206,7 @@ export const Layout: React.FC = () => {
       </button>
       <div className={`sidebar-slot${isSidebarVisible ? ' sidebar-slot--visible' : ''}`} aria-hidden={!isSidebarVisible} id="ifc-sidebar">
         <Sidebar />
+        <div className="sidebar-resizer" onPointerDown={handlePointerDown} aria-hidden="true" />
       </div>
       <main className="main-content">
         <Viewport />
