@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useBIM } from '../../context/BIMContext';
 import * as BUIC from '@thatopen/ui-obc';
 import * as BUI from '@thatopen/ui';
@@ -8,6 +8,214 @@ import * as THREE from 'three';
 import './Sidebar.css';
 import { bridge } from '../../utils/bridge';
 import { useElectronFileOpen } from '../../hooks/useElectronFileOpen';
+
+type FragmentIdCollection = Map<string | number, unknown> | Record<string, unknown> | undefined | null;
+
+type LoadedModel = {
+  id: string;
+  label: string;
+  visible: boolean;
+};
+
+const SELECT_HIGHLIGHTER = 'select';
+const HOVER_HIGHLIGHTER = 'hover';
+
+const fragmentKey = (modelId: string | number, expressId: number) => `${modelId}:${expressId}`;
+
+const collectFragmentKeys = (fragmentIdMap: unknown): Set<string> => {
+  const keys = new Set<string>();
+
+  const addValue = (modelId: string, value: unknown) => {
+    if (value == null) {
+      return;
+    }
+
+    if (typeof value === 'number') {
+      keys.add(fragmentKey(modelId, value));
+      return;
+    }
+
+    if (value instanceof Set) {
+      (value as Set<unknown>).forEach((entry) => addValue(modelId, entry));
+      return;
+    }
+
+    if (value instanceof Map) {
+      (value as Map<unknown, unknown>).forEach((entry) => addValue(modelId, entry));
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((entry) => addValue(modelId, entry));
+      return;
+    }
+
+    if (ArrayBuffer.isView(value)) {
+      const arrayView = value as unknown as ArrayLike<number>;
+      for (let index = 0; index < arrayView.length; index += 1) {
+        addValue(modelId, arrayView[index]);
+      }
+      return;
+    }
+
+    if (typeof value === 'object') {
+      Object.values(value as Record<string, unknown>).forEach((entry) => addValue(modelId, entry));
+    }
+  };
+
+  const iterate = (collection: FragmentIdCollection) => {
+    if (!collection) {
+      return;
+    }
+
+    if (collection instanceof Map) {
+      collection.forEach((value, modelId) => addValue(String(modelId), value));
+      return;
+    }
+
+    Object.entries(collection as Record<string, unknown>).forEach(([modelId, value]) => {
+      addValue(modelId, value);
+    });
+  };
+
+  iterate(fragmentIdMap as FragmentIdCollection);
+  return keys;
+};
+
+const setupRelationsTreeSelection = (tree: HTMLElement | null, components: OBC.Components | undefined | null) => {
+  if (!tree || !components) {
+    return undefined;
+  }
+
+  const highlighter = components.get(OBCF.Highlighter) as any;
+  const selectEvents = highlighter?.events?.select;
+
+  if (!selectEvents?.onHighlight || !selectEvents?.onClear) {
+    return undefined;
+  }
+
+  const rowRegistry = new Map<string, HTMLElement>();
+  let currentKeys = new Set<string>();
+
+  const markRow = (row: HTMLElement, isSelected: boolean) => {
+    if ('selected' in row) {
+      (row as any).selected = isSelected;
+    } else {
+      row.toggleAttribute('selected', isSelected);
+    }
+    row.toggleAttribute('data-selected', isSelected);
+    row.classList.toggle('relations-tree__row--selected', isSelected);
+  };
+
+  const applySelection = (keys: Set<string>) => {
+    rowRegistry.forEach((row, key) => {
+      markRow(row, keys.has(key));
+    });
+    currentKeys = keys;
+  };
+
+  const resolveRowKey = (row: HTMLElement) => {
+    const data = (row as any).data ?? (row as any).rowData;
+    if (!data) {
+      return null;
+    }
+
+    const modelId = data.modelID ?? data.modelId ?? data.modelUUID ?? data.modelUuid;
+    const expressId = data.expressID ?? data.expressId;
+
+    if ((typeof modelId !== 'string' && typeof modelId !== 'number') || typeof expressId !== 'number') {
+      return null;
+    }
+
+    return fragmentKey(modelId, expressId);
+  };
+
+  const registerRow = (row: HTMLElement) => {
+    row.style.cursor = 'pointer';
+    const key = resolveRowKey(row);
+    if (!key) {
+      return;
+    }
+    row.dataset.fragmentKey = key;
+    rowRegistry.set(key, row);
+    markRow(row, currentKeys.has(key));
+  };
+
+  const unregisterRow = (row: HTMLElement) => {
+    const key = row.dataset.fragmentKey;
+    if (key) {
+      rowRegistry.delete(key);
+      row.classList.remove('relations-tree__row--selected');
+    }
+  };
+
+  const processNode = (node: Node, handler: (row: HTMLElement) => void) => {
+    if (node instanceof DocumentFragment) {
+      node.querySelectorAll('bim-table-row').forEach((element) => handler(element as HTMLElement));
+      return;
+    }
+
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+
+    if (node.tagName === 'BIM-TABLE-ROW') {
+      handler(node);
+    }
+
+    node.querySelectorAll?.('bim-table-row').forEach((element) => handler(element as HTMLElement));
+  };
+
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      mutation.addedNodes.forEach((node) => processNode(node, registerRow));
+      mutation.removedNodes.forEach((node) => processNode(node, unregisterRow));
+    }
+  });
+
+  const observeRows = (root: ShadowRoot) => {
+    root.querySelectorAll('bim-table-row').forEach((element) => registerRow(element as HTMLElement));
+    observer.observe(root, { childList: true, subtree: true });
+  };
+
+  if (tree.shadowRoot) {
+    observeRows(tree.shadowRoot);
+  } else {
+    const updatePromise = (tree as any).updateComplete;
+    if (updatePromise instanceof Promise) {
+      updatePromise.then(() => {
+        if (tree.shadowRoot) {
+          observeRows(tree.shadowRoot);
+        }
+      }).catch(() => {
+        /* no-op */
+      });
+    }
+  }
+
+  const handleHighlight = (fragmentIdMap: unknown) => {
+    applySelection(collectFragmentKeys(fragmentIdMap));
+  };
+
+  const handleClear = () => {
+    applySelection(new Set());
+  };
+
+  selectEvents.onHighlight.add(handleHighlight);
+  selectEvents.onClear.add(handleClear);
+
+  const initialSelection = highlighter?.selection?.[SELECT_HIGHLIGHTER];
+  if (initialSelection) {
+    handleHighlight(initialSelection);
+  }
+
+  return () => {
+    observer.disconnect();
+    selectEvents.onHighlight.remove(handleHighlight);
+    selectEvents.onClear.remove(handleClear);
+    rowRegistry.clear();
+  };
+};
 const ClippingSection = React.lazy(() => import('../sidebar/ClippingSection').then(m => ({ default: m.ClippingSection })));
 const MinimapSection = React.lazy(() => import('../sidebar/MinimapSection').then(m => ({ default: m.MinimapSection })));
 const CameraSection = React.lazy(() => import('../sidebar/CameraSection').then(m => ({ default: m.CameraSection })));
@@ -25,6 +233,7 @@ export const Sidebar: React.FC = () => {
   const { components, world, visibilityPanelRef: visibilityPanelContextRef, minimapConfig, setMinimapConfig, onObjectSelected } = useBIM();
   const loadButtonContainerRef = useRef<HTMLDivElement>(null);
   const treeContainerRef = useRef<HTMLDivElement>(null);
+  const [loadedModels, setLoadedModels] = useState<LoadedModel[]>([]);
 
   // Enable Electron file opening from menu
   useElectronFileOpen(components);
@@ -87,7 +296,158 @@ export const Sidebar: React.FC = () => {
     });
     return () => unsub();
   }, [components, world]);
-  
+
+  const refreshLoadedModels = useCallback(() => {
+    if (!components) {
+      setLoadedModels([]);
+      return;
+    }
+
+    try {
+      const fragmentsManager = components.get(OBC.FragmentsManager);
+      if (!fragmentsManager) {
+        setLoadedModels([]);
+        return;
+      }
+
+      const models: LoadedModel[] = [];
+
+      fragmentsManager.groups.forEach((group) => {
+        if (!group) {
+          return;
+        }
+
+        const metadataName = typeof (group as any)?.ifcMetadata?.name === 'string'
+          ? ((group as any).ifcMetadata.name as string).trim()
+          : '';
+        const explicitName = typeof group.name === 'string' ? group.name.trim() : '';
+        const displayName = metadataName || explicitName || group.uuid;
+
+        models.push({
+          id: group.uuid,
+          label: displayName,
+          visible: group.visible !== false,
+        });
+      });
+
+      models.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base', numeric: true }));
+      setLoadedModels(models);
+    } catch (error) {
+      console.warn('Failed to refresh loaded model list:', error);
+    }
+  }, [components]);
+
+  const handleToggleModelVisibility = useCallback((modelId: string) => {
+    if (!components) {
+      return;
+    }
+
+    try {
+      const fragmentsManager = components.get(OBC.FragmentsManager);
+      const highlighter = components.get(OBCF.Highlighter);
+      const group = fragmentsManager?.groups.get(modelId);
+
+      if (!group) {
+        console.warn('Model group not found when toggling visibility:', modelId);
+        return;
+      }
+
+      const nextVisibility = !group.visible;
+      group.visible = nextVisibility;
+
+      if (!nextVisibility && highlighter) {
+        try {
+          const fragmentMap = group.getFragmentMap();
+          highlighter.clear(SELECT_HIGHLIGHTER, fragmentMap);
+          highlighter.clear(HOVER_HIGHLIGHTER, fragmentMap);
+        } catch (clearError) {
+          console.warn('Failed to clear highlighter selection for hidden model:', clearError);
+        }
+      }
+
+      refreshLoadedModels();
+    } catch (error) {
+      console.warn('Failed to toggle model visibility:', error);
+    }
+  }, [components, refreshLoadedModels]);
+
+  const handleDeleteModel = useCallback((modelId: string) => {
+    if (!components) {
+      return;
+    }
+
+    try {
+      const fragmentsManager = components.get(OBC.FragmentsManager);
+      const highlighter = components.get(OBCF.Highlighter);
+      const group = fragmentsManager?.groups.get(modelId);
+
+      if (!group) {
+        console.warn('Model group not found when deleting:', modelId);
+        return;
+      }
+
+      try {
+        const fragmentMap = group.getFragmentMap();
+        highlighter?.clear(SELECT_HIGHLIGHTER, fragmentMap);
+        highlighter?.clear(HOVER_HIGHLIGHTER, fragmentMap);
+      } catch (clearError) {
+        console.warn('Failed to clear highlighter selection before deleting model:', clearError);
+      }
+
+      if (group.parent) {
+        group.parent.remove(group);
+      }
+
+      fragmentsManager.disposeGroup(group);
+      refreshLoadedModels();
+    } catch (error) {
+      console.warn('Failed to delete model:', error);
+    }
+  }, [components, refreshLoadedModels]);
+
+  useEffect(() => {
+    if (!components) {
+      setLoadedModels([]);
+      return;
+    }
+
+    let disposed = false;
+
+    try {
+      const fragmentsManager = components.get(OBC.FragmentsManager);
+      if (!fragmentsManager) {
+        setLoadedModels([]);
+        return;
+      }
+
+      const update = () => {
+        if (!disposed) {
+          refreshLoadedModels();
+        }
+      };
+
+      update();
+
+      const handleLoaded = () => update();
+      const handleDisposed = () => update();
+
+      fragmentsManager.onFragmentsLoaded.add(handleLoaded);
+      fragmentsManager.onFragmentsDisposed.add(handleDisposed);
+
+      return () => {
+        disposed = true;
+        fragmentsManager.onFragmentsLoaded.remove(handleLoaded);
+        fragmentsManager.onFragmentsDisposed.remove(handleDisposed);
+      };
+    } catch (error) {
+      console.warn('Failed to subscribe to fragments manager events:', error);
+      setLoadedModels([]);
+      return undefined;
+    }
+
+    return undefined;
+  }, [components, refreshLoadedModels]);
+
   // Load button and relations tree setup
   useEffect(() => {
     if (!components || !loadButtonContainerRef.current || !treeContainerRef.current) {return;}
@@ -105,10 +465,13 @@ export const Sidebar: React.FC = () => {
     treeContainerRef.current.innerHTML = '';
     treeContainerRef.current.appendChild(tree);
 
+    const cleanupSelectionSync = setupRelationsTreeSelection(tree, components);
+
     // Search functionality will be handled by the input element's event handlers
 
     // Clean up function
     return () => {
+      if (cleanupSelectionSync) {cleanupSelectionSync();}
       if (loadButtonContainerRef.current) {
         loadButtonContainerRef.current.innerHTML = '';
       }
@@ -439,7 +802,33 @@ export const Sidebar: React.FC = () => {
           <bim-panel-section label="Model Tree">
             <div ref={loadButtonContainerRef} />
             <bim-text-input placeholder="Search..." debounce="200" />
-            <div ref={treeContainerRef} />
+            <div ref={treeContainerRef} className="relations-tree-container" />
+            {loadedModels.length > 0 && (
+              <div className="model-manager">
+                <div className="model-manager__title">Loaded Models</div>
+                {loadedModels.map((model) => (
+                  <div key={model.id} className="model-manager__item">
+                    <span className="model-manager__name" title={model.label}>{model.label}</span>
+                    <div className="model-manager__actions">
+                      <button
+                        type="button"
+                        className="model-manager__button"
+                        onClick={() => handleToggleModelVisibility(model.id)}
+                      >
+                        {model.visible ? 'Hide' : 'Show'}
+                      </button>
+                      <button
+                        type="button"
+                        className="model-manager__button model-manager__button--danger"
+                        onClick={() => handleDeleteModel(model.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </bim-panel-section>
         </bim-panel-section>
 
