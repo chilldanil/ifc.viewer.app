@@ -224,6 +224,7 @@ const setupRelationsTreeSelection = (tree: HTMLElement | null, components: OBC.C
   };
 };
 const ClippingSection = React.lazy(() => import('../sidebar/ClippingSection').then(m => ({ default: m.ClippingSection })));
+const ModelTransformSection = React.lazy(() => import('../sidebar/ModelTransformSection').then(m => ({ default: m.ModelTransformSection })));
 const MinimapSection = React.lazy(() => import('../sidebar/MinimapSection').then(m => ({ default: m.MinimapSection })));
 const CameraSection = React.lazy(() => import('../sidebar/CameraSection').then(m => ({ default: m.CameraSection })));
 const MeasurementSection = React.lazy(() => import('../sidebar/MeasurementSection').then(m => ({ default: m.MeasurementSection })));
@@ -925,8 +926,15 @@ export const Sidebar: React.FC = () => {
 
         {/* Clipping controls */}
         <bim-panel-section label="Clipping" collapsed>
-          <React.Suspense fallback={<div />}> 
+          <React.Suspense fallback={<div />}>
             <ClippingSection />
+          </React.Suspense>
+        </bim-panel-section>
+
+        {/* Model Transform controls */}
+        <bim-panel-section label="Model Transform" collapsed>
+          <React.Suspense fallback={<div />}>
+            <ModelTransformSection />
           </React.Suspense>
         </bim-panel-section>
 
