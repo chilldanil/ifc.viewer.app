@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useBIM } from '../../context/BIMContext';
 import { downloadBase64Image } from '../../utils/captureScreenshot';
 import './AiVisualizerSection.css';
@@ -74,6 +75,25 @@ export const AiVisualizerSection: React.FC = () => {
     // Load API key from localStorage if available
     return localStorage.getItem('replicate_api_key') || '';
   });
+  const [viewerMode, setViewerMode] = useState<'none' | 'original' | 'result' | 'compare'>('none');
+  const [compareSplit, setCompareSplit] = useState(50);
+  const portalContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const portalNode = document.createElement('div');
+    portalNode.className = 'ai-visualizer-portal-root';
+    portalContainerRef.current = portalNode;
+    document.body.appendChild(portalNode);
+    return () => {
+      if (portalNode.parentElement) {
+        portalNode.parentElement.removeChild(portalNode);
+      }
+    };
+  }, []);
 
   const handlePresetSelect = (preset: typeof RENDER_PRESETS[0]) => {
     setPrompt(preset.prompt);
@@ -126,7 +146,57 @@ export const AiVisualizerSection: React.FC = () => {
     setOriginalImage(null);
     setResultImage(null);
     setError(null);
+    setViewerMode('none');
   };
+
+  const hasComparison = Boolean(originalImage && resultImage);
+
+  const handleCompareSlider = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setCompareSplit(Number(event.currentTarget.value));
+  };
+
+  const openViewer = (mode: 'original' | 'result' | 'compare') => {
+    if (mode === 'original' && !originalImage) {return;}
+    if (mode === 'result' && !resultImage) {return;}
+    if (mode === 'compare' && !hasComparison) {return;}
+    setViewerMode(mode);
+  };
+
+  const closeViewer = useCallback(() => {
+    setViewerMode('none');
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    if (viewerMode === 'none') {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeViewer();
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [viewerMode, closeViewer]);
+
+  useEffect(() => {
+    if (viewerMode === 'compare') {
+      setCompareSplit(50);
+    }
+  }, [viewerMode]);
 
   return (
     <div className="ai-visualizer-section">
@@ -148,7 +218,7 @@ export const AiVisualizerSection: React.FC = () => {
             onChange={(e) => setApiKey(e.target.value)}
             disabled={loading}
           />
-          <small style={{ display: 'block', marginTop: '4px', color: '#666', fontSize: '11px' }}>
+          <small className="ai-visualizer-hint">
             Get token at <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener noreferrer">replicate.com/account/api-tokens</a>
           </small>
         </div>
@@ -216,50 +286,201 @@ export const AiVisualizerSection: React.FC = () => {
               {originalImage && (
                 <div className="comparison-item">
                   <label>Original View</label>
-                  <img
-                    src={originalImage}
-                    alt="Original View"
-                    className="comparison-image"
-                  />
-                  <button
-                    onClick={handleDownloadOriginal}
-                    className="download-mini-btn"
-                  >
-                    Download
-                  </button>
+                  <div className="comparison-thumb">
+                    <img
+                      src={originalImage}
+                      alt="Original View"
+                      className="comparison-image"
+                      onClick={() => openViewer('original')}
+                    />
+                  </div>
+                  <div className="comparison-actions">
+                    <button
+                      type="button"
+                      className="preview-mini-btn"
+                      onClick={() => openViewer('original')}
+                    >
+                      Preview
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadOriginal}
+                      className="download-mini-btn"
+                    >
+                      Download
+                    </button>
+                  </div>
                 </div>
               )}
 
               {resultImage && (
                 <div className="comparison-item">
                   <label>AI Render</label>
-                  <img
-                    src={resultImage}
-                    alt="AI Rendered"
-                    className="comparison-image"
-                  />
-                  <button
-                    onClick={handleDownloadResult}
-                    className="download-mini-btn"
-                  >
-                    Download
-                  </button>
+                  <div className="comparison-thumb">
+                    <img
+                      src={resultImage}
+                      alt="AI Rendered"
+                      className="comparison-image"
+                      onClick={() => openViewer('result')}
+                    />
+                  </div>
+                  <div className="comparison-actions">
+                    <button
+                      type="button"
+                      className="preview-mini-btn"
+                      onClick={() => openViewer('result')}
+                    >
+                      Preview
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadResult}
+                      className="download-mini-btn"
+                    >
+                      Download
+                    </button>
+                  </div>
                 </div>
               )}
 
               {loading && !resultImage && (
                 <div className="comparison-item loading-placeholder">
                   <label>AI Render</label>
-                  <div className="loading-spinner">
-                    <div className="spinner"></div>
-                    <p>Generating photorealistic render...</p>
+                  <div className="comparison-thumb">
+                    <div className="spinner" />
                   </div>
+                  <p>Generating photorealistic render...</p>
                 </div>
               )}
             </div>
+
+            {hasComparison && (
+              <div className="comparison-toolbar">
+                <button
+                  type="button"
+                  className="compare-open-btn"
+                  onClick={() => openViewer('compare')}
+                >
+                  Open Compare View
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {viewerMode !== 'none' && portalContainerRef.current
+        ? createPortal(
+            <div
+              className="ai-visualizer-modal"
+              role="dialog"
+              aria-modal="true"
+              onClick={closeViewer}
+            >
+              <div
+                className="ai-visualizer-modal__content"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="ai-visualizer-modal__header">
+                  <h4 className="ai-visualizer-modal__title">
+                    {viewerMode === 'compare'
+                      ? 'Compare Result'
+                      : viewerMode === 'original'
+                      ? 'Original View'
+                      : 'AI Render'}
+                  </h4>
+                  <button
+                    type="button"
+                    className="ai-visualizer-modal__close"
+                    onClick={closeViewer}
+                    aria-label="Close preview"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {viewerMode === 'compare' && hasComparison ? (
+                  <div className="ai-visualizer-compare">
+                    <div className="compare-stage">
+                      <img
+                        src={originalImage as string}
+                        alt="Original view"
+                        className="compare-stage__image compare-stage__image--base"
+                      />
+                      <img
+                        src={resultImage as string}
+                        alt="AI render overlay"
+                        className="compare-stage__image compare-stage__image--overlay"
+                        style={{ clipPath: `inset(0 ${100 - compareSplit}% 0 0)` }}
+                      />
+                      <div
+                        className="compare-stage__divider"
+                        style={{ left: `${compareSplit}%` }}
+                      />
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={compareSplit}
+                        onChange={handleCompareSlider}
+                        className="compare-stage__slider"
+                        aria-label="Adjust comparison slider"
+                      />
+                    </div>
+                    <div className="compare-stage__labels">
+                      <span>Original</span>
+                      <span>AI Render</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="ai-visualizer-modal__image">
+                    <img
+                      src={
+                        viewerMode === 'original'
+                          ? (originalImage as string)
+                          : (resultImage as string)
+                      }
+                      alt={viewerMode === 'original' ? 'Original view' : 'AI render'}
+                    />
+                  </div>
+                )}
+
+                {viewerMode !== 'compare' && (
+                  <div className="ai-visualizer-modal__actions">
+                    {viewerMode === 'original' && originalImage && (
+                      <button
+                        type="button"
+                        className="modal-primary-btn"
+                        onClick={handleDownloadOriginal}
+                      >
+                        Download Original
+                      </button>
+                    )}
+                    {viewerMode === 'result' && resultImage && (
+                      <button
+                        type="button"
+                        className="modal-primary-btn"
+                        onClick={handleDownloadResult}
+                      >
+                        Download Render
+                      </button>
+                    )}
+                    {hasComparison && viewerMode !== 'compare' && (
+                      <button
+                        type="button"
+                        className="modal-secondary-btn"
+                        onClick={() => openViewer('compare')}
+                      >
+                        Switch to Compare
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>,
+            portalContainerRef.current
+          )
+        : null}
     </div>
   );
 };

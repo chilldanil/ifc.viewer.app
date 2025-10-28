@@ -1,12 +1,12 @@
 .ifc-viewer-library-container .measurement-tool-placeholder {
   padding: 12px;
-  background: #f8f9fa;
-  border: 2px dashed #dee2e6;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--sidebar-border);
+  border-radius: 10px;
   text-align: center;
-  color: #6c757d;
+  color: var(--sidebar-text-subtle);
   font-style: italic;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .ifc-viewer-library-container .volume-measurement-section {
@@ -14,15 +14,34 @@
 }
 
 .ifc-viewer-library-container .volume-measurement-controls {
-  padding: 0.25rem;
+  padding: 0.35rem;
 }
 
+.ifc-viewer-library-container .length-display,
 .ifc-viewer-library-container .volume-display {
-  transition: background-color 0.2s ease;
+  margin-bottom: 12px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
 }
 
+.ifc-viewer-library-container .length-display:hover,
 .ifc-viewer-library-container .volume-display:hover {
-  background: #e9ecef !important;
+  background: rgba(94, 124, 255, 0.12);
+  border-color: var(--sidebar-accent-soft);
+}
+
+.ifc-viewer-library-container .measurement-instructions {
+  font-size: 0.82rem;
+  color: var(--sidebar-text-muted);
+  line-height: 1.45;
+  margin-top: 6px;
 }
 
 .ifc-viewer-library-container .dimension-ruler-section {
@@ -31,9 +50,27 @@
 }
 
 .ifc-viewer-library-container .dimension-label {
-  font-family: Arial, sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   font-size: 12px;
   pointer-events: none;
   white-space: nowrap;
   z-index: 1000;
+  color: var(--sidebar-text);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+.ifc-viewer-library-container .measurement-empty-message {
+  color: var(--sidebar-text-subtle);
+  font-style: italic;
+}
+
+.ifc-viewer-library-container .measurement-value {
+  color: var(--sidebar-text-muted);
+  font-size: 0.84rem;
+  letter-spacing: 0.01em;
+}
+
+.ifc-viewer-library-container .measurement-value[data-empty="true"] {
+  color: var(--sidebar-text-subtle);
+  font-style: italic;
 }

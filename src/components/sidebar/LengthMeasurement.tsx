@@ -36,7 +36,7 @@ export const LengthMeasurement: React.FC = () => {
         
         <div style="margin-bottom: 12px;">
           <bim-label>Instructions:</bim-label>
-          <div style="font-size: 0.85rem; color: #666; margin-top: 4px; line-height: 1.4;">
+          <div class="measurement-instructions">
             • Enable the tool first<br/>
             • Double-click on the 3D viewport to create measurements<br/>
             • Click on elements to measure their length<br/>
@@ -44,8 +44,8 @@ export const LengthMeasurement: React.FC = () => {
           </div>
         </div>
 
-        <div class="length-display" style="margin-bottom: 12px; padding: 8px; background: #f8f9fa; border-radius: 4px; min-height: 40px; display: flex; align-items: center; justify-content: center;">
-          <span style="color: #666; font-style: italic;">
+        <div class="length-display">
+          <span class="measurement-value" data-empty="${currentLength !== null ? 'false' : 'true'}">
             ${currentLength !== null ? `Length: ${currentLength} m` : 'No element selected'}
           </span>
         </div>
@@ -157,6 +157,7 @@ export const LengthMeasurement: React.FC = () => {
       displayElement.textContent = length !== null 
         ? `Length: ${length.toFixed(3)} m`
         : 'No element selected';
+      displayElement.setAttribute('data-empty', length !== null ? 'false' : 'true');
     }
   };
 

@@ -300,11 +300,11 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
     return (
       <div className="property-editor property-editor--empty">
         <p>No editable properties found for this element.</p>
-        <p style={{ fontSize: '11px', color: '#888', marginTop: '8px' }}>
+        <p className="property-editor__meta">
           ExpressID: {selectedExpressID}<br/>
           Model: {selectedModel?.uuid.substring(0, 8)}...
         </p>
-        <p style={{ fontSize: '11px', color: '#888', marginTop: '8px' }}>
+        <p className="property-editor__meta">
           Check browser console for detailed property structure.
         </p>
       </div>

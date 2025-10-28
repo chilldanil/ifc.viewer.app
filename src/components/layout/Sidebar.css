@@ -1,3 +1,27 @@
+.ifc-viewer-library-container {
+  --sidebar-bg: rgba(9, 14, 22, 0.94);
+  --sidebar-surface: rgba(17, 24, 36, 0.92);
+  --sidebar-surface-muted: rgba(20, 27, 40, 0.88);
+  --sidebar-surface-hover: rgba(26, 34, 48, 0.95);
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-border-strong: rgba(94, 124, 255, 0.35);
+  --sidebar-divider: rgba(255, 255, 255, 0.05);
+  --sidebar-text: #eef2fb;
+  --sidebar-text-muted: rgba(196, 205, 224, 0.78);
+  --sidebar-text-subtle: rgba(154, 163, 184, 0.64);
+  --sidebar-accent: #5e7cff;
+  --sidebar-accent-soft: rgba(94, 124, 255, 0.2);
+  --sidebar-accent-strong: rgba(94, 124, 255, 0.45);
+  --sidebar-danger: #f87171;
+  --sidebar-warning: #f6c177;
+  --sidebar-success: #34d399;
+  --sidebar-info: #38bdf8;
+  --sidebar-radius: 12px;
+  --sidebar-control-height: 36px;
+  --sidebar-control-bg: rgba(13, 18, 28, 0.85);
+  --sidebar-control-hover: rgba(26, 35, 50, 0.95);
+}
+
 .ifc-viewer-library-container .sidebar {
   width: 100%;
   height: 100%;
@@ -5,10 +29,11 @@
   flex-direction: column;
   gap: 18px;
   padding: 22px 20px 26px;
-  background: transparent;
-  color: var(--ifc-text-primary, #eef2fb);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
   font-family: inherit;
   overflow: hidden;
+  backdrop-filter: blur(16px);
 }
 
 .ifc-viewer-library-container .sidebar-heading {
@@ -16,10 +41,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: var(--ifc-text-muted, #9aa3b8);
-  font-size: 0.85rem;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--sidebar-divider);
+  color: var(--sidebar-text-muted);
+  font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -33,7 +58,7 @@
   overflow-x: hidden;
   padding-right: 6px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(144, 153, 172, 0.75) transparent;
+  scrollbar-color: var(--sidebar-accent-soft) transparent;
 }
 
 .ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar {
@@ -45,118 +70,248 @@
 }
 
 .ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar-thumb {
-  background: rgba(144, 153, 172, 0.55);
+  background: var(--sidebar-accent-soft);
   border-radius: 999px;
 }
 
 .ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar-thumb:hover {
-  background: rgba(144, 153, 172, 0.75);
+  background: var(--sidebar-accent-strong);
 }
 
 .ifc-viewer-library-container .sidebar bim-panel-section {
-  margin-bottom: 6px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  margin-bottom: 10px;
+  background: var(--sidebar-surface);
+  border: 1px solid var(--sidebar-border);
+  border-radius: var(--sidebar-radius);
+  box-shadow: 0 10px 24px rgba(4, 8, 16, 0.3);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .ifc-viewer-library-container .sidebar bim-panel-section[collapsed] {
-  background: rgba(255, 255, 255, 0.01);
-}
-
-.ifc-viewer-library-container .sidebar bim-panel-section::part(content) {
-  padding: 14px 16px;
-  color: inherit;
-  font-size: 0.9rem;
+  background: var(--sidebar-surface-muted);
+  border-color: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
 }
 
 .ifc-viewer-library-container .sidebar bim-panel-section::part(header) {
-  padding: 14px 16px;
-  color: inherit;
+  padding: 16px;
+  color: var(--sidebar-text);
   font-weight: 600;
   font-size: 0.92rem;
   letter-spacing: 0.01em;
+  background: transparent;
+}
+
+.ifc-viewer-library-container .sidebar bim-panel-section::part(content) {
+  padding: 16px;
+  color: var(--sidebar-text-muted);
+  font-size: 0.9rem;
 }
 
 .ifc-viewer-library-container .sidebar bim-panel-section::part(toggle) {
-  color: inherit;
+  color: var(--sidebar-text-muted);
 }
 
-.ifc-viewer-library-container .relations-tree-container {
+.ifc-viewer-library-container .sidebar bim-panel-section:focus-within {
+  border-color: var(--sidebar-accent-strong);
+  box-shadow: 0 0 0 1px var(--sidebar-accent-soft);
+}
+
+.ifc-viewer-library-container .sidebar label,
+.ifc-viewer-library-container .sidebar .field-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--sidebar-text-muted);
+  letter-spacing: 0.025em;
+}
+
+.ifc-viewer-library-container .sidebar input:not([type="range"]):not([type="checkbox"]),
+.ifc-viewer-library-container .sidebar select,
+.ifc-viewer-library-container .sidebar textarea,
+.ifc-viewer-library-container .sidebar .sidebar-input {
+  width: 100%;
+  min-height: var(--sidebar-control-height);
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--sidebar-border);
+  background: var(--sidebar-control-bg);
+  color: var(--sidebar-text);
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.ifc-viewer-library-container .sidebar textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.ifc-viewer-library-container .sidebar input:not([type="range"]):not([type="checkbox"])::placeholder,
+.ifc-viewer-library-container .sidebar textarea::placeholder {
+  color: var(--sidebar-text-subtle);
+}
+
+.ifc-viewer-library-container .sidebar input:not([type="range"]):not([type="checkbox"]):focus,
+.ifc-viewer-library-container .sidebar select:focus,
+.ifc-viewer-library-container .sidebar textarea:focus {
+  outline: none;
+  border-color: var(--sidebar-accent);
+  background: var(--sidebar-control-hover);
+  box-shadow: 0 0 0 2px var(--sidebar-accent-soft);
+}
+
+.ifc-viewer-library-container .sidebar button,
+.ifc-viewer-library-container .sidebar .sidebar-button {
+  min-height: var(--sidebar-control-height);
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--sidebar-border);
+  background: var(--sidebar-control-bg);
+  color: var(--sidebar-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.ifc-viewer-library-container .sidebar button:hover,
+.ifc-viewer-library-container .sidebar button:focus-visible,
+.ifc-viewer-library-container .sidebar .sidebar-button:hover,
+.ifc-viewer-library-container .sidebar .sidebar-button:focus-visible {
+  outline: none;
+  background: var(--sidebar-control-hover);
+  border-color: var(--sidebar-accent-strong);
+  box-shadow: 0 6px 14px rgba(6, 10, 20, 0.35);
+  transform: translateY(-1px);
+}
+
+.ifc-viewer-library-container .sidebar button:disabled,
+.ifc-viewer-library-container .sidebar .sidebar-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.ifc-viewer-library-container .sidebar .button--primary,
+.ifc-viewer-library-container .sidebar button.primary,
+.ifc-viewer-library-container .sidebar .primary-action,
+.ifc-viewer-library-container .sidebar .model-manager__button--primary {
+  background: var(--sidebar-accent);
+  border-color: var(--sidebar-accent);
+  color: var(--sidebar-text);
+  box-shadow: 0 12px 24px rgba(94, 124, 255, 0.25);
+}
+
+.ifc-viewer-library-container .sidebar .button--primary:hover,
+.ifc-viewer-library-container .sidebar button.primary:hover,
+.ifc-viewer-library-container .sidebar .primary-action:hover,
+.ifc-viewer-library-container .sidebar .model-manager__button--primary:hover,
+.ifc-viewer-library-container .sidebar .button--primary:focus-visible,
+.ifc-viewer-library-container .sidebar button.primary:focus-visible,
+.ifc-viewer-library-container .sidebar .primary-action:focus-visible,
+.ifc-viewer-library-container .sidebar .model-manager__button--primary:focus-visible {
+  background: #708aff;
+  border-color: #8da3ff;
+}
+
+.ifc-viewer-library-container .sidebar .button--danger,
+.ifc-viewer-library-container .sidebar .model-manager__button--danger {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: var(--sidebar-danger);
+}
+
+.ifc-viewer-library-container .sidebar .button--danger:hover,
+.ifc-viewer-library-container .sidebar .model-manager__button--danger:hover {
+  background: rgba(248, 113, 113, 0.22);
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #ffe5e5;
+}
+
+.ifc-viewer-library-container .sidebar .relations-tree-container {
   position: relative;
 }
 
 .ifc-viewer-library-container .relations-tree-container bim-table-row {
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  border-radius: 10px;
+}
+
+.ifc-viewer-library-container .relations-tree-container bim-table-row:hover {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .ifc-viewer-library-container .relations-tree-container bim-table-row.relations-tree__row--selected {
-  background-color: rgba(94, 124, 255, 0.18);
-  box-shadow: inset 0 0 0 1px rgba(94, 124, 255, 0.35);
+  background: var(--sidebar-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--sidebar-accent-strong);
 }
 
 .ifc-viewer-library-container .multi-view-options {
   margin-top: 14px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .ifc-viewer-library-container .multi-view-options__button {
   border-radius: 10px;
-  border: 1px solid rgba(94, 124, 255, 0.25);
-  background: transparent;
-  padding: 8px 10px;
-  color: var(--ifc-text-primary, #eef2fb);
-  font-size: 0.8rem;
+  border: 1px solid var(--sidebar-border);
+  background: var(--sidebar-control-bg);
+  padding: 10px;
+  color: var(--sidebar-text-muted);
+  font-size: 0.78rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
 
 .ifc-viewer-library-container .multi-view-options__button:hover {
-  border-color: rgba(94, 124, 255, 0.45);
-  background: rgba(94, 124, 255, 0.14);
+  border-color: var(--sidebar-accent-strong);
+  background: var(--sidebar-control-hover);
+  color: var(--sidebar-text);
+  transform: translateY(-1px);
 }
 
 .ifc-viewer-library-container .multi-view-options__button.is-active {
-  border-color: rgba(94, 124, 255, 0.75);
+  border-color: var(--sidebar-accent);
   background: rgba(94, 124, 255, 0.24);
   color: #ffffff;
-  box-shadow: 0 6px 20px rgba(82, 113, 255, 0.25);
+  box-shadow: 0 8px 20px rgba(82, 113, 255, 0.3);
 }
 
 .ifc-viewer-library-container .model-manager {
   margin-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .ifc-viewer-library-container .model-manager__title {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--ifc-text-muted, #9aa3b8);
+  color: var(--sidebar-text-muted);
 }
 
 .ifc-viewer-library-container .model-manager__item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--sidebar-surface-muted);
+  border: 1px solid var(--sidebar-border);
 }
 
 .ifc-viewer-library-container .model-manager__name {
   flex: 1;
   min-width: 0;
   font-size: 0.9rem;
-  color: var(--ifc-text-primary, #eef2fb);
+  color: var(--sidebar-text);
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
@@ -168,43 +323,32 @@
 }
 
 .ifc-viewer-library-container .model-manager__button {
-  border: 1px solid rgba(94, 124, 255, 0.35);
-  background: transparent;
-  color: var(--ifc-text-primary, #eef2fb);
+  min-height: 32px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 9px;
+  border: 1px solid var(--sidebar-border);
+  background: var(--sidebar-control-bg);
+  color: var(--sidebar-text-muted);
   font-size: 0.78rem;
-  padding: 6px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
 
 .ifc-viewer-library-container .model-manager__button:hover {
-  background: rgba(94, 124, 255, 0.18);
-  border-color: rgba(94, 124, 255, 0.55);
-}
-
-.ifc-viewer-library-container .model-manager__button--danger {
-  border-color: rgba(220, 53, 69, 0.55);
-  color: #ff8a9a;
-}
-
-.ifc-viewer-library-container .model-manager__button--danger:hover {
-  background: rgba(220, 53, 69, 0.18);
-  border-color: rgba(220, 53, 69, 0.75);
-  color: #ffd7dd;
-}
-
-.ifc-viewer-library-container .sidebar bim-button,
-.ifc-viewer-library-container .sidebar bim-text-input,
-.ifc-viewer-library-container .sidebar bim-checkbox,
-.ifc-viewer-library-container .sidebar bim-color-input,
-.ifc-viewer-library-container .sidebar bim-number-input {
-  font-family: inherit;
+  background: var(--sidebar-control-hover);
+  border-color: var(--sidebar-accent-strong);
+  color: var(--sidebar-text);
+  transform: translateY(-1px);
 }
 
 .ifc-viewer-library-container .sidebar bim-text-input,
 .ifc-viewer-library-container .sidebar bim-number-input {
   width: 100%;
+  font-family: inherit;
+}
+
+.ifc-viewer-library-container .sidebar bim-button {
+  font-family: inherit;
+  color: inherit;
 }
 
 .ifc-viewer-library-container .sidebar .visibility-container {
@@ -219,26 +363,22 @@
   }
 }
 
-/* Add some padding to the panel content to prevent content from touching scrollbar */
 .ifc-viewer-library-container .sidebar bim-panel > * {
   padding-right: 4px;
 }
 
-/* Mobile-friendly touch scrolling */
 @media (max-width: 768px) {
   .ifc-viewer-library-container .sidebar bim-panel {
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-    scrollbar-width: thin; /* Keep thin scrollbar on mobile */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
-  
-  /* Make webkit scrollbar thinner on mobile */
+
   .ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar {
     width: 4px;
   }
 }
 
-/* Focus states for accessibility */
 .ifc-viewer-library-container .sidebar bim-panel:focus {
-  outline: 2px solid var(--ifc-accent, #5e7cff);
+  outline: 2px solid var(--sidebar-accent);
   outline-offset: -2px;
 }

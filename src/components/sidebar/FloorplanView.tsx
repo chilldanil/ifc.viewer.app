@@ -158,83 +158,120 @@ export const FloorPlanSection: React.FC = () => {
 
     const html = `
       <style>
-        /* Specific height override for toggle button */
-        .floor-plan-controls.camera-style-buttons bim-button[name="toggleFloorPlan"] {
-          height: 32px !important;
-          min-height: 32px !important;
-          padding: 0 8px !important;
-          line-height: 32px !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          color: white !important;
+        .camera-style-buttons bim-button,
+        .camera-style-buttons bim-button::part(button) {
+          min-height: 34px;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 10px;
+          border-radius: 10px;
+          border: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.06));
+          background: var(--sidebar-control-bg, rgba(13, 18, 28, 0.85));
+          color: var(--sidebar-text, #eef2fb);
+          font-size: 0.82rem;
+          font-weight: 600;
+          letter-spacing: 0.03em;
+          text-shadow: none;
+          box-shadow: none;
+          transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
         }
-        /* Specific height override for reset button */
-        .floor-plan-controls.camera-style-buttons bim-button[name="resetAll"] {
-          height: 32px !important;
-          min-height: 32px !important;
-          padding: 0 8px !important;
-          line-height: 32px !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          color: white !important;
-        }
-        /* Specific height override for view control buttons */
-        .floor-plan-controls.camera-style-buttons bim-button[name="topViewBtn"],
-        .floor-plan-controls.camera-style-buttons bim-button[name="fitViewBtn"] {
-          height: 32px !important;
-          min-height: 32px !important;
-          padding: 0 8px !important;
-          line-height: 32px !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          color: white !important;
-        }
-        .camera-style-buttons bim-button {
-          /* Reset all FloorPlanSection.css overrides */
-          background: #2E3338 !important;
-          color: #ffffff !important;
-          border: 1px solid #616161 !important;
-          border-radius: 4px !important;
-          padding: 8px 16px !important;
-          font-size: 14px !important;
-          font-weight: normal !important;
-          text-shadow: none !important;
-          box-shadow: none !important;
-          margin-bottom: 0 !important;
-          transform: none !important;
-          transition: none !important;
-        }
+
+        .camera-style-buttons bim-button:hover::part(button),
         .camera-style-buttons bim-button:hover {
-          background: #3A3F44 !important;
-          color: #ffffff !important;
-          border-color: #757575 !important;
-          transform: none !important;
-          box-shadow: none !important;
+          background: var(--sidebar-control-hover, rgba(26, 35, 50, 0.95));
+          border-color: var(--sidebar-accent-strong, rgba(94, 124, 255, 0.45));
         }
-        /* Override all specific selectors from FloorPlanSection.css */
-        .floor-plan-controls.camera-style-buttons bim-button,
-        .floor-plan-controls.camera-style-buttons > div:first-child bim-button {
-          background: #2E3338 !important;
-          color: #ffffff !important;
-          border: 1px solid #616161 !important;
-          border-radius: 4px !important;
-          padding: 8px 16px !important;
-          font-size: 14px !important;
-          font-weight: normal !important;
-          text-shadow: none !important;
-          box-shadow: none !important;
-          margin-bottom: 0 !important;
+
+        .camera-style-buttons bim-button[disabled]::part(button),
+        .camera-style-buttons bim-button[disabled] {
+          opacity: 0.45;
+          cursor: not-allowed;
         }
-        .floor-plan-controls.camera-style-buttons bim-button:hover,
-        .floor-plan-controls.camera-style-buttons > div:first-child bim-button:hover {
-          background: #3A3F44 !important;
-          color: #ffffff !important;
-          border-color: #757575 !important;
-          transform: none !important;
-          box-shadow: none !important;
+
+        .camera-style-buttons .floors-panel-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 14px;
+          background: var(--sidebar-surface-muted, rgba(20, 27, 40, 0.88));
+          color: var(--sidebar-text, #eef2fb);
+          border-radius: 12px 12px 0 0;
+          border: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.06));
+          cursor: pointer;
+          user-select: none;
+          transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .camera-style-buttons .floors-panel-header:hover {
+          background: var(--sidebar-control-hover, rgba(26, 35, 50, 0.95));
+          border-color: var(--sidebar-accent-strong, rgba(94, 124, 255, 0.45));
+        }
+
+        .camera-style-buttons .floors-panel-header[data-expanded="true"] .floors-toggle-arrow {
+          transform: rotate(180deg);
+        }
+
+        .camera-style-buttons .floors-panel-title {
+          font-size: 0.85rem;
+          font-weight: 600;
+          letter-spacing: 0.03em;
+          color: inherit;
+        }
+
+        .camera-style-buttons .floors-toggle-arrow {
+          font-size: 0.75rem;
+          transition: transform 0.2s ease;
+          color: inherit;
+        }
+
+        .camera-style-buttons .floors-panel-content {
+          background: var(--sidebar-surface-muted, rgba(20, 27, 40, 0.88));
+          border: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.06));
+          border-top: none;
+          border-radius: 0 0 12px 12px;
+          max-height: 200px;
+          overflow-y: auto;
+        }
+
+        .camera-style-buttons .floor-option {
+          padding: 10px 14px;
+          cursor: pointer;
+          color: var(--sidebar-text-muted, rgba(196, 205, 224, 0.78));
+          border-bottom: 1px solid var(--sidebar-divider, rgba(255, 255, 255, 0.05));
+          font-size: 0.82rem;
+          transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .camera-style-buttons .floor-option:last-child {
+          border-bottom: none;
+        }
+
+        .camera-style-buttons .floor-option:hover {
+          background: var(--sidebar-control-hover, rgba(26, 35, 50, 0.95));
+          color: var(--sidebar-text, #eef2fb);
+        }
+
+        .camera-style-buttons .floor-option[data-active="true"] {
+          background: rgba(94, 124, 255, 0.24);
+          color: #ffffff;
+          border-bottom-color: rgba(94, 124, 255, 0.35);
+        }
+
+        .camera-style-buttons .floor-info {
+          margin-top: 12px;
+          padding: 12px;
+          font-size: 0.82rem;
+          color: var(--sidebar-text-muted, rgba(196, 205, 224, 0.78));
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 10px;
+          border: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.06));
+          line-height: 1.45;
+        }
+
+        .camera-style-buttons .floor-info strong {
+          color: var(--sidebar-text, #eef2fb);
         }
       </style>
       <div class="floor-plan-controls camera-style-buttons">
@@ -242,7 +279,7 @@ export const FloorPlanSection: React.FC = () => {
           <bim-button 
             label="${isFloorPlanMode ? 'Exit Floor Plan' : 'Enter Floor Plan'}" 
             name="toggleFloorPlan"
-            style="width: 100%; height: 20px;">
+            style="width: 100%;">
           </bim-button>
         </div>
         
@@ -252,41 +289,15 @@ export const FloorPlanSection: React.FC = () => {
             <div 
               class="floors-panel-header" 
               name="floorsToggle"
-              style="
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                padding: 8px 12px; 
-                background: #2E3338; 
-                color: #ffffff; 
-                border-radius: 4px; 
-                cursor: pointer; 
-                user-select: none;
-                border: 1px solid #616161;
-              "
+              data-expanded="${isFloorsExpanded}"
             >
-              <span style="font-weight: 500; font-size: 14px;">Floors</span>
-              <span 
-                class="floors-toggle-arrow" 
-                style="
-                  font-size: 12px; 
-                  transition: transform 0.2s ease;
-                  transform: rotate(${isFloorsExpanded ? '180deg' : '0deg'});
-                "
-              >▼</span>
+              <span class="floors-panel-title">Floors</span>
+              <span class="floors-toggle-arrow">▼</span>
             </div>
             
             <div 
               class="floors-panel-content" 
-              style="
-                display: ${isFloorsExpanded ? 'block' : 'none'};
-                background: #3a3a3a;
-                border: 1px solid #404040;
-                border-top: none;
-                border-radius: 0 0 4px 4px;
-                max-height: 200px;
-                overflow-y: auto;
-              "
+              style="display: ${isFloorsExpanded ? 'block' : 'none'};"
             >
               ${availableFloors.map(floor => `
                 <div 
@@ -294,17 +305,7 @@ export const FloorPlanSection: React.FC = () => {
                   name="selectFloor"
                   data-floor-id="${floor.id}"
                   data-floor-name="${floor.name}"
-                  style="
-                    padding: 8px 12px; 
-                    cursor: pointer; 
-                    color: #ffffff;
-                    background: ${selectedFloor === floor.id ? '#007acc' : 'transparent'};
-                    border-bottom: 1px solid #404040;
-                    font-size: 13px;
-                    transition: background-color 0.2s ease;
-                  "
-                  onmouseover="this.style.backgroundColor='${selectedFloor === floor.id ? '#0066b3' : '#4a4a4a'}'"
-                  onmouseout="this.style.backgroundColor='${selectedFloor === floor.id ? '#007acc' : 'transparent'}'"
+                  data-active="${selectedFloor === floor.id ? 'true' : 'false'}"
                 >
                   ${floor.name}${floor.elevation && floor.elevation !== 0 ? ` (${floor.elevation.toFixed(1)}m)` : ''}
                 </div>
@@ -313,13 +314,13 @@ export const FloorPlanSection: React.FC = () => {
           </div>
           
           ${selectedFloor ? `
-            <div style="margin-bottom: 12px; padding: 0 8px; background: #2E3338; border: 1px solid #616161; border-radius: 4px; font-size: 14px; color: white; height: 32px; display: flex; align-items: center; justify-content: center;">
+            <div class="active-floor-display">
               <strong>Active Floor:</strong> ${availableFloors.find(f => f.id === selectedFloor)?.name || 'Unknown'}
             </div>
           ` : ''}
           
           <div style="margin-bottom: 12px;">
-            <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
               <bim-button 
                 label="Reset & Show All" 
                 name="resetAll"
@@ -329,7 +330,7 @@ export const FloorPlanSection: React.FC = () => {
           </div>
 
           <div style="margin-bottom: 12px;">
-            <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
               <bim-button 
                 label="Top View" 
                 name="topViewBtn"
@@ -344,7 +345,7 @@ export const FloorPlanSection: React.FC = () => {
           </div>
         ` : ''}
         
-        <div class="floor-info" style="font-size: 0.85rem; color: #666; margin-top: 12px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+        <div class="floor-info">
           ${availableFloors.length > 0 
             ? `Found ${availableFloors.length} floor(s) in the model.<br/><br/>
                <strong>How to use:</strong><br/>
@@ -366,78 +367,9 @@ export const FloorPlanSection: React.FC = () => {
     // Add event listeners
     setupEventListeners(wrapper);
     
-    // Force button text colors after UI update
-    setTimeout(() => {
-      const buttons = wrapper.querySelectorAll('bim-button');
-      buttons.forEach((button: any) => {
-        button.style.setProperty('color', '#ffffff', 'important');
-        button.style.setProperty('--color', '#ffffff', 'important');
-        button.style.setProperty('--text-color', '#ffffff', 'important');
-        
-        if (button.shadowRoot) {
-          try {
-            const existingStyle = button.shadowRoot.querySelector('style[data-force-color]');
-            if (!existingStyle) {
-              const style = document.createElement('style');
-              style.setAttribute('data-force-color', 'true');
-              style.textContent = `* { color: #ffffff !important; } button { color: #ffffff !important; } span { color: #ffffff !important; }`;
-              button.shadowRoot.appendChild(style);
-            }
-          } catch (e) {
-            console.warn('Could not access shadow root:', e);
-          }
-        }
-      });
-    }, 50);
   };
 
   const setupEventListeners = (wrapper: HTMLElement) => {
-    // Force override bim-button text colors
-    const forceButtonTextColors = () => {
-      const buttons = wrapper.querySelectorAll('bim-button');
-      buttons.forEach((button: any) => {
-        // Force style on the button element itself
-        button.style.setProperty('color', '#ffffff', 'important');
-        button.style.setProperty('--color', '#ffffff', 'important');
-        button.style.setProperty('--text-color', '#ffffff', 'important');
-        
-        // Try to access shadow root if available
-        if (button.shadowRoot) {
-          try {
-            const style = document.createElement('style');
-            style.textContent = `
-              * { 
-                color: #ffffff !important; 
-                --color: #ffffff !important;
-              }
-              button { 
-                color: #ffffff !important; 
-              }
-              span { 
-                color: #ffffff !important; 
-              }
-              .label { 
-                color: #ffffff !important; 
-              }
-            `;
-            button.shadowRoot.appendChild(style);
-          } catch (e) {
-            console.warn('Could not access shadow root for button styling:', e);
-          }
-        }
-        
-        // Also try to set attributes that might affect styling
-        button.setAttribute('style', button.getAttribute('style') + '; color: #ffffff !important;');
-      });
-    };
-
-    // Apply the color override immediately
-    forceButtonTextColors();
-    
-    // Also apply after a short delay to catch any dynamically created content
-    setTimeout(forceButtonTextColors, 100);
-    setTimeout(forceButtonTextColors, 500);
-
     // Toggle floor plan mode
     const toggleBtn = wrapper.querySelector('bim-button[name="toggleFloorPlan"]') as any;
     toggleBtn?.addEventListener('click', () => {

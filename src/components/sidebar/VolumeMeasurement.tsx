@@ -50,13 +50,13 @@ export const VolumeMeasurement: React.FC = () => {
         
         <div style="margin-bottom: 12px;">
           <bim-label>Instructions:</bim-label>
-          <div style="font-size: 0.85rem; color: #666; margin-top: 4px; line-height: 1.4;">
+          <div class="measurement-instructions">
             • Left click on an element to measure its volume<br/>
           </div>
         </div>
 
-        <div class="volume-display" style="margin-bottom: 12px; padding: 8px; background: #f8f9fa; border-radius: 4px; min-height: 40px; display: flex; align-items: center; justify-content: center;">
-          <span style="color: #666; font-style: italic;">
+        <div class="volume-display">
+          <span class="measurement-value" data-empty="${currentVolume !== null ? 'false' : 'true'}">
             ${currentVolume !== null ? `Volume: ${currentVolume.toFixed(3)} m³` : 'No element selected'}
           </span>
         </div>
@@ -156,6 +156,7 @@ export const VolumeMeasurement: React.FC = () => {
       displayElement.textContent = volume !== null 
         ? `Volume: ${volume.toFixed(3)} m³`
         : 'No element selected';
+      displayElement.setAttribute('data-empty', volume !== null ? 'false' : 'true');
     }
   };
 
