@@ -14,7 +14,7 @@ import './DragAndDropOverlay.css';
 type Props = { container: HTMLElement | null };
 
 const DragAndDropOverlay: React.FC<Props> = ({ container }) => {
-  const { components } = useBIM();
+  const { components, propertyEditingService } = useBIM();
 
   // Indicates whether the overlay is visible (drag in progress)
   const [isDragging, setIsDragging] = useState(false);
@@ -53,7 +53,14 @@ const DragAndDropOverlay: React.FC<Props> = ({ container }) => {
 
       if (!components) {return;}
 
-      const { loadFromBuffer } = setupIfcLoader(components);
+      const { loadFromBuffer, onModelLoaded } = setupIfcLoader(components, propertyEditingService ?? undefined);
+
+      // Set up model loaded callback
+      if (onModelLoaded) {
+        onModelLoaded((modelId) => {
+          console.log('Model loaded via drag and drop:', modelId);
+        });
+      }
       const files = e.dataTransfer?.files;
       if (files && files.length > 0) {
         const file = files[0];

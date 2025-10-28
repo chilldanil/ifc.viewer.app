@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import './Sidebar.css';
 import { bridge } from '../../utils/bridge';
 import { useElectronFileOpen } from '../../hooks/useElectronFileOpen';
+import { useElementSelection } from '../../hooks/useElementSelection';
 
 type FragmentIdCollection = Map<string | number, unknown> | Record<string, unknown> | undefined | null;
 
@@ -225,6 +226,8 @@ const setupRelationsTreeSelection = (tree: HTMLElement | null, components: OBC.C
 };
 const ClippingSection = React.lazy(() => import('../sidebar/ClippingSection').then(m => ({ default: m.ClippingSection })));
 const ModelTransformSection = React.lazy(() => import('../sidebar/ModelTransformSection').then(m => ({ default: m.ModelTransformSection })));
+const PropertyEditor = React.lazy(() => import('../sidebar/PropertyEditor').then(m => ({ default: m.PropertyEditor })));
+const ExportModifiedIfc = React.lazy(() => import('../sidebar/ExportModifiedIfc').then(m => ({ default: m.ExportModifiedIfc })));
 const MinimapSection = React.lazy(() => import('../sidebar/MinimapSection').then(m => ({ default: m.MinimapSection })));
 const CameraSection = React.lazy(() => import('../sidebar/CameraSection').then(m => ({ default: m.CameraSection })));
 const MeasurementSection = React.lazy(() => import('../sidebar/MeasurementSection').then(m => ({ default: m.MeasurementSection })));
@@ -247,13 +250,17 @@ export const Sidebar: React.FC = () => {
     onObjectSelected,
     multiViewPreset,
     setMultiViewPreset,
+    propertyEditingService,
   } = useBIM();
   const loadButtonContainerRef = useRef<HTMLDivElement>(null);
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const [loadedModels, setLoadedModels] = useState<LoadedModel[]>([]);
 
+  // Use dedicated hook for element selection tracking
+  const { selectedModel, selectedExpressID } = useElementSelection(components, world);
+
   // Enable Electron file opening from menu
-  useElectronFileOpen(components);
+  useElectronFileOpen(components, propertyEditingService);
 
   // References for visibility controls container and panel
   const visibilityContainerRef = useRef<HTMLDivElement>(null);
@@ -586,8 +593,58 @@ export const Sidebar: React.FC = () => {
             console.log('Setting up Element Properties event handlers');
             
             const highlightHandler = (fragmentIdMap: any) => {
-              console.log('Element selection changed:', fragmentIdMap);
+              console.log('=== Element Selection Event ===');
+              console.log('fragmentIdMap:', fragmentIdMap);
               updatePropertiesTable({ fragmentIdMap });
+
+              // Track selection for PropertyEditor
+              try {
+                const fragmentsManager = components.get(OBC.FragmentsManager);
+                console.log('FragmentsManager groups count:', fragmentsManager.groups.size);
+
+                // Get first selected element
+                let foundSelection = false;
+                for (const [fragmentId, expressIds] of Object.entries(fragmentIdMap)) {
+                  const expressIdSet = expressIds as Set<number>;
+                  console.log(`Fragment ${fragmentId} has ${expressIdSet?.size || 0} express IDs`);
+
+                  if (expressIdSet && expressIdSet.size > 0) {
+                    const firstExpressId = Array.from(expressIdSet)[0];
+                    console.log('First ExpressID:', firstExpressId);
+
+                    // Find the model that contains this fragment
+                    for (const [groupId, group] of fragmentsManager.groups) {
+                      console.log(`Checking group ${groupId}...`);
+
+                      // Try to find if this group contains the fragment
+                      try {
+                        const fragmentMap = group.getFragmentMap([firstExpressId]);
+                        console.log('Fragment map result:', fragmentMap);
+
+                        if (fragmentMap && Object.keys(fragmentMap).length > 0) {
+                          console.log('✅ Found model for selection!');
+                          console.log('Model UUID:', group.uuid);
+                          console.log('ExpressID:', firstExpressId);
+                          // Selection is now handled by useElementSelection hook
+                          foundSelection = true;
+                          break;
+                        }
+                      } catch (err) {
+                        console.warn('Error checking group:', err);
+                      }
+                    }
+
+                    if (foundSelection) break;
+                  }
+                }
+
+                if (!foundSelection) {
+                  console.warn('❌ No model found for selected fragments');
+                }
+              } catch (e) {
+                console.error('Failed to track selection for PropertyEditor:', e);
+              }
+
               // Notify host if callback provided
               try {
                 onObjectSelected?.(fragmentIdMap);
@@ -599,6 +656,7 @@ export const Sidebar: React.FC = () => {
             const clearHandler = () => {
               console.log('Element selection cleared');
               updatePropertiesTable({ fragmentIdMap: {} });
+              // Selection clear is now handled by useElementSelection hook
             };
 
             highlighter.events.select.onHighlight.add(highlightHandler);
@@ -938,9 +996,21 @@ export const Sidebar: React.FC = () => {
           </React.Suspense>
         </bim-panel-section>
 
-        {/* Element Properties */}
-        <bim-panel-section label="Element Properties" collapsed>
-          <div ref={propertiesContainerRef} />
+        {/* Element Properties - Enhanced with Editing */}
+        <bim-panel-section label="Element Properties (Editable)" collapsed>
+          <React.Suspense fallback={<div>Loading...</div>}>
+            <PropertyEditor
+              selectedModel={selectedModel}
+              selectedExpressID={selectedExpressID}
+            />
+          </React.Suspense>
+        </bim-panel-section>
+
+        {/* Export Modified IFC */}
+        <bim-panel-section label="Export Modified IFC" collapsed>
+          <React.Suspense fallback={<div>Loading...</div>}>
+            <ExportModifiedIfc />
+          </React.Suspense>
         </bim-panel-section>
 
         {/* AI Visualizer */}

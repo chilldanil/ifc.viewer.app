@@ -75,7 +75,7 @@ export const ModelTransformSection: React.FC = () => {
 
       // Attach to the model
       controls.attach(targetModel);
-      controls.mode = mode;
+      (controls as any).setMode?.(mode) || ((controls as any).mode = mode);
       attachedModelRef.current = targetModel;
 
       // Add the gizmo (helper Object3D) to the scene if not already present
@@ -141,7 +141,8 @@ export const ModelTransformSection: React.FC = () => {
     setMode(newMode);
 
     if (transformControlsRef.current && active) {
-      transformControlsRef.current.mode = newMode;
+      const controls = transformControlsRef.current as any;
+      controls.setMode?.(newMode) || (controls.mode = newMode);
     }
   };
 

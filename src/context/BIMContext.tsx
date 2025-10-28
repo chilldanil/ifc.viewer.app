@@ -3,6 +3,7 @@ import * as OBC from '@thatopen/components';
 import { useBIMInitialization } from '../hooks/useBIMInitialization';
 import { MinimapConfig } from '../components/bim/Minimap';
 import { captureScreenshot as captureScreenshotUtil } from '../utils/captureScreenshot';
+import { PropertyEditingService } from '../core/services/propertyEditingService';
 
 export interface SelectionMap {
   [fragmentId: string]: Set<string>;
@@ -30,6 +31,7 @@ interface BIMContextType {
   onError?: (error: unknown) => void;
   multiViewPreset: MultiViewPreset;
   setMultiViewPreset: (preset: MultiViewPreset) => void;
+  propertyEditingService: PropertyEditingService | null;
   retry: () => void;
   reset: () => void;
   cleanup: () => void;
@@ -69,6 +71,7 @@ const BIMContext = createContext<BIMContextType>({
   onError: undefined,
   multiViewPreset: 'single',
   setMultiViewPreset: () => {},
+  propertyEditingService: null,
   retry: () => {},
   reset: () => {},
   cleanup: () => {},
@@ -95,10 +98,28 @@ export const BIMProvider: React.FC<BIMProviderProps> = ({
   const [minimapConfig, setMinimapConfigState] = useState<MinimapConfig>(DEFAULT_MINIMAP_CONFIG);
   const [viewCubeEnabled, setViewCubeEnabled] = useState(true);
   const [multiViewPreset, setMultiViewPreset] = useState<MultiViewPreset>('single');
+  const [propertyEditingService, setPropertyEditingService] = useState<PropertyEditingService | null>(null);
   const visibilityPanelRef = useRef<HTMLElement | null>(null);
 
   const { components, isInitialized, isLoading, error, retry, reset, cleanup } =
     useBIMInitialization();
+
+  // Initialize property editing service when components are ready
+  React.useEffect(() => {
+    if (components && !propertyEditingService) {
+      const initService = async () => {
+        try {
+          const { setupPropertyEditing } = await import('../core/services/propertyEditingService');
+          const service = await setupPropertyEditing(components);
+          setPropertyEditingService(service);
+          console.log('Property editing service initialized');
+        } catch (error) {
+          console.error('Failed to initialize property editing service:', error);
+        }
+      };
+      initService();
+    }
+  }, [components]);
 
   const setMinimapConfig = (config: Partial<MinimapConfig>) => {
     setMinimapConfigState((prev) => ({ ...prev, ...config }));
@@ -154,6 +175,7 @@ export const BIMProvider: React.FC<BIMProviderProps> = ({
         setViewCubeEnabled,
         multiViewPreset,
         setMultiViewPreset,
+        propertyEditingService,
         onObjectSelected,
         onModelLoaded,
         onError,

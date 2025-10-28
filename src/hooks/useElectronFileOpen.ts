@@ -2,11 +2,15 @@ import { useEffect } from 'react';
 import { onFileOpened, getElectronAPI, isElectron } from '../utils/electronUtils';
 import { setupIfcLoader } from '../core/services/ifcLoaderService';
 import type { Components } from '@thatopen/components';
+import { PropertyEditingService } from '../core/services/propertyEditingService';
 
 /**
  * Hook to handle file opening from Electron's native menu
  */
-export function useElectronFileOpen(components: Components | null) {
+export function useElectronFileOpen(
+  components: Components | null,
+  propertyEditingService?: PropertyEditingService | null
+) {
   useEffect(() => {
     if (!components || !isElectron()) {
       return;
@@ -26,7 +30,17 @@ export function useElectronFileOpen(components: Components | null) {
         const uint8Array = new Uint8Array(arrayBuffer);
 
         // Load the IFC file
-        const { loadFromBuffer } = setupIfcLoader(components);
+        const { loadFromBuffer, onModelLoaded } = setupIfcLoader(
+          components,
+          propertyEditingService ?? undefined
+        );
+
+        // Set up model loaded callback
+        if (onModelLoaded) {
+          onModelLoaded((modelId) => {
+            console.log('Model loaded via Electron:', modelId);
+          });
+        }
         await loadFromBuffer(uint8Array);
       } catch (error) {
         console.error('Failed to load IFC file from Electron:', error);
@@ -41,5 +55,5 @@ export function useElectronFileOpen(components: Components | null) {
         unsubscribe();
       }
     };
-  }, [components]);
+  }, [components, propertyEditingService]);
 }

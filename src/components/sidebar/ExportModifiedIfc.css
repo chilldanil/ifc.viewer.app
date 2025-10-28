@@ -1,0 +1,105 @@
+.ifc-viewer-library-container .export-modified-ifc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__info {
+  padding: 10px;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #1976d2;
+  line-height: 1.4;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__warning {
+  padding: 10px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #856404;
+  text-align: center;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__field select {
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__field select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__field select:focus {
+  outline: none;
+  border-color: #353985;
+  box-shadow: 0 0 0 2px rgba(53, 57, 133, 0.1);
+}
+
+.ifc-viewer-library-container .export-modified-ifc__status {
+  padding: 8px 10px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #555;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__status strong {
+  color: #333;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__status--modified {
+  color: #f57c00;
+  font-weight: 600;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__status--clean {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__button {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  background: #353985;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ifc-viewer-library-container .export-modified-ifc__button:hover:not(:disabled) {
+  background: #2a2d6b;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ifc-viewer-library-container .export-modified-ifc__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
