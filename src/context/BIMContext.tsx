@@ -28,10 +28,14 @@ interface BIMContextType {
   onObjectSelected?: (selection: SelectionMap) => void;
   onModelLoaded?: (meta: Record<string, unknown>) => void;
   onError?: (error: unknown) => void;
+  multiViewPreset: MultiViewPreset;
+  setMultiViewPreset: (preset: MultiViewPreset) => void;
   retry: () => void;
   reset: () => void;
   cleanup: () => void;
 }
+
+export type MultiViewPreset = 'single' | 'dual' | 'triple' | 'quad';
 
 const DEFAULT_MINIMAP_CONFIG: MinimapConfig = {
   enabled: true,
@@ -63,6 +67,8 @@ const BIMContext = createContext<BIMContextType>({
   onObjectSelected: undefined,
   onModelLoaded: undefined,
   onError: undefined,
+  multiViewPreset: 'single',
+  setMultiViewPreset: () => {},
   retry: () => {},
   reset: () => {},
   cleanup: () => {},
@@ -88,6 +94,7 @@ export const BIMProvider: React.FC<BIMProviderProps> = ({
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [minimapConfig, setMinimapConfigState] = useState<MinimapConfig>(DEFAULT_MINIMAP_CONFIG);
   const [viewCubeEnabled, setViewCubeEnabled] = useState(true);
+  const [multiViewPreset, setMultiViewPreset] = useState<MultiViewPreset>('single');
   const visibilityPanelRef = useRef<HTMLElement | null>(null);
 
   const { components, isInitialized, isLoading, error, retry, reset, cleanup } =
@@ -145,6 +152,8 @@ export const BIMProvider: React.FC<BIMProviderProps> = ({
         captureScreenshot,
         viewCubeEnabled,
         setViewCubeEnabled,
+        multiViewPreset,
+        setMultiViewPreset,
         onObjectSelected,
         onModelLoaded,
         onError,

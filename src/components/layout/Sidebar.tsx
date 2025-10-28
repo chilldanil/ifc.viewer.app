@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useBIM } from '../../context/BIMContext';
+import { MultiViewPreset, useBIM } from '../../context/BIMContext';
 import * as BUIC from '@thatopen/ui-obc';
 import * as BUI from '@thatopen/ui';
 import * as OBCF from '@thatopen/components-front';
@@ -19,6 +19,13 @@ type LoadedModel = {
 
 const SELECT_HIGHLIGHTER = 'select';
 const HOVER_HIGHLIGHTER = 'hover';
+
+const MULTI_VIEW_OPTIONS: Array<{ id: MultiViewPreset; label: string }> = [
+  { id: 'single', label: 'Single' },
+  { id: 'dual', label: '2 Views' },
+  { id: 'triple', label: '3 Views' },
+  { id: 'quad', label: '4 Views' },
+];
 
 const fragmentKey = (modelId: string | number, expressId: number) => `${modelId}:${expressId}`;
 
@@ -230,7 +237,16 @@ const ViewCubeSection = React.lazy(() => import('../sidebar/ViewCubeSection').th
 // import { MinimapSectionAlt } from '../sidebar/MinimapSectionAlt';
 
 export const Sidebar: React.FC = () => {
-  const { components, world, visibilityPanelRef: visibilityPanelContextRef, minimapConfig, setMinimapConfig, onObjectSelected } = useBIM();
+  const {
+    components,
+    world,
+    visibilityPanelRef: visibilityPanelContextRef,
+    minimapConfig,
+    setMinimapConfig,
+    onObjectSelected,
+    multiViewPreset,
+    setMultiViewPreset,
+  } = useBIM();
   const loadButtonContainerRef = useRef<HTMLDivElement>(null);
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const [loadedModels, setLoadedModels] = useState<LoadedModel[]>([]);
@@ -803,6 +819,18 @@ export const Sidebar: React.FC = () => {
             <div ref={loadButtonContainerRef} />
             <bim-text-input placeholder="Search..." debounce="200" />
             <div ref={treeContainerRef} className="relations-tree-container" />
+            <div className="multi-view-options">
+              {MULTI_VIEW_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`multi-view-options__button${multiViewPreset === option.id ? ' is-active' : ''}`}
+                  onClick={() => setMultiViewPreset(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
             {loadedModels.length > 0 && (
               <div className="model-manager">
                 <div className="model-manager__title">Loaded Models</div>

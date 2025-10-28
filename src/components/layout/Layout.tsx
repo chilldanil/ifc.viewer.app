@@ -1,5 +1,6 @@
 import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import { Viewport } from '../bim/Viewport';
+import { SecondaryViewport } from '../bim/SecondaryViewport';
 import { Sidebar } from './Sidebar';
 import { useBIM } from '../../context/BIMContext';
 import DragAndDropOverlay from '../DragAndDropOverlay';
@@ -20,7 +21,7 @@ const getDefaultSidebarWidth = () => {
 };
 
 export const Layout: React.FC = () => {
-  const { isInitialized, isLoading, error, retry } = useBIM();
+  const { isInitialized, isLoading, error, retry, multiViewPreset } = useBIM();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isSidebarVisible, setSidebarVisible] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => getDefaultSidebarWidth());
@@ -135,6 +136,21 @@ export const Layout: React.FC = () => {
     };
   }, [handlePointerMove, stopResizing]);
 
+  // Calculate extra views based on multiViewPreset (must be before conditional returns)
+  const presetKey = multiViewPreset ?? 'single';
+  const extraViews = useMemo(() => {
+    switch (presetKey) {
+      case 'dual':
+        return ['front'] as const;
+      case 'triple':
+        return ['front', 'front'] as const;
+      case 'quad':
+        return ['front', 'front', 'front'] as const;
+      default:
+        return [] as const;
+    }
+  }, [presetKey]);
+
   if (isLoading) {
     return (
       <div className="loading">
@@ -171,7 +187,7 @@ export const Layout: React.FC = () => {
   }
 
   return (
-    <div ref={containerRef} className={containerClassName} style={layoutStyle}>
+    <div ref={containerRef} className={`${containerClassName} multi-view--${presetKey}`} style={layoutStyle}>
       <DragAndDropOverlay container={containerRef.current} />
       <button
         type="button"
@@ -208,9 +224,18 @@ export const Layout: React.FC = () => {
         <Sidebar />
         <div className="sidebar-resizer" onPointerDown={handlePointerDown} aria-hidden="true" />
       </div>
-      <main className="main-content">
-        <Viewport />
+      <main className={`main-content main-content--${presetKey}`}>
+        <div className={`viewer-grid viewer-grid--${presetKey}`}>
+          <div className="viewer-pane viewer-pane--primary">
+            <Viewport />
+          </div>
+          {extraViews.map((orientation, index) => (
+            <div key={`${orientation}-${index}`} className={`viewer-pane viewer-pane--${orientation}`}>
+              <SecondaryViewport orientation={orientation} preset={presetKey} />
+            </div>
+          ))}
+        </div>
       </main>
     </div>
   );
-}; 
+};
