@@ -240,7 +240,7 @@ const ViewCubeSection = React.lazy(() => import('../sidebar/ViewCubeSection').th
 // Alternative implementation with more aggressive event stopping
 // import { MinimapSectionAlt } from '../sidebar/MinimapSectionAlt';
 
-export const Sidebar: React.FC = () => {
+const SidebarComponent: React.FC = () => {
   const {
     components,
     world,
@@ -1023,3 +1023,5 @@ export const Sidebar: React.FC = () => {
     </aside>
   );
 };
+
+export const Sidebar = React.memo(SidebarComponent);

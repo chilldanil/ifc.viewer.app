@@ -58,7 +58,7 @@ export interface SecondaryViewportProps {
   preset: MultiViewPreset;
 }
 
-export const SecondaryViewport: React.FC<SecondaryViewportProps> = ({ orientation, preset }) => {
+const SecondaryViewportComponent: React.FC<SecondaryViewportProps> = ({ orientation, preset }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const controlsRef = useRef<CameraControlsImpl | null>(null);
@@ -148,3 +148,5 @@ export const SecondaryViewport: React.FC<SecondaryViewportProps> = ({ orientatio
 
   return <div className="viewer-container secondary-viewer" ref={containerRef} />;
 };
+
+export const SecondaryViewport = React.memo(SecondaryViewportComponent);

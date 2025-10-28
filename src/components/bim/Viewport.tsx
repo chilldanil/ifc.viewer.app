@@ -29,7 +29,7 @@ interface VisibilityControls {
   hider: OBC.Hider;
 }
 
-export const Viewport: React.FC = () => {
+const ViewportComponent: React.FC = () => {
   const viewerContainerRef = useRef<HTMLDivElement>(null);
   const viewerElementRef = useRef<HTMLElement | null>(null);
   const viewerInitializedRef = useRef(false);
@@ -620,4 +620,6 @@ export const Viewport: React.FC = () => {
       
     </div>
   );
-}; 
+};
+
+export const Viewport = React.memo(ViewportComponent);
