@@ -15,6 +15,7 @@ interface BIMContextType {
   isLoading: boolean;
   error: string | null;
   visibilityPanelRef: React.MutableRefObject<HTMLElement | null>;
+  visibilityOverlayContainerRef: React.MutableRefObject<HTMLDivElement | null>;
   world: OBC.World | null;
   setWorld: (world: OBC.World | null) => void;
   zoomToSelection: boolean;
@@ -55,6 +56,7 @@ const BIMContext = createContext<BIMContextType>({
   isLoading: false,
   error: null,
   visibilityPanelRef: { current: null } as React.MutableRefObject<HTMLElement | null>,
+  visibilityOverlayContainerRef: { current: null } as React.MutableRefObject<HTMLDivElement | null>,
   world: null,
   setWorld: () => {},
   zoomToSelection: true,
@@ -100,6 +102,7 @@ export const BIMProvider: React.FC<BIMProviderProps> = ({
   const [multiViewPreset, setMultiViewPreset] = useState<MultiViewPreset>('single');
   const [propertyEditingService, setPropertyEditingService] = useState<PropertyEditingService | null>(null);
   const visibilityPanelRef = useRef<HTMLElement | null>(null);
+  const visibilityOverlayContainerRef = useRef<HTMLDivElement | null>(null);
 
   const { components, isInitialized, isLoading, error, retry, reset, cleanup } =
     useBIMInitialization();
@@ -162,6 +165,7 @@ export const BIMProvider: React.FC<BIMProviderProps> = ({
         isLoading,
         error,
         visibilityPanelRef,
+        visibilityOverlayContainerRef,
         world,
         setWorld,
         zoomToSelection,

@@ -43,6 +43,7 @@ const ViewportComponent: React.FC = () => {
   const {
     components,
     visibilityPanelRef,
+    visibilityOverlayContainerRef,
     setWorld,
     zoomToSelection,
     minimapConfig,
@@ -85,123 +86,205 @@ const ViewportComponent: React.FC = () => {
         return;
       }
 
-      // Find or create the internal container where we'll actually place the sections
-      let container = panelElement.querySelector<HTMLElement>('.visibility-container');
+      const ensureContainer = (element: HTMLElement | null) => {
+        if (!element) {
+          return null;
+        }
 
-      if (!container) {
-        // If for some reason the container is missing, create it to avoid runtime errors
-        container = document.createElement('div');
-        container.classList.add('visibility-container');
-        panelElement.appendChild(container);
+        if (element.classList.contains('visibility-container')) {
+          return element;
+        }
+
+        const existing = element.querySelector<HTMLElement>('.visibility-container');
+        if (existing) {
+          return existing;
+        }
+
+        const created = document.createElement('div');
+        created.classList.add('visibility-container');
+        element.appendChild(created);
+        return created;
+      };
+
+      const containers: HTMLElement[] = [];
+      const sidebarContainer = ensureContainer(panelElement);
+      const overlayContainer = ensureContainer(visibilityOverlayContainerRef.current);
+
+      if (sidebarContainer) {
+        containers.push(sidebarContainer);
+      }
+      if (overlayContainer && overlayContainer !== sidebarContainer) {
+        containers.push(overlayContainer);
       }
 
-      // Clear any existing content (so we can rebuild for each loaded model)
-      container.innerHTML = '';
+      if (containers.length === 0) {
+        return;
+      }
 
-      // Create panel-sections for Floors and Categories
-      const floorSection = BUI.Component.create<BUI.PanelSection>(() => {
-        return BUI.html`<bim-panel-section collapsed label="Floors" name="floors"></bim-panel-section>`;
-      });
+      const controlRegistry = new Map<string, Set<BUI.Checkbox>>();
 
-      const categorySection = BUI.Component.create<BUI.PanelSection>(() => {
-        return BUI.html`<bim-panel-section collapsed label="Categories" name="categories"></bim-panel-section>`;
-      });
+      const registerControl = (key: string, checkbox: BUI.Checkbox) => {
+        const existing = controlRegistry.get(key);
+        if (existing) {
+          existing.add(checkbox);
+        } else {
+          controlRegistry.set(key, new Set([checkbox]));
+        }
+      };
 
-      container.append(floorSection);
-      container.append(categorySection);
-      
-      // Add floor controls
-      if (classifier.list?.spatialStructures) {
-        const structureNames = Object.keys(classifier.list.spatialStructures);
-        if (structureNames.length > 0) {
-          for (const name of structureNames) {
-            const checkbox = BUI.Component.create<BUI.Checkbox>(() => {
-              return BUI.html`
-                <bim-checkbox checked label="${name}"
-                  @change="${({ target }: { target: BUI.Checkbox }) => {
-                    try {
-                      const found = classifier.list.spatialStructures[name];
-                      if (found?.id !== null && found?.id !== undefined) {
-                        const foundIDs = indexer.getEntityChildren(model, found.id);
-                        const fragMap = model.getFragmentMap(foundIDs);
-                        hider.set(target.value, fragMap);
+      const syncPeerCheckboxes = (key: string, source: BUI.Checkbox) => {
+        const peers = controlRegistry.get(key);
+        if (!peers) {
+          return;
+        }
+
+        const { checked } = source as unknown as { checked?: boolean };
+        const isChecked = typeof checked === 'boolean' ? checked : source.hasAttribute('checked');
+
+        peers.forEach((checkbox) => {
+          if (checkbox === source) {
+            return;
+          }
+
+          const peerElement = checkbox as unknown as { checked?: boolean };
+          if (typeof peerElement.checked === 'boolean') {
+            peerElement.checked = Boolean(isChecked);
+          }
+
+          if (isChecked) {
+            checkbox.setAttribute('checked', '');
+          } else {
+            checkbox.removeAttribute('checked');
+          }
+        });
+      };
+
+      const buildFloorSection = () => {
+        const section = BUI.Component.create<BUI.PanelSection>(() => {
+          return BUI.html`<bim-panel-section collapsed label="Floors" name="floors"></bim-panel-section>`;
+        });
+
+        if (classifier.list?.spatialStructures) {
+          const structureNames = Object.keys(classifier.list.spatialStructures);
+          if (structureNames.length > 0) {
+            for (const name of structureNames) {
+              const controlKey = `floor:${name}`;
+              const checkbox = BUI.Component.create<BUI.Checkbox>(() => {
+                return BUI.html`
+                  <bim-checkbox
+                    value="${controlKey}"
+                    data-control-key="${controlKey}"
+                    checked
+                    label="${name}"
+                    @change="${({ target }: { target: BUI.Checkbox }) => {
+                      const targetCheckbox = target as BUI.Checkbox;
+                      try {
+                        const found = classifier.list.spatialStructures[name];
+                        if (found?.id !== null && found?.id !== undefined) {
+                          const foundIDs = indexer.getEntityChildren(model, found.id);
+                          const fragMap = model.getFragmentMap(foundIDs);
+                          hider.set(target.value, fragMap);
+                        }
+                      } catch (error) {
+                        handleBIMError(
+                          ErrorType.USER_INTERACTION,
+                          `Floor control interaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                          { error, floorName: name },
+                          'Viewport'
+                        );
+                      } finally {
+                        syncPeerCheckboxes(controlKey, targetCheckbox);
                       }
-                    } catch (error) {
-                      handleBIMError(
-                        ErrorType.USER_INTERACTION,
-                        `Floor control interaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        { error, floorName: name },
-                        'Viewport'
-                      );
-                    }
-                  }}">
-                </bim-checkbox>
-              `;
+                    }}">
+                  </bim-checkbox>
+                `;
+              });
+              registerControl(controlKey, checkbox);
+              section.append(checkbox);
+            }
+          } else {
+            const noFloorsMessage = BUI.Component.create(() => {
+              return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">No floor structures found in this model</div>`;
             });
-            floorSection.append(checkbox);
+            section.append(noFloorsMessage);
           }
         } else {
-          // Add a message indicating no floors were found
-          const noFloorsMessage = BUI.Component.create(() => {
-            return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">No floor structures found in this model</div>`;
+          const noSpatialMessage = BUI.Component.create(() => {
+            return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">Spatial structures not available in this model</div>`;
           });
-          floorSection.append(noFloorsMessage);
+          section.append(noSpatialMessage);
+          console.log('No spatial structures available for floor controls - this is normal for some IFC models');
         }
-      } else {
-        // Add a message indicating spatial structures are not available
-        const noSpatialMessage = BUI.Component.create(() => {
-          return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">Spatial structures not available in this model</div>`;
-        });
-        floorSection.append(noSpatialMessage);
-        console.log('No spatial structures available for floor controls - this is normal for some IFC models');
-      }
-      
-      // Add category controls
-      if (classifier.list?.entities) {
-        const classNames = Object.keys(classifier.list.entities);
-        if (classNames.length > 0) {
-          for (const name of classNames) {
-            const checkbox = BUI.Component.create<BUI.Checkbox>(() => {
-              return BUI.html`
-                <bim-checkbox checked label="${name}"
-                  @change="${({ target }: { target: BUI.Checkbox }) => {
-                    try {
-                      const found = classifier.find({ entities: [name] });
-                      hider.set(target.value, found);
-                    } catch (error) {
-                      handleBIMError(
-                        ErrorType.USER_INTERACTION,
-                        `Category control interaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        { error, categoryName: name },
-                        'Viewport'
-                      );
-                    }
-                  }}">
-                </bim-checkbox>
-              `;
-            });
-            categorySection.append(checkbox);
-          }
-        } else {
-          // Add a message indicating no categories were found
-          const noCategoriesMessage = BUI.Component.create(() => {
-            return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">No entity categories found in this model</div>`;
-          });
-          categorySection.append(noCategoriesMessage);
-        }
-      } else {
-        // Add a message indicating entities are not available
-        const noEntitiesMessage = BUI.Component.create(() => {
-          return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">Entity information not available in this model</div>`;
-        });
-        categorySection.append(noEntitiesMessage);
-        console.log('No entities available for category controls - this is normal for some IFC models');
-      }
 
-      // Mark container as visible by default to keep existing toggle logic consistent
+        return section;
+      };
+
+      const buildCategorySection = () => {
+        const section = BUI.Component.create<BUI.PanelSection>(() => {
+          return BUI.html`<bim-panel-section collapsed label="Categories" name="categories"></bim-panel-section>`;
+        });
+
+        if (classifier.list?.entities) {
+          const classNames = Object.keys(classifier.list.entities);
+          if (classNames.length > 0) {
+            for (const name of classNames) {
+              const controlKey = `category:${name}`;
+              const checkbox = BUI.Component.create<BUI.Checkbox>(() => {
+                return BUI.html`
+                  <bim-checkbox
+                    value="${controlKey}"
+                    data-control-key="${controlKey}"
+                    checked
+                    label="${name}"
+                    @change="${({ target }: { target: BUI.Checkbox }) => {
+                      const targetCheckbox = target as BUI.Checkbox;
+                      try {
+                        const found = classifier.find({ entities: [name] });
+                        hider.set(target.value, found);
+                      } catch (error) {
+                        handleBIMError(
+                          ErrorType.USER_INTERACTION,
+                          `Category control interaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                          { error, categoryName: name },
+                          'Viewport'
+                        );
+                      } finally {
+                        syncPeerCheckboxes(controlKey, targetCheckbox);
+                      }
+                    }}">
+                  </bim-checkbox>
+                `;
+              });
+              registerControl(controlKey, checkbox);
+              section.append(checkbox);
+            }
+          } else {
+            const noCategoriesMessage = BUI.Component.create(() => {
+              return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">No entity categories found in this model</div>`;
+            });
+            section.append(noCategoriesMessage);
+          }
+        } else {
+          const noEntitiesMessage = BUI.Component.create(() => {
+            return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">Entity information not available in this model</div>`;
+          });
+          section.append(noEntitiesMessage);
+          console.log('No entities available for category controls - this is normal for some IFC models');
+        }
+
+        return section;
+      };
+
+      containers.forEach((target) => {
+        target.innerHTML = '';
+        const floorSection = buildFloorSection();
+        const categorySection = buildCategorySection();
+        target.append(floorSection, categorySection);
+      });
+
       panelElement.classList.add('panel-visible');
     }, ErrorType.COMPONENT_ERROR, 'Viewport');
-  }, [visibilityPanelRef]);
+  }, [visibilityPanelRef, visibilityOverlayContainerRef]);
 
   const cleanupBIMComponents = useCallback(() => {
     if (!components) {return;}

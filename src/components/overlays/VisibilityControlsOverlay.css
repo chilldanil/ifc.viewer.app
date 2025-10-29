@@ -1,0 +1,116 @@
+.visibility-controls-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1550;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 12, 20, 0.72);
+  backdrop-filter: blur(16px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  color: #eef2fb;
+}
+
+.visibility-controls-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.visibility-controls-overlay__content {
+  width: min(860px, 92vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 26px;
+  box-sizing: border-box;
+  background: rgba(15, 21, 32, 0.95);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.visibility-controls-overlay__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.visibility-controls-overlay__header h3 {
+  margin: 0;
+  font-size: 1.18rem;
+  letter-spacing: 0.03em;
+}
+
+.visibility-controls-overlay__subtitle {
+  margin: 6px 0 0 0;
+  font-size: 0.85rem;
+  color: rgba(204, 213, 230, 0.72);
+}
+
+.visibility-controls-overlay__close {
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(224, 230, 245, 0.88);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.05rem;
+  display: grid;
+  place-items: center;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.visibility-controls-overlay__close:hover {
+  background: rgba(94, 124, 255, 0.32);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.visibility-controls-overlay__body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(10, 15, 24, 0.92);
+}
+
+.visibility-controls-overlay__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.visibility-controls-overlay__footer {
+  font-size: 0.78rem;
+  color: rgba(204, 213, 230, 0.68);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.visibility-controls-overlay__footer kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  margin: 0 4px;
+  border-radius: 6px;
+  background: rgba(16, 23, 36, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .visibility-controls-overlay {
+    padding: 16px;
+  }
+
+  .visibility-controls-overlay__content {
+    padding: 20px;
+  }
+}

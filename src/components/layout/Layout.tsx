@@ -3,6 +3,7 @@ import { Viewport } from '../bim/Viewport';
 import { SecondaryViewport } from '../bim/SecondaryViewport';
 import { Sidebar } from './Sidebar';
 import { PropertyEditorOverlay } from '../overlays/PropertyEditorOverlay';
+import { VisibilityControlsOverlay } from '../overlays/VisibilityControlsOverlay';
 import { useBIM } from '../../context/BIMContext';
 import { useElementSelection } from '../../hooks/useElementSelection';
 import DragAndDropOverlay from '../DragAndDropOverlay';
@@ -32,7 +33,8 @@ export const Layout: React.FC = () => {
   const isResizingRef = useRef(false);
   const { selectedModel, selectedExpressID } = useElementSelection(components, world);
   const [isPropertyOverlayOpen, setPropertyOverlayOpen] = useState(false);
-  const propertyEditorShortcutRef = useRef<Set<string>>(new Set());
+  const [isVisibilityOverlayOpen, setVisibilityOverlayOpen] = useState(false);
+  const keyboardShortcutRef = useRef<Set<string>>(new Set());
 
   const containerClassName = useMemo(() => {
     const base = `layout ifc-viewer-library-container${isSidebarVisible ? '' : ' sidebar-hidden'}`;
@@ -116,7 +118,8 @@ export const Layout: React.FC = () => {
       return;
     }
 
-    const pressedKeys = propertyEditorShortcutRef.current;
+    const pressedKeys = keyboardShortcutRef.current;
+    const relevantKeys = new Set(['e', 'd', 'v', 'c']);
 
     const isEditableTarget = (target: EventTarget | null) => {
       if (!target || !(target instanceof HTMLElement)) {
@@ -135,21 +138,28 @@ export const Layout: React.FC = () => {
       }
 
       const key = event.key.toLowerCase();
-      if (key !== 'e' && key !== 'd') {
+      if (!relevantKeys.has(key)) {
         return;
       }
 
       pressedKeys.add(key);
-      if (pressedKeys.has('e') && pressedKeys.has('d')) {
+      const hasPropertyEditorCombo = pressedKeys.has('e') && pressedKeys.has('d');
+      const hasVisibilityControlsCombo = pressedKeys.has('v') && pressedKeys.has('c');
+
+      if (hasPropertyEditorCombo || hasVisibilityControlsCombo) {
         event.preventDefault();
         pressedKeys.clear();
-        setPropertyOverlayOpen((prev) => !prev);
+        if (hasPropertyEditorCombo) {
+          setPropertyOverlayOpen((prev) => !prev);
+        } else {
+          setVisibilityOverlayOpen((prev) => !prev);
+        }
       }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
-      if (key === 'e' || key === 'd') {
+      if (relevantKeys.has(key)) {
         pressedKeys.delete(key);
       }
     };
@@ -161,7 +171,7 @@ export const Layout: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [setPropertyOverlayOpen, setVisibilityOverlayOpen]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -251,6 +261,10 @@ export const Layout: React.FC = () => {
         onClose={() => setPropertyOverlayOpen(false)}
         selectedModel={selectedModel}
         selectedExpressID={selectedExpressID}
+      />
+      <VisibilityControlsOverlay
+        isOpen={isVisibilityOverlayOpen}
+        onClose={() => setVisibilityOverlayOpen(false)}
       />
       <button
         type="button"
