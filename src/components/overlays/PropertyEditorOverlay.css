@@ -1,0 +1,122 @@
+.property-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  background: rgba(4, 8, 16, 0.78);
+  backdrop-filter: blur(18px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  color: #eef2fb;
+}
+
+.property-editor-overlay__content {
+  width: min(1100px, 92vw);
+  max-height: 90vh;
+  background: rgba(14, 19, 28, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 28px;
+  box-sizing: border-box;
+}
+
+.property-editor-overlay__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.property-editor-overlay__header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.property-editor-overlay__subtitle {
+  margin: 6px 0 0 0;
+  font-size: 0.85rem;
+  color: rgba(200, 210, 230, 0.75);
+}
+
+.property-editor-overlay__close {
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(220, 226, 240, 0.85);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: grid;
+  place-items: center;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.property-editor-overlay__close:hover {
+  background: rgba(94, 124, 255, 0.28);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.property-editor-overlay__body {
+  --sidebar-surface: rgba(17, 24, 36, 0.92);
+  --sidebar-surface-muted: rgba(20, 27, 40, 0.88);
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-divider: rgba(255, 255, 255, 0.05);
+  --sidebar-text: #eef2fb;
+  --sidebar-text-muted: rgba(196, 205, 224, 0.78);
+  --sidebar-text-subtle: rgba(154, 163, 184, 0.64);
+  --sidebar-accent: #5e7cff;
+  --sidebar-accent-strong: rgba(94, 124, 255, 0.45);
+  --sidebar-control-bg: rgba(13, 18, 28, 0.85);
+  --sidebar-control-hover: rgba(26, 35, 50, 0.95);
+  flex: 1;
+  overflow: auto;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  background: rgba(9, 14, 22, 0.92);
+}
+
+.property-editor-overlay__body .property-editor {
+  padding: 16px 18px;
+}
+
+.property-editor-overlay__footer {
+  font-size: 0.78rem;
+  color: rgba(200, 210, 230, 0.65);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.property-editor-overlay__footer kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  margin: 0 4px;
+  border-radius: 6px;
+  background: rgba(15, 21, 32, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .property-editor-overlay {
+    padding: 16px;
+  }
+
+  .property-editor-overlay__content {
+    padding: 20px;
+    gap: 14px;
+  }
+
+  .property-editor-overlay__body {
+    padding: 4px;
+  }
+}

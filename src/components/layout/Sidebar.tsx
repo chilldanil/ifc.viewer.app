@@ -4,11 +4,11 @@ import * as BUIC from '@thatopen/ui-obc';
 import * as BUI from '@thatopen/ui';
 import * as OBCF from '@thatopen/components-front';
 import * as OBC from '@thatopen/components';
+import * as OBF from '@thatopen/fragments';
 import * as THREE from 'three';
 import './Sidebar.css';
 import { bridge } from '../../utils/bridge';
 import { useElectronFileOpen } from '../../hooks/useElectronFileOpen';
-import { useElementSelection } from '../../hooks/useElementSelection';
 
 type FragmentIdCollection = Map<string | number, unknown> | Record<string, unknown> | undefined | null;
 
@@ -17,6 +17,11 @@ type LoadedModel = {
   label: string;
   visible: boolean;
 };
+
+interface SidebarProps {
+  selectedModel: OBF.FragmentsGroup | null;
+  selectedExpressID: number | null;
+}
 
 const SELECT_HIGHLIGHTER = 'select';
 const HOVER_HIGHLIGHTER = 'hover';
@@ -240,7 +245,7 @@ const ViewCubeSection = React.lazy(() => import('../sidebar/ViewCubeSection').th
 // Alternative implementation with more aggressive event stopping
 // import { MinimapSectionAlt } from '../sidebar/MinimapSectionAlt';
 
-const SidebarComponent: React.FC = () => {
+const SidebarComponent: React.FC<SidebarProps> = ({ selectedModel, selectedExpressID }) => {
   const {
     components,
     world,
@@ -257,7 +262,6 @@ const SidebarComponent: React.FC = () => {
   const [loadedModels, setLoadedModels] = useState<LoadedModel[]>([]);
 
   // Use dedicated hook for element selection tracking
-  const { selectedModel, selectedExpressID } = useElementSelection(components, world);
 
   // Enable Electron file opening from menu
   useElectronFileOpen(components, propertyEditingService);

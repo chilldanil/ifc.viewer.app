@@ -2,7 +2,9 @@ import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react'
 import { Viewport } from '../bim/Viewport';
 import { SecondaryViewport } from '../bim/SecondaryViewport';
 import { Sidebar } from './Sidebar';
+import { PropertyEditorOverlay } from '../overlays/PropertyEditorOverlay';
 import { useBIM } from '../../context/BIMContext';
+import { useElementSelection } from '../../hooks/useElementSelection';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import './Layout.css';
 
@@ -21,13 +23,16 @@ const getDefaultSidebarWidth = () => {
 };
 
 export const Layout: React.FC = () => {
-  const { isInitialized, isLoading, error, retry, multiViewPreset } = useBIM();
+  const { isInitialized, isLoading, error, retry, multiViewPreset, components, world } = useBIM();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isSidebarVisible, setSidebarVisible] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => getDefaultSidebarWidth());
   const [isResizing, setIsResizing] = useState(false);
   const resizeStateRef = useRef({ startX: 0, startWidth: 0 });
   const isResizingRef = useRef(false);
+  const { selectedModel, selectedExpressID } = useElementSelection(components, world);
+  const [isPropertyOverlayOpen, setPropertyOverlayOpen] = useState(false);
+  const propertyEditorShortcutRef = useRef<Set<string>>(new Set());
 
   const containerClassName = useMemo(() => {
     const base = `layout ifc-viewer-library-container${isSidebarVisible ? '' : ' sidebar-hidden'}`;
@@ -105,6 +110,58 @@ export const Layout: React.FC = () => {
       window.addEventListener('pointercancel', stopResizing);
     }
   }, [handlePointerMove, sidebarWidth, stopResizing]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const pressedKeys = propertyEditorShortcutRef.current;
+
+    const isEditableTarget = (target: EventTarget | null) => {
+      if (!target || !(target instanceof HTMLElement)) {
+        return false;
+      }
+      const tagName = target.tagName;
+      return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || target.isContentEditable;
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat) {
+        return;
+      }
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      if (key !== 'e' && key !== 'd') {
+        return;
+      }
+
+      pressedKeys.add(key);
+      if (pressedKeys.has('e') && pressedKeys.has('d')) {
+        event.preventDefault();
+        pressedKeys.clear();
+        setPropertyOverlayOpen((prev) => !prev);
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if (key === 'e' || key === 'd') {
+        pressedKeys.delete(key);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -189,6 +246,12 @@ export const Layout: React.FC = () => {
   return (
     <div ref={containerRef} className={`${containerClassName} multi-view--${presetKey}`} style={layoutStyle}>
       <DragAndDropOverlay container={containerRef.current} />
+      <PropertyEditorOverlay
+        isOpen={isPropertyOverlayOpen}
+        onClose={() => setPropertyOverlayOpen(false)}
+        selectedModel={selectedModel}
+        selectedExpressID={selectedExpressID}
+      />
       <button
         type="button"
         className={`sidebar-toggle${isSidebarVisible ? '' : ' sidebar-toggle--collapsed'}`}
@@ -221,7 +284,7 @@ export const Layout: React.FC = () => {
         </svg>
       </button>
       <div className={`sidebar-slot${isSidebarVisible ? ' sidebar-slot--visible' : ''}`} aria-hidden={!isSidebarVisible} id="ifc-sidebar">
-        <Sidebar />
+        <Sidebar selectedModel={selectedModel} selectedExpressID={selectedExpressID} />
         <div className="sidebar-resizer" onPointerDown={handlePointerDown} aria-hidden="true" />
       </div>
       <main className={`main-content main-content--${presetKey}`}>

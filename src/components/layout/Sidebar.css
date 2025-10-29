@@ -83,8 +83,8 @@
   background: var(--sidebar-surface);
   border: 1px solid var(--sidebar-border);
   border-radius: var(--sidebar-radius);
-  box-shadow: 0 10px 24px rgba(4, 8, 16, 0.3);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .ifc-viewer-library-container .sidebar bim-panel-section[collapsed] {
@@ -114,7 +114,6 @@
 
 .ifc-viewer-library-container .sidebar bim-panel-section:focus-within {
   border-color: var(--sidebar-accent-strong);
-  box-shadow: 0 0 0 1px var(--sidebar-accent-soft);
 }
 
 .ifc-viewer-library-container .sidebar label,
@@ -266,21 +265,19 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 }
 
 .ifc-viewer-library-container .multi-view-options__button:hover {
   border-color: var(--sidebar-accent-strong);
   background: var(--sidebar-control-hover);
   color: var(--sidebar-text);
-  transform: translateY(-1px);
 }
 
 .ifc-viewer-library-container .multi-view-options__button.is-active {
   border-color: var(--sidebar-accent);
-  background: rgba(94, 124, 255, 0.24);
-  color: #ffffff;
-  box-shadow: 0 8px 20px rgba(82, 113, 255, 0.3);
+  background: var(--sidebar-control-hover);
+  color: var(--sidebar-text);
 }
 
 .ifc-viewer-library-container .model-manager {

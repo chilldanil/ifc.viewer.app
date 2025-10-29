@@ -361,7 +361,9 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
         {properties.map((prop) => (
           <div
             key={prop.name}
-            className={`property-row ${prop.isEditable ? 'property-row--editable' : ''}`}
+            className={`property-row${prop.isEditable ? ' property-row--editable' : ''}${
+              prop.isEditable && isEditMode ? ' property-row--editing' : ''
+            }${editedProperties.has(prop.name) ? ' property-row--dirty' : ''}`}
           >
             <div className="property-name">
               {prop.name}

@@ -64,7 +64,6 @@
   background: var(--sidebar-accent, #5e7cff);
   border-color: var(--sidebar-accent, #5e7cff);
   color: var(--sidebar-text, #eef2fb);
-  box-shadow: 0 12px 24px rgba(94, 124, 255, 0.24);
 }
 
 .ai-chat button:hover {
@@ -75,7 +74,6 @@
 .ai-chat button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 .ai-error {
@@ -97,6 +95,5 @@
 .ai-result img {
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.04);
-  box-shadow: 0 14px 32px rgba(6, 10, 18, 0.35);
   max-width: 100%;
 }

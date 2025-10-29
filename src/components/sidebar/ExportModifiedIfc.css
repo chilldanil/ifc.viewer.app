@@ -76,7 +76,6 @@
   color: var(--sidebar-text);
   cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
-  box-shadow: 0 12px 20px rgba(94, 124, 255, 0.22);
 }
 
 .ifc-viewer-library-container .export-modified-ifc__button:hover:not(:disabled) {
