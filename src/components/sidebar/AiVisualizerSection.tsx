@@ -4,7 +4,7 @@ import { useBIM } from '../../context/BIMContext';
 import { downloadBase64Image } from '../../utils/captureScreenshot';
 import './AiVisualizerSection.css';
 
-// Photorealistic architectural rendering presets
+// Photorealistic architectural rendering preset
 const RENDER_PRESETS = [
   {
     label: 'Photorealistic',
