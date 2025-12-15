@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { bridge, CameraState } from './utils/bridge';
 import { SelectionMap } from './context/BIMContext';
-import { PartialViewerConfig, applyConfigToContainer, defaultViewerConfig, mergeViewerConfig } from './config/viewerConfig';
+import { PartialViewerConfig, applyConfigToContainer, mergeViewerConfig } from './config/viewerConfig';
 import { PartialDesignTokens, tokensToCSSVariables, mergeTokens, defaultDarkTokens, defaultLightTokens } from './config/tokens';
 
 /**

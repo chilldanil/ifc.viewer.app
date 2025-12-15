@@ -120,7 +120,7 @@ export const BIMProvider: React.FC<BIMProviderProps> = ({
     ...DEFAULT_MINIMAP_CONFIG,
     ...viewerConfig.controls.minimap,
   });
-  const [viewCubeEnabled, setViewCubeEnabledState] = useState(viewerConfig.controls.viewCube);
+  const [viewCubeEnabled, setViewCubeEnabledState] = useState(viewerConfig.controls.viewCube.enabled);
   const [multiViewPreset, setMultiViewPresetState] = useState<MultiViewPreset>(viewerConfig.layout.multiViewPreset);
   const [propertyEditingService, setPropertyEditingService] = useState<PropertyEditingService | null>(null);
   const visibilityPanelRef = useRef<HTMLElement | null>(null);
@@ -160,7 +160,7 @@ export const BIMProvider: React.FC<BIMProviderProps> = ({
 
   useEffect(() => {
     setZoomToSelectionState(viewerConfig.controls.zoomToSelection);
-    setViewCubeEnabledState(viewerConfig.controls.viewCube);
+    setViewCubeEnabledState(viewerConfig.controls.viewCube.enabled);
     setMinimapConfigState((prev) => ({ ...prev, ...viewerConfig.controls.minimap }));
     setMultiViewPresetState(viewerConfig.layout.multiViewPreset);
   }, [viewerConfig]);
@@ -198,7 +198,7 @@ export const BIMProvider: React.FC<BIMProviderProps> = ({
 
   const setViewCubeEnabled = (enabled: boolean) => {
     setViewCubeEnabledState(enabled);
-    updateConfig({ controls: { viewCube: enabled } });
+    updateConfig({ controls: { viewCube: { enabled } } });
   };
 
   const setMultiViewPreset = (preset: MultiViewPreset) => {
