@@ -26,6 +26,7 @@ export interface ViewerConfig {
       visibility: { enabled: boolean; collapsed: boolean };
       elementColors: { enabled: boolean; collapsed: boolean };
       renderModes: { enabled: boolean; collapsed: boolean };
+      grids: { enabled: boolean; collapsed: boolean };
       camera: { enabled: boolean; collapsed: boolean };
       floorPlan: { enabled: boolean; collapsed: boolean };
       measurements: { enabled: boolean; collapsed: boolean };
@@ -81,6 +82,7 @@ export const defaultViewerConfig: ViewerConfig = {
       performance: { enabled: true, collapsed: false },
       viewCube: { enabled: true, collapsed: false },
       screenshots: { enabled: true, collapsed: false },
+      grids: { enabled: true, collapsed: true },
       minimap: { enabled: true, collapsed: true },
       clipping: { enabled: true, collapsed: true },
       modelTransform: { enabled: true, collapsed: true },

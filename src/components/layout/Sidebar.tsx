@@ -240,6 +240,7 @@ const RenderModeSection = React.lazy(() => import('../sidebar/RenderModeSection'
 const PerformanceSection = React.lazy(() => import('../sidebar/PerformanceSection').then(m => ({ default: m.PerformanceSection })));
 const ScreenshotSection = React.lazy(() => import('../sidebar/ScreenshotSection').then(m => ({ default: m.ScreenshotSection })));
 const ViewCubeSection = React.lazy(() => import('../sidebar/ViewCubeSection').then(m => ({ default: m.ViewCubeSection })));
+const GridSection = React.lazy(() => import('../sidebar/GridSection').then(m => ({ default: m.GridSection })));
 // Alternative implementation with more aggressive event stopping
 // import { MinimapSectionAlt } from '../sidebar/MinimapSectionAlt';
 
@@ -1004,6 +1005,13 @@ const SidebarComponent: React.FC = () => {
         <React.Suspense fallback={<div />}>
           <RenderModeSection />
         </React.Suspense>
+
+        {/* Grids */}
+        <bim-panel-section label="Grids" collapsed>
+          <React.Suspense fallback={<div />}>
+            <GridSection />
+          </React.Suspense>
+        </bim-panel-section>
 
         {/* Camera controls */}
         <bim-panel-section label="Camera" collapsed>

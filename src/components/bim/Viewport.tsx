@@ -418,9 +418,27 @@ const ViewportComponent: React.FC = () => {
         resizeHandlerRef.current = handleResize;
         viewerElementRef.current.addEventListener("resize", handleResize);
 
-        // Add grid to the scene
-        const viewerGrids = components.get(OBC.Grids);
-        viewerGrids.create(world);
+        // Add grid to the scene (skip if already created)
+        const viewerGrids = components.get(OBC.Grids) as any;
+        const existingGrid =
+          (world as any).__grid ??
+          viewerGrids?.list?.get?.(world) ??
+          (Array.isArray(viewerGrids?.list)
+            ? viewerGrids.list.find((entry: any) => entry?.world === world || entry?.worldRef === world)
+            : undefined);
+        if (!existingGrid) {
+          try {
+            const created = viewerGrids.create(world);
+            (world as any).__grid = created;
+          } catch (error) {
+            const message = error instanceof Error ? error.message : '';
+            if (!message.includes('already has a grid')) {
+              throw error;
+            }
+          }
+        } else {
+          (world as any).__grid = existingGrid;
+        }
 
         // Set up IFC loader (with WebAssembly)
         const ifcLoader = components.get(OBC.IfcLoader);
