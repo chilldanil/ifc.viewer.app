@@ -1,0 +1,599 @@
+/* IFC Viewer UI Library - Base Styles */
+
+/* ============================================
+   Design Tokens
+   ============================================ */
+
+:root {
+  /* Colors */
+  --ui-primary: #5e7cff;
+  --ui-primary-hover: #7b94ff;
+  --ui-primary-active: #4a66e0;
+
+  --ui-danger: #f87171;
+  --ui-danger-hover: #fca5a5;
+  --ui-danger-active: #ef4444;
+
+  --ui-success: #4ade80;
+  --ui-warning: #fbbf24;
+  --ui-info: #38bdf8;
+
+  /* Text */
+  --ui-text: #eef2fb;
+  --ui-text-muted: rgba(238, 242, 251, 0.7);
+  --ui-text-subtle: rgba(238, 242, 251, 0.5);
+
+  /* Backgrounds */
+  --ui-bg: rgba(255, 255, 255, 0.03);
+  --ui-bg-hover: rgba(255, 255, 255, 0.06);
+  --ui-bg-active: rgba(255, 255, 255, 0.08);
+  --ui-bg-elevated: rgba(255, 255, 255, 0.05);
+
+  /* Borders */
+  --ui-border: rgba(255, 255, 255, 0.08);
+  --ui-border-focus: var(--ui-primary);
+
+  /* Spacing scale */
+  --ui-space-xs: 4px;
+  --ui-space-sm: 8px;
+  --ui-space-md: 12px;
+  --ui-space-lg: 16px;
+  --ui-space-xl: 24px;
+
+  /* Border radius */
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 8px;
+  --ui-radius-lg: 12px;
+  --ui-radius-full: 999px;
+
+  /* Typography */
+  --ui-font-xs: 0.7rem;
+  --ui-font-sm: 0.78rem;
+  --ui-font-base: 0.85rem;
+  --ui-font-lg: 0.95rem;
+
+  /* Transitions */
+  --ui-transition: 0.15s ease;
+
+  /* Shadows */
+  --ui-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --ui-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --ui-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   Button
+   ============================================ */
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-space-sm);
+  padding: var(--ui-space-sm) var(--ui-space-md);
+  font-size: var(--ui-font-sm);
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.4;
+  color: var(--ui-text);
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  cursor: pointer;
+  transition: all var(--ui-transition);
+  white-space: nowrap;
+}
+
+.ui-btn:hover:not(:disabled) {
+  background: var(--ui-bg-hover);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.ui-btn:active:not(:disabled) {
+  background: var(--ui-bg-active);
+  transform: translateY(1px);
+}
+
+.ui-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Primary variant */
+.ui-btn--primary {
+  background: var(--ui-primary);
+  border-color: var(--ui-primary);
+  color: #fff;
+}
+
+.ui-btn--primary:hover:not(:disabled) {
+  background: var(--ui-primary-hover);
+  border-color: var(--ui-primary-hover);
+}
+
+.ui-btn--primary:active:not(:disabled) {
+  background: var(--ui-primary-active);
+}
+
+/* Danger variant */
+.ui-btn--danger {
+  background: transparent;
+  border-color: var(--ui-danger);
+  color: var(--ui-danger);
+}
+
+.ui-btn--danger:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.15);
+}
+
+/* Ghost variant */
+.ui-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.ui-btn--ghost:hover:not(:disabled) {
+  background: var(--ui-bg-hover);
+}
+
+/* Small size */
+.ui-btn--sm {
+  padding: var(--ui-space-xs) var(--ui-space-sm);
+  font-size: var(--ui-font-xs);
+}
+
+/* Large size */
+.ui-btn--lg {
+  padding: var(--ui-space-md) var(--ui-space-lg);
+  font-size: var(--ui-font-base);
+}
+
+/* Full width */
+.ui-btn--block {
+  width: 100%;
+}
+
+/* Selected state (for toggle buttons) */
+.ui-btn--selected {
+  background: var(--ui-primary);
+  border-color: var(--ui-primary);
+  color: #fff;
+}
+
+/* Icon only */
+.ui-btn--icon {
+  padding: var(--ui-space-sm);
+  min-width: 32px;
+  min-height: 32px;
+}
+
+/* ============================================
+   Button Group
+   ============================================ */
+
+.ui-btn-group {
+  display: flex;
+  gap: var(--ui-space-xs);
+}
+
+.ui-btn-group--stretch {
+  width: 100%;
+}
+
+.ui-btn-group--stretch .ui-btn {
+  flex: 1;
+}
+
+.ui-btn-group--vertical {
+  flex-direction: column;
+}
+
+/* ============================================
+   Input
+   ============================================ */
+
+.ui-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-xs);
+}
+
+.ui-input-label {
+  font-size: var(--ui-font-sm);
+  font-weight: 500;
+  color: var(--ui-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ui-input {
+  padding: var(--ui-space-sm) var(--ui-space-md);
+  font-size: var(--ui-font-base);
+  font-family: inherit;
+  color: var(--ui-text);
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  outline: none;
+  transition: all var(--ui-transition);
+}
+
+.ui-input:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.ui-input:focus {
+  border-color: var(--ui-border-focus);
+  background: var(--ui-bg-hover);
+}
+
+.ui-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ui-input::placeholder {
+  color: var(--ui-text-subtle);
+}
+
+/* Textarea */
+.ui-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* ============================================
+   Select
+   ============================================ */
+
+.ui-select {
+  padding: var(--ui-space-sm) var(--ui-space-md);
+  padding-right: var(--ui-space-xl);
+  font-size: var(--ui-font-base);
+  font-family: inherit;
+  color: var(--ui-text);
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23eef2fb' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: all var(--ui-transition);
+}
+
+.ui-select:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.ui-select:focus {
+  border-color: var(--ui-border-focus);
+}
+
+.ui-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Slider
+   ============================================ */
+
+.ui-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-xs);
+}
+
+.ui-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ui-slider-label {
+  font-size: var(--ui-font-sm);
+  font-weight: 500;
+  color: var(--ui-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ui-slider-value {
+  font-size: var(--ui-font-sm);
+  color: var(--ui-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-slider {
+  width: 100%;
+  height: 6px;
+  background: var(--ui-bg);
+  border-radius: var(--ui-radius-full);
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ui-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--ui-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all var(--ui-transition);
+}
+
+.ui-slider::-webkit-slider-thumb:hover {
+  background: var(--ui-primary-hover);
+  transform: scale(1.1);
+}
+
+.ui-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--ui-primary);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.ui-slider:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Toggle / Checkbox
+   ============================================ */
+
+.ui-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-sm);
+  cursor: pointer;
+}
+
+.ui-toggle-wrapper--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ui-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-full);
+  cursor: pointer;
+  transition: all var(--ui-transition);
+}
+
+.ui-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--ui-text-muted);
+  border-radius: 50%;
+  transition: all var(--ui-transition);
+}
+
+.ui-toggle--checked {
+  background: var(--ui-primary);
+  border-color: var(--ui-primary);
+}
+
+.ui-toggle--checked::after {
+  left: 18px;
+  background: #fff;
+}
+
+.ui-toggle-label {
+  font-size: var(--ui-font-sm);
+  color: var(--ui-text);
+}
+
+/* ============================================
+   Status Box
+   ============================================ */
+
+.ui-status {
+  padding: var(--ui-space-sm) var(--ui-space-md);
+  font-size: var(--ui-font-sm);
+  border-radius: var(--ui-radius-md);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-sm);
+}
+
+.ui-status--info {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--ui-info);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.ui-status--success {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--ui-success);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+}
+
+.ui-status--warning {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--ui-warning);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.ui-status--error {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--ui-danger);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+/* ============================================
+   Section / Panel
+   ============================================ */
+
+.ui-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-md);
+}
+
+.ui-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--ui-space-sm);
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.ui-section-title {
+  font-size: var(--ui-font-base);
+  font-weight: 600;
+  color: var(--ui-text);
+  margin: 0;
+}
+
+.ui-section-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-md);
+}
+
+/* ============================================
+   Text
+   ============================================ */
+
+.ui-text {
+  color: var(--ui-text);
+  margin: 0;
+}
+
+.ui-text--muted {
+  color: var(--ui-text-muted);
+}
+
+.ui-text--subtle {
+  color: var(--ui-text-subtle);
+}
+
+.ui-text--sm {
+  font-size: var(--ui-font-sm);
+}
+
+.ui-text--xs {
+  font-size: var(--ui-font-xs);
+}
+
+.ui-text--label {
+  font-size: var(--ui-font-sm);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ui-text-muted);
+}
+
+/* ============================================
+   Field (Label + Control pattern)
+   ============================================ */
+
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-xs);
+}
+
+.ui-field--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ui-field-label {
+  font-size: var(--ui-font-sm);
+  font-weight: 500;
+  color: var(--ui-text-muted);
+}
+
+/* ============================================
+   Divider
+   ============================================ */
+
+.ui-divider {
+  height: 1px;
+  background: var(--ui-border);
+  margin: var(--ui-space-sm) 0;
+}
+
+/* ============================================
+   Card
+   ============================================ */
+
+.ui-card {
+  padding: var(--ui-space-md);
+  background: var(--ui-bg-elevated);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+}
+
+/* ============================================
+   Grid
+   ============================================ */
+
+.ui-grid {
+  display: grid;
+  gap: var(--ui-space-sm);
+}
+
+.ui-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.ui-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.ui-grid--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* ============================================
+   Stack
+   ============================================ */
+
+.ui-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-md);
+}
+
+.ui-stack--sm {
+  gap: var(--ui-space-sm);
+}
+
+.ui-stack--lg {
+  gap: var(--ui-space-lg);
+}
+
+.ui-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-sm);
+}
+
+.ui-row--between {
+  justify-content: space-between;
+}
+
+.ui-row--stretch > * {
+  flex: 1;
+}

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Stats from 'stats.js';
 import { useBIM } from '../../context/BIMContext';
-import './PerformanceSection.css';
+import { Toggle, Button, Text, Stack, ButtonGroup } from '../../ui';
 
 const findViewerContainer = () => {
   return document.querySelector<HTMLElement>('.ifc-viewer-library-container .viewer-container');
@@ -26,9 +26,8 @@ export const PerformanceSection: React.FC = () => {
     if (statsRef.current) {return;}
 
     const stats = new Stats();
-    stats.showPanel(2); // 0: fps, 1: ms, 2: mb
+    stats.showPanel(2);
     const dom = stats.dom;
-    dom.classList.add('stats-overlay');
     dom.style.position = 'absolute';
     dom.style.left = 'auto';
     dom.style.top = 'auto';
@@ -36,6 +35,9 @@ export const PerformanceSection: React.FC = () => {
     dom.style.bottom = '20px';
     dom.style.zIndex = '1400';
     dom.style.display = 'none';
+    dom.style.borderRadius = '8px';
+    dom.style.overflow = 'hidden';
+    dom.style.boxShadow = '0 14px 32px rgba(0, 0, 0, 0.35)';
 
     statsRef.current = stats;
     ensureOverlayAttached();
@@ -81,10 +83,6 @@ export const PerformanceSection: React.FC = () => {
     };
   }, [world, statsVisible]);
 
-  const toggleStats = () => {
-    setStatsVisible((prev) => !prev);
-  };
-
   const selectPanel = (panel: number) => {
     if (!statsRef.current) {return;}
     statsRef.current.showPanel(panel);
@@ -95,46 +93,28 @@ export const PerformanceSection: React.FC = () => {
 
   return (
     <bim-panel-section label="Performance" collapsed>
-      <div className="performance-controls">
-        <label className="performance-toggle">
-          <input
-            type="checkbox"
-            checked={statsVisible}
-            onChange={toggleStats}
-            disabled={!world?.renderer}
-          />
-          <span>Show stats overlay</span>
-        </label>
-        <div className="performance-panels">
-          <button
-            type="button"
-            className="performance-chip"
-            disabled={!world?.renderer}
-            onClick={() => selectPanel(0)}
-          >
+      <Stack gap="sm">
+        <Toggle
+          checked={statsVisible}
+          onChange={setStatsVisible}
+          label="Show stats overlay"
+          disabled={!world?.renderer}
+        />
+        <ButtonGroup>
+          <Button size="sm" disabled={!world?.renderer} onClick={() => selectPanel(0)}>
             FPS
-          </button>
-          <button
-            type="button"
-            className="performance-chip"
-            disabled={!world?.renderer}
-            onClick={() => selectPanel(1)}
-          >
+          </Button>
+          <Button size="sm" disabled={!world?.renderer} onClick={() => selectPanel(1)}>
             MS
-          </button>
-          <button
-            type="button"
-            className="performance-chip"
-            disabled={!world?.renderer}
-            onClick={() => selectPanel(2)}
-          >
+          </Button>
+          <Button size="sm" disabled={!world?.renderer} onClick={() => selectPanel(2)}>
             MB
-          </button>
-        </div>
-        <p className="performance-hint">
+          </Button>
+        </ButtonGroup>
+        <Text variant="subtle" size="xs">
           Stats are rendered inside the viewport near the bottom-right corner.
-        </p>
-      </div>
+        </Text>
+      </Stack>
     </bim-panel-section>
   );
 };
