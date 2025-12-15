@@ -1,20 +1,30 @@
+/**
+ * Global Styles
+ * This file imports tokens.css and sets up base styles.
+ * All values use CSS variables for full customizability.
+ */
+
+@import './tokens.css';
+
 html, body, #app {
   height: 100%;
   margin: 0;
-  background-color: #0b1018;
+  background-color: var(--ifc-color-background, #0b1018);
 }
 
 body {
-  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-  color: #eef2fb;
+  font-family: var(--ifc-font-family);
+  color: var(--ifc-color-text);
 }
 
+/* BIM UI Library Variable Overrides
+   These map our design tokens to the @thatopen/ui component library */
 .ifc-viewer-library-container {
-  --bim-ui_color-base: rgba(32, 40, 56, 0.94);
-  --bim-ui_color-contrast: #eef2fb;
-  --bim-ui_text-color: #eef2fb;
-  --bim-button-color: #5e7cff;
-  --bim-button-text-color: #0b1018;
+  --bim-ui_color-base: var(--ifc-color-surface);
+  --bim-ui_color-contrast: var(--ifc-color-text);
+  --bim-ui_text-color: var(--ifc-color-text);
+  --bim-button-color: var(--ifc-color-primary);
+  --bim-button-text-color: var(--ifc-color-background);
   --bim-ui_panel-bg: transparent;
 }
 

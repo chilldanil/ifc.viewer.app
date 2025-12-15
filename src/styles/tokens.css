@@ -1,0 +1,362 @@
+/**
+ * IFC Viewer Design Tokens - CSS Variables
+ *
+ * This file defines all CSS custom properties (variables) used throughout the viewer.
+ * These are the DEFAULT values - they can be overridden by:
+ * 1. The theme preset (dark/light)
+ * 2. User-provided tokens in ViewerConfig
+ * 3. Direct CSS overrides
+ *
+ * Variable naming convention: --ifc-{category}-{property}
+ */
+
+/* ============================================================================
+   ROOT DEFAULTS (Dark Theme)
+   ============================================================================ */
+
+.ifc-viewer-library-container {
+  /* -------------------------------------------------------------------------
+     Colors - Brand
+     ------------------------------------------------------------------------- */
+  --ifc-color-primary: #5e7cff;
+  --ifc-color-primary-hover: #7b94ff;
+  --ifc-color-primary-active: #4a66e0;
+
+  /* -------------------------------------------------------------------------
+     Colors - Semantic
+     ------------------------------------------------------------------------- */
+  --ifc-color-danger: #f87171;
+  --ifc-color-danger-hover: #fca5a5;
+  --ifc-color-danger-active: #ef4444;
+  --ifc-color-warning: #f6c177;
+  --ifc-color-success: #34d399;
+  --ifc-color-info: #38bdf8;
+
+  /* -------------------------------------------------------------------------
+     Colors - Text
+     ------------------------------------------------------------------------- */
+  --ifc-color-text: #eef2fb;
+  --ifc-color-text-muted: rgba(238, 242, 251, 0.7);
+  --ifc-color-text-subtle: rgba(238, 242, 251, 0.5);
+
+  /* -------------------------------------------------------------------------
+     Colors - Background
+     ------------------------------------------------------------------------- */
+  --ifc-color-background: #0b1018;
+  --ifc-color-surface: rgba(9, 14, 22, 0.94);
+  --ifc-color-surface-hover: rgba(26, 34, 48, 0.95);
+  --ifc-color-surface-active: rgba(32, 42, 58, 0.95);
+  --ifc-color-surface-muted: rgba(20, 27, 40, 0.88);
+  --ifc-color-surface-elevated: rgba(17, 24, 36, 0.92);
+
+  /* -------------------------------------------------------------------------
+     Colors - Borders
+     ------------------------------------------------------------------------- */
+  --ifc-color-border: rgba(255, 255, 255, 0.08);
+  --ifc-color-border-strong: rgba(94, 124, 255, 0.35);
+  --ifc-color-border-focus: #5e7cff;
+
+  /* -------------------------------------------------------------------------
+     Colors - Overlays
+     ------------------------------------------------------------------------- */
+  --ifc-color-overlay-backdrop: rgba(0, 0, 0, 0.45);
+  --ifc-color-overlay-drag-drop: #bcf124;
+  --ifc-color-overlay-drag-drop-border: #bcf124;
+
+  /* -------------------------------------------------------------------------
+     Colors - ViewCube
+     ------------------------------------------------------------------------- */
+  --ifc-color-view-cube-face: #1a2230;
+  --ifc-color-view-cube-hover: #8da3ff;
+  --ifc-color-view-cube-outline: #384357;
+  --ifc-color-view-cube-label: rgba(238, 242, 251, 0.9);
+  --ifc-color-view-cube-label-bg: rgba(26, 33, 45, 0.9);
+  --ifc-color-view-cube-label-border: rgba(58, 71, 107, 1);
+
+  /* -------------------------------------------------------------------------
+     Colors - Element Types
+     ------------------------------------------------------------------------- */
+  --ifc-color-element-walls: #3498db;
+  --ifc-color-element-slabs: #e74c3c;
+  --ifc-color-element-curtain-walls: #f39c12;
+  --ifc-color-element-furniture: #9b59b6;
+  --ifc-color-element-doors: #2ecc71;
+  --ifc-color-element-windows: #1abc9c;
+
+  /* -------------------------------------------------------------------------
+     Colors - Grid & Viewport
+     ------------------------------------------------------------------------- */
+  --ifc-color-grid-default: #555555;
+  --ifc-color-viewport-background: #0b1018;
+  --ifc-color-secondary-viewport-background: #0d131c;
+
+  /* -------------------------------------------------------------------------
+     Spacing
+     ------------------------------------------------------------------------- */
+  --ifc-space-xs: 4px;
+  --ifc-space-sm: 8px;
+  --ifc-space-md: 12px;
+  --ifc-space-lg: 16px;
+  --ifc-space-xl: 24px;
+  --ifc-space-xxl: 32px;
+
+  /* -------------------------------------------------------------------------
+     Border Radius
+     ------------------------------------------------------------------------- */
+  --ifc-radius-xs: 4px;
+  --ifc-radius-sm: 6px;
+  --ifc-radius-md: 8px;
+  --ifc-radius-lg: 10px;
+  --ifc-radius-xl: 12px;
+  --ifc-radius-full: 999px;
+
+  /* -------------------------------------------------------------------------
+     Shadows
+     ------------------------------------------------------------------------- */
+  --ifc-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --ifc-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --ifc-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --ifc-shadow-xl: 0 18px 48px rgba(0, 0, 0, 0.46);
+  --ifc-shadow-stats-overlay: 0 14px 32px rgba(0, 0, 0, 0.35);
+  --ifc-shadow-minimap: 0 4px 8px rgba(0, 0, 0, 0.2);
+  --ifc-shadow-sidebar: 0 18px 48px rgba(0, 0, 0, 0.46);
+  --ifc-shadow-panel: 0 10px 24px rgba(4, 8, 16, 0.3);
+  --ifc-shadow-button: 0 6px 14px rgba(6, 10, 20, 0.35);
+
+  /* -------------------------------------------------------------------------
+     Typography
+     ------------------------------------------------------------------------- */
+  --ifc-font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --ifc-font-size-xs: 0.7rem;
+  --ifc-font-size-sm: 0.78rem;
+  --ifc-font-size-base: 0.85rem;
+  --ifc-font-size-lg: 0.95rem;
+  --ifc-font-size-xl: 1.1rem;
+  --ifc-font-weight-normal: 400;
+  --ifc-font-weight-medium: 500;
+  --ifc-font-weight-semibold: 600;
+  --ifc-font-weight-bold: 700;
+  --ifc-line-height: 1.4;
+  --ifc-letter-spacing: 0.01em;
+  --ifc-letter-spacing-wide: 0.04em;
+
+  /* -------------------------------------------------------------------------
+     Layout
+     ------------------------------------------------------------------------- */
+  --ifc-sidebar-min-width: 260px;
+  --ifc-sidebar-max-width: 680px;
+  --ifc-sidebar-default-width: 320px;
+  --ifc-breakpoint-sm: 640px;
+  --ifc-breakpoint-md: 900px;
+  --ifc-breakpoint-lg: 1200px;
+  --ifc-viewer-grid-gap: 12px;
+  --ifc-main-content-padding: 14px;
+  --ifc-sidebar-padding: 22px 20px 26px;
+  --ifc-panel-gap: 18px;
+  --ifc-section-gap: 10px;
+
+  /* -------------------------------------------------------------------------
+     Z-Index
+     ------------------------------------------------------------------------- */
+  --ifc-z-sidebar: 1100;
+  --ifc-z-sidebar-resizer: 1300;
+  --ifc-z-sidebar-toggle: 1200;
+  --ifc-z-stats-overlay: 1400;
+  --ifc-z-drag-overlay: 9999;
+  --ifc-z-minimap: 1000;
+  --ifc-z-viewcube: 1000;
+
+  /* -------------------------------------------------------------------------
+     Component Sizes
+     ------------------------------------------------------------------------- */
+  --ifc-control-height: 36px;
+  --ifc-control-height-sm: 28px;
+  --ifc-control-height-lg: 44px;
+  --ifc-button-min-width: 32px;
+  --ifc-button-icon-size: 32px;
+  --ifc-toggle-width: 36px;
+  --ifc-toggle-height: 20px;
+  --ifc-toggle-thumb-size: 14px;
+  --ifc-slider-track-height: 6px;
+  --ifc-slider-thumb-size: 16px;
+  --ifc-input-min-height: 36px;
+  --ifc-textarea-min-height: 80px;
+  --ifc-scrollbar-width: 8px;
+  --ifc-scrollbar-width-mobile: 4px;
+  --ifc-minimap-size: 200px;
+  --ifc-minimap-radius: 12px;
+  --ifc-stats-right: 20px;
+  --ifc-stats-bottom: 20px;
+  --ifc-stats-radius: 8px;
+  --ifc-spinner-size: 40px;
+  --ifc-viewcube-dimension: 100px;
+  --ifc-viewcube-font-size: 16px;
+  --ifc-viewport-radius: 14px;
+
+  /* -------------------------------------------------------------------------
+     Animation
+     ------------------------------------------------------------------------- */
+  --ifc-transition-fast: 0.15s;
+  --ifc-transition-base: 0.2s;
+  --ifc-transition-slow: 0.28s;
+  --ifc-ease-default: ease;
+  --ifc-ease-in: ease-in;
+  --ifc-ease-out: ease-out;
+  --ifc-ease-in-out: ease-in-out;
+
+  /* -------------------------------------------------------------------------
+     Legacy Variables (for backward compatibility)
+     Map old variable names to new token-based names
+     ------------------------------------------------------------------------- */
+
+  /* Layout.css compatibility */
+  --ifc-surface: var(--ifc-color-surface);
+  --ifc-surface-hover: var(--ifc-color-surface-hover);
+  --ifc-surface-border: var(--ifc-color-border);
+  --ifc-text-primary: var(--ifc-color-text);
+  --ifc-text-muted: var(--ifc-color-text-muted);
+  --ifc-accent: var(--ifc-color-primary);
+  --ifc-background: var(--ifc-color-background);
+
+  /* Sidebar.css compatibility */
+  --sidebar-bg: var(--ifc-color-surface);
+  --sidebar-surface: var(--ifc-color-surface-elevated);
+  --sidebar-surface-muted: var(--ifc-color-surface-muted);
+  --sidebar-surface-hover: var(--ifc-color-surface-hover);
+  --sidebar-border: var(--ifc-color-border);
+  --sidebar-border-strong: var(--ifc-color-border-strong);
+  --sidebar-divider: rgba(255, 255, 255, 0.05);
+  --sidebar-text: var(--ifc-color-text);
+  --sidebar-text-muted: var(--ifc-color-text-muted);
+  --sidebar-text-subtle: var(--ifc-color-text-subtle);
+  --sidebar-accent: var(--ifc-color-primary);
+  --sidebar-accent-soft: rgba(94, 124, 255, 0.2);
+  --sidebar-accent-strong: var(--ifc-color-border-strong);
+  --sidebar-danger: var(--ifc-color-danger);
+  --sidebar-warning: var(--ifc-color-warning);
+  --sidebar-success: var(--ifc-color-success);
+  --sidebar-info: var(--ifc-color-info);
+  --sidebar-radius: var(--ifc-radius-xl);
+  --sidebar-control-height: var(--ifc-control-height);
+  --sidebar-control-bg: rgba(13, 18, 28, 0.85);
+  --sidebar-control-hover: var(--ifc-color-surface-hover);
+
+  /* ui.css compatibility */
+  --ui-primary: var(--ifc-color-primary);
+  --ui-primary-hover: var(--ifc-color-primary-hover);
+  --ui-primary-active: var(--ifc-color-primary-active);
+  --ui-danger: var(--ifc-color-danger);
+  --ui-danger-hover: var(--ifc-color-danger-hover);
+  --ui-danger-active: var(--ifc-color-danger-active);
+  --ui-success: var(--ifc-color-success);
+  --ui-warning: var(--ifc-color-warning);
+  --ui-info: var(--ifc-color-info);
+  --ui-text: var(--ifc-color-text);
+  --ui-text-muted: var(--ifc-color-text-muted);
+  --ui-text-subtle: var(--ifc-color-text-subtle);
+  --ui-bg: rgba(255, 255, 255, 0.03);
+  --ui-bg-hover: rgba(255, 255, 255, 0.06);
+  --ui-bg-active: rgba(255, 255, 255, 0.08);
+  --ui-bg-elevated: var(--ifc-color-surface-elevated);
+  --ui-border: var(--ifc-color-border);
+  --ui-border-focus: var(--ifc-color-border-focus);
+  --ui-space-xs: var(--ifc-space-xs);
+  --ui-space-sm: var(--ifc-space-sm);
+  --ui-space-md: var(--ifc-space-md);
+  --ui-space-lg: var(--ifc-space-lg);
+  --ui-space-xl: var(--ifc-space-xl);
+  --ui-radius-sm: var(--ifc-radius-sm);
+  --ui-radius-md: var(--ifc-radius-md);
+  --ui-radius-lg: var(--ifc-radius-lg);
+  --ui-radius-full: var(--ifc-radius-full);
+  --ui-font-xs: var(--ifc-font-size-xs);
+  --ui-font-sm: var(--ifc-font-size-sm);
+  --ui-font-base: var(--ifc-font-size-base);
+  --ui-font-lg: var(--ifc-font-size-lg);
+  --ui-transition: var(--ifc-transition-fast) var(--ifc-ease-default);
+  --ui-shadow-sm: var(--ifc-shadow-sm);
+  --ui-shadow-md: var(--ifc-shadow-md);
+  --ui-shadow-lg: var(--ifc-shadow-lg);
+
+  /* BIM UI Library compatibility */
+  --bim-ui_color-base: var(--ifc-color-surface);
+  --bim-ui_color-contrast: var(--ifc-color-text);
+  --bim-ui_text-color: var(--ifc-color-text);
+  --bim-button-color: var(--ifc-color-primary);
+  --bim-button-text-color: var(--ifc-color-background);
+  --bim-ui_panel-bg: transparent;
+}
+
+/* ============================================================================
+   LIGHT THEME OVERRIDES
+   ============================================================================ */
+
+.ifc-viewer-library-container[data-theme="light"],
+.ifc-viewer-library-container.theme-light {
+  /* Colors - Brand */
+  --ifc-color-primary: #3b5bdb;
+  --ifc-color-primary-hover: #4c6ef5;
+  --ifc-color-primary-active: #364fc7;
+
+  /* Colors - Semantic */
+  --ifc-color-danger: #e03131;
+  --ifc-color-danger-hover: #f03e3e;
+  --ifc-color-danger-active: #c92a2a;
+  --ifc-color-warning: #f59f00;
+  --ifc-color-success: #2f9e44;
+  --ifc-color-info: #1c7ed6;
+
+  /* Colors - Text */
+  --ifc-color-text: #1f2933;
+  --ifc-color-text-muted: #52606d;
+  --ifc-color-text-subtle: #7b8794;
+
+  /* Colors - Background */
+  --ifc-color-background: #f8f9fa;
+  --ifc-color-surface: #ffffff;
+  --ifc-color-surface-hover: #f1f3f5;
+  --ifc-color-surface-active: #e9ecef;
+  --ifc-color-surface-muted: #f8f9fa;
+  --ifc-color-surface-elevated: #ffffff;
+
+  /* Colors - Borders */
+  --ifc-color-border: rgba(0, 0, 0, 0.08);
+  --ifc-color-border-strong: rgba(59, 91, 219, 0.35);
+  --ifc-color-border-focus: #3b5bdb;
+
+  /* Colors - Overlays */
+  --ifc-color-overlay-backdrop: rgba(0, 0, 0, 0.3);
+  --ifc-color-overlay-drag-drop: #40c057;
+  --ifc-color-overlay-drag-drop-border: #40c057;
+
+  /* Colors - ViewCube */
+  --ifc-color-view-cube-face: #e9ecef;
+  --ifc-color-view-cube-hover: #4c6ef5;
+  --ifc-color-view-cube-outline: #adb5bd;
+  --ifc-color-view-cube-label: #1f2933;
+  --ifc-color-view-cube-label-bg: rgba(255, 255, 255, 0.95);
+  --ifc-color-view-cube-label-border: #adb5bd;
+
+  /* Colors - Viewport */
+  --ifc-color-viewport-background: #f8f9fa;
+  --ifc-color-secondary-viewport-background: #e9ecef;
+
+  /* Shadows (lighter for light theme) */
+  --ifc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --ifc-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --ifc-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --ifc-shadow-xl: 0 18px 48px rgba(0, 0, 0, 0.15);
+  --ifc-shadow-stats-overlay: 0 14px 32px rgba(0, 0, 0, 0.15);
+  --ifc-shadow-minimap: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --ifc-shadow-sidebar: 0 18px 48px rgba(0, 0, 0, 0.15);
+  --ifc-shadow-panel: 0 10px 24px rgba(0, 0, 0, 0.08);
+  --ifc-shadow-button: 0 6px 14px rgba(0, 0, 0, 0.1);
+
+  /* Light theme sidebar control background */
+  --sidebar-control-bg: #f1f3f5;
+  --sidebar-divider: rgba(0, 0, 0, 0.06);
+  --sidebar-accent-soft: rgba(59, 91, 219, 0.15);
+  --ui-bg: rgba(0, 0, 0, 0.03);
+  --ui-bg-hover: rgba(0, 0, 0, 0.06);
+  --ui-bg-active: rgba(0, 0, 0, 0.08);
+}

@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { ErrorHandler, ErrorType, BIMError } from '../utils/errorHandler';
+import './ErrorBoundary.css';
 
 interface Props {
   children: ReactNode;
@@ -12,82 +13,6 @@ interface State {
   error?: Error;
   errorInfo?: ErrorInfo;
 }
-
-const errorBoundaryStyles = {
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '400px',
-    padding: '20px',
-    backgroundColor: '#f8f9fa',
-    border: '1px solid #dee2e6',
-    borderRadius: '8px',
-    margin: '20px',
-  } as React.CSSProperties,
-  content: {
-    textAlign: 'center' as const,
-    maxWidth: '600px',
-  } as React.CSSProperties,
-  heading: {
-    color: '#dc3545',
-    marginBottom: '16px',
-    fontSize: '24px',
-  } as React.CSSProperties,
-  description: {
-    color: '#6c757d',
-    marginBottom: '20px',
-    lineHeight: '1.5',
-  } as React.CSSProperties,
-  details: {
-    textAlign: 'left' as const,
-    margin: '20px 0',
-    padding: '16px',
-    backgroundColor: '#fff',
-    border: '1px solid #dee2e6',
-    borderRadius: '4px',
-  } as React.CSSProperties,
-  summary: {
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    marginBottom: '10px',
-  } as React.CSSProperties,
-  errorInfo: {
-    marginTop: '10px',
-  } as React.CSSProperties,
-  stack: {
-    backgroundColor: '#f8f9fa',
-    padding: '10px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    overflowX: 'auto' as const,
-    maxHeight: '200px',
-    overflowY: 'auto' as const,
-  } as React.CSSProperties,
-  actions: {
-    display: 'flex',
-    gap: '12px',
-    justifyContent: 'center',
-    marginTop: '20px',
-  } as React.CSSProperties,
-  button: {
-    padding: '10px 20px',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    transition: 'background-color 0.2s',
-  } as React.CSSProperties,
-  retryButton: {
-    backgroundColor: '#007bff',
-    color: 'white',
-  } as React.CSSProperties,
-  refreshButton: {
-    backgroundColor: '#6c757d',
-    color: 'white',
-  } as React.CSSProperties,
-};
 
 export class ErrorBoundary extends Component<Props, State> {
   private errorHandler: ErrorHandler;
@@ -138,49 +63,45 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div style={errorBoundaryStyles.container}>
-          <div style={errorBoundaryStyles.content}>
-            <h2 style={errorBoundaryStyles.heading}>Something went wrong</h2>
-            <p style={errorBoundaryStyles.description}>
+        <div className="error-boundary">
+          <div className="error-boundary__content">
+            <h2 className="error-boundary__heading">Something went wrong</h2>
+            <p className="error-boundary__description">
               We&apos;re sorry, but something unexpected happened. The application has
               encountered an error.
             </p>
-            
-            <details style={errorBoundaryStyles.details}>
-              <summary style={errorBoundaryStyles.summary}>Error Details</summary>
-              <div style={errorBoundaryStyles.errorInfo}>
+
+            <details className="error-boundary__details">
+              <summary className="error-boundary__summary">Error Details</summary>
+              <div className="error-boundary__error-info">
                 <p><strong>Error:</strong> {this.state.error?.message}</p>
                 {this.state.error?.stack && (
-                  <pre style={errorBoundaryStyles.stack}>
+                  <pre className="error-boundary__stack">
                     {this.state.error.stack}
                   </pre>
                 )}
               </div>
             </details>
 
-            <div style={errorBoundaryStyles.actions}>
-              <button 
+            <div className="error-boundary__actions">
+              <button
                 onClick={this.handleRetry}
-                style={{...errorBoundaryStyles.button, ...errorBoundaryStyles.retryButton}}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
+                className="error-boundary__button error-boundary__button--retry"
               >
                 Try Again
               </button>
-              <button 
+              <button
                 onClick={() => window.location.reload()}
-                style={{...errorBoundaryStyles.button, ...errorBoundaryStyles.refreshButton}}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6268'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6c757d'}
+                className="error-boundary__button error-boundary__button--refresh"
               >
                 Refresh Page
               </button>
             </div>
-                     </div>
-         </div>
-       );
-     }
+          </div>
+        </div>
+      );
+    }
 
-     return this.props.children;
-   }
- } 
+    return this.props.children;
+  }
+}

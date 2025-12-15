@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { bridge, CameraState } from './utils/bridge';
 import { SelectionMap } from './context/BIMContext';
+import { PartialViewerConfig, applyConfigToContainer, defaultViewerConfig, mergeViewerConfig } from './config/viewerConfig';
+import { PartialDesignTokens, tokensToCSSVariables, mergeTokens, defaultDarkTokens, defaultLightTokens } from './config/tokens';
 
 /**
  * Configuration options for creating an IFC viewer instance
@@ -20,7 +22,27 @@ export interface CreateViewerOptions {
   /** Callback fired when errors occur */
   onError?: (error: unknown) => void;
 
-  /** Feature flags to enable/disable specific viewer features */
+  /**
+   * Full viewer configuration including layout, controls, features, appearance, and theme.
+   * This is the recommended way to configure the viewer.
+   */
+  config?: PartialViewerConfig;
+
+  /**
+   * Direct design token overrides for complete styling control.
+   * These override any tokens set via config.theme.tokens.
+   */
+  tokens?: PartialDesignTokens;
+
+  /**
+   * @deprecated Use `config` instead. Legacy CSS variable overrides.
+   * Kept for backward compatibility.
+   */
+  theme?: Record<string, string>;
+
+  /**
+   * @deprecated Use `config.features` instead. Legacy feature flags.
+   */
   features?: Partial<{
     minimap: boolean;
     measurement: boolean;
@@ -28,9 +50,6 @@ export interface CreateViewerOptions {
     floorplans: boolean;
     aiVisualizer: boolean;
   }>;
-
-  /** Custom CSS theme variables to override default styling */
-  theme?: Record<string, string>;
 }
 
 /**
@@ -54,6 +73,12 @@ export interface ViewerHandle {
 
   /** Capture a screenshot of the current view */
   captureScreenshot: () => Promise<string>;
+
+  /** Update the viewer configuration at runtime */
+  updateConfig: (config: PartialViewerConfig) => void;
+
+  /** Update design tokens at runtime */
+  updateTokens: (tokens: PartialDesignTokens) => void;
 }
 
 /**
@@ -61,32 +86,64 @@ export interface ViewerHandle {
  *
  * @example
  * ```typescript
- * const container = document.getElementById('viewer-container');
+ * // Basic usage
  * const viewer = createIFCViewer({
- *   container,
+ *   container: document.getElementById('viewer'),
  *   onModelLoaded: (meta) => console.log('Model loaded:', meta),
- *   onObjectSelected: (selection) => console.log('Selected:', selection),
  * });
  *
- * // Load a model
- * await viewer.loadModelFromUrl('/path/to/model.ifc');
+ * // Full customization
+ * const viewer = createIFCViewer({
+ *   container: document.getElementById('viewer'),
+ *   config: {
+ *     layout: {
+ *       sidebar: { minWidth: 300, maxWidth: 500 },
+ *       panels: { aiVisualizer: { enabled: false } },
+ *     },
+ *     appearance: {
+ *       elementColors: { walls: '#ff0000', doors: '#00ff00' },
+ *     },
+ *     theme: { preset: 'dark' },
+ *   },
+ *   tokens: {
+ *     colors: { primary: '#ff6600' },
+ *   },
+ * });
  *
- * // Cleanup when done
+ * await viewer.loadModelFromUrl('/path/to/model.ifc');
  * viewer.unmount();
  * ```
- *
- * @param options - Configuration options for the viewer
- * @returns A viewer handle with control methods
  */
 export function createIFCViewer(options: CreateViewerOptions): ViewerHandle {
-  const { container, theme } = options;
+  const { container, theme, config, tokens } = options;
 
-  // Apply theme tokens as CSS variables on container scope
-  if (theme) {
-    for (const [key, value] of Object.entries(theme)) {
-      container.style.setProperty(key, value);
-    }
+  // Merge user config with defaults
+  const mergedConfig = mergeViewerConfig(config);
+
+  // Get base tokens from theme preset
+  const baseTokens = mergedConfig.theme.preset === 'light' ? defaultLightTokens : defaultDarkTokens;
+
+  // Merge tokens: base -> config.theme.tokens -> direct tokens override
+  let finalTokens = mergeTokens(baseTokens, mergedConfig.theme.tokens);
+  if (tokens) {
+    finalTokens = mergeTokens(finalTokens, tokens);
   }
+
+  // Apply CSS variables to container
+  const cssVars = tokensToCSSVariables(finalTokens);
+  Object.entries(cssVars).forEach(([key, value]) => {
+    container.style.setProperty(key, value);
+  });
+
+  // Apply legacy theme overrides (backward compatibility)
+  if (theme) {
+    Object.entries(theme).forEach(([key, value]) => {
+      container.style.setProperty(key, value);
+    });
+  }
+
+  // Store current tokens for runtime updates
+  let currentTokens = finalTokens;
 
   const root = ReactDOM.createRoot(container);
   root.render(
@@ -95,6 +152,7 @@ export function createIFCViewer(options: CreateViewerOptions): ViewerHandle {
         onObjectSelected={options.onObjectSelected}
         onModelLoaded={options.onModelLoaded}
         onError={options.onError}
+        config={mergedConfig}
       />
     </React.StrictMode>
   );
@@ -173,8 +231,25 @@ export function createIFCViewer(options: CreateViewerOptions): ViewerHandle {
         });
       });
     },
+
+    updateConfig: (newConfig: PartialViewerConfig) => {
+      const updatedConfig = mergeViewerConfig(newConfig, mergedConfig);
+      applyConfigToContainer(updatedConfig, container);
+    },
+
+    updateTokens: (newTokens: PartialDesignTokens) => {
+      currentTokens = mergeTokens(currentTokens, newTokens);
+      const cssVars = tokensToCSSVariables(currentTokens);
+      Object.entries(cssVars).forEach(([key, value]) => {
+        container.style.setProperty(key, value);
+      });
+    },
   };
 }
 
-// Re-export types for convenience
+// Re-export types and utilities for convenience
 export type { SelectionMap } from './context/BIMContext';
+export type { PartialViewerConfig, ViewerConfig } from './config/viewerConfig';
+export type { PartialDesignTokens, DesignTokens } from './config/tokens';
+export { defaultViewerConfig } from './config/viewerConfig';
+export { defaultDarkTokens, defaultLightTokens } from './config/tokens';

@@ -1,25 +1,34 @@
+/**
+ * Sidebar Component Styles
+ * All values use CSS variables from tokens.css for full customizability
+ *
+ * This file maps the centralized tokens to sidebar-specific aliases for convenience,
+ * but all values can be overridden via the main token system.
+ */
+
 .ifc-viewer-library-container {
-  --sidebar-bg: rgba(9, 14, 22, 0.94);
-  --sidebar-surface: rgba(17, 24, 36, 0.92);
-  --sidebar-surface-muted: rgba(20, 27, 40, 0.88);
-  --sidebar-surface-hover: rgba(26, 34, 48, 0.95);
-  --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-border-strong: rgba(94, 124, 255, 0.35);
-  --sidebar-divider: rgba(255, 255, 255, 0.05);
-  --sidebar-text: #eef2fb;
-  --sidebar-text-muted: rgba(196, 205, 224, 0.78);
-  --sidebar-text-subtle: rgba(154, 163, 184, 0.64);
-  --sidebar-accent: #5e7cff;
+  /* Sidebar-specific aliases that reference the main token system */
+  --sidebar-bg: var(--ifc-color-surface);
+  --sidebar-surface: var(--ifc-color-surface-elevated);
+  --sidebar-surface-muted: var(--ifc-color-surface-muted);
+  --sidebar-surface-hover: var(--ifc-color-surface-hover);
+  --sidebar-border: var(--ifc-color-border);
+  --sidebar-border-strong: var(--ifc-color-border-strong);
+  --sidebar-divider: var(--ifc-color-border);
+  --sidebar-text: var(--ifc-color-text);
+  --sidebar-text-muted: var(--ifc-color-text-muted);
+  --sidebar-text-subtle: var(--ifc-color-text-subtle);
+  --sidebar-accent: var(--ifc-color-primary);
   --sidebar-accent-soft: rgba(94, 124, 255, 0.2);
-  --sidebar-accent-strong: rgba(94, 124, 255, 0.45);
-  --sidebar-danger: #f87171;
-  --sidebar-warning: #f6c177;
-  --sidebar-success: #34d399;
-  --sidebar-info: #38bdf8;
-  --sidebar-radius: 12px;
-  --sidebar-control-height: 36px;
+  --sidebar-accent-strong: var(--ifc-color-border-strong);
+  --sidebar-danger: var(--ifc-color-danger);
+  --sidebar-warning: var(--ifc-color-warning);
+  --sidebar-success: var(--ifc-color-success);
+  --sidebar-info: var(--ifc-color-info);
+  --sidebar-radius: var(--ifc-radius-xl);
+  --sidebar-control-height: var(--ifc-control-height);
   --sidebar-control-bg: rgba(13, 18, 28, 0.85);
-  --sidebar-control-hover: rgba(26, 35, 50, 0.95);
+  --sidebar-control-hover: var(--ifc-color-surface-hover);
 }
 
 .ifc-viewer-library-container .sidebar {
@@ -27,8 +36,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 22px 20px 26px;
+  gap: var(--ifc-panel-gap, 18px);
+  padding: var(--ifc-sidebar-padding, 22px 20px 26px);
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
   font-family: inherit;
@@ -40,13 +49,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding-bottom: 10px;
+  gap: var(--ifc-space-md);
+  padding-bottom: var(--ifc-space-sm);
   border-bottom: 1px solid var(--sidebar-divider);
   color: var(--sidebar-text-muted);
-  font-size: 0.82rem;
+  font-size: var(--ifc-font-size-sm);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ifc-letter-spacing-wide);
 }
 
 .ifc-viewer-library-container .sidebar bim-panel {
@@ -56,13 +65,13 @@
   color: inherit;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 6px;
+  padding-right: var(--ifc-space-sm);
   scrollbar-width: thin;
   scrollbar-color: var(--sidebar-accent-soft) transparent;
 }
 
 .ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar {
-  width: 8px;
+  width: var(--ifc-scrollbar-width, 8px);
 }
 
 .ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar-track {
@@ -71,7 +80,7 @@
 
 .ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar-thumb {
   background: var(--sidebar-accent-soft);
-  border-radius: 999px;
+  border-radius: var(--ifc-radius-full);
 }
 
 .ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar-thumb:hover {
@@ -79,33 +88,35 @@
 }
 
 .ifc-viewer-library-container .sidebar bim-panel-section {
-  margin-bottom: 10px;
+  margin-bottom: var(--ifc-section-gap, 10px);
   background: var(--sidebar-surface);
   border: 1px solid var(--sidebar-border);
   border-radius: var(--sidebar-radius);
-  box-shadow: 0 10px 24px rgba(4, 8, 16, 0.3);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: var(--ifc-shadow-panel);
+  transition: border-color var(--ifc-transition-base) var(--ifc-ease-default),
+              box-shadow var(--ifc-transition-base) var(--ifc-ease-default),
+              background var(--ifc-transition-base) var(--ifc-ease-default);
 }
 
 .ifc-viewer-library-container .sidebar bim-panel-section[collapsed] {
   background: var(--sidebar-surface-muted);
-  border-color: rgba(255, 255, 255, 0.04);
+  border-color: var(--ifc-color-border);
   box-shadow: none;
 }
 
 .ifc-viewer-library-container .sidebar bim-panel-section::part(header) {
-  padding: 16px;
+  padding: var(--ifc-space-lg);
   color: var(--sidebar-text);
-  font-weight: 600;
-  font-size: 0.92rem;
-  letter-spacing: 0.01em;
+  font-weight: var(--ifc-font-weight-semibold);
+  font-size: var(--ifc-font-size-base);
+  letter-spacing: var(--ifc-letter-spacing);
   background: transparent;
 }
 
 .ifc-viewer-library-container .sidebar bim-panel-section::part(content) {
-  padding: 16px;
+  padding: var(--ifc-space-lg);
   color: var(--sidebar-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--ifc-font-size-base);
 }
 
 .ifc-viewer-library-container .sidebar bim-panel-section::part(toggle) {
@@ -119,10 +130,10 @@
 
 .ifc-viewer-library-container .sidebar label,
 .ifc-viewer-library-container .sidebar .field-label {
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: var(--ifc-font-size-sm);
+  font-weight: var(--ifc-font-weight-medium);
   color: var(--sidebar-text-muted);
-  letter-spacing: 0.025em;
+  letter-spacing: var(--ifc-letter-spacing-wide);
 }
 
 .ifc-viewer-library-container .sidebar input:not([type="range"]):not([type="checkbox"]),
@@ -131,18 +142,21 @@
 .ifc-viewer-library-container .sidebar .sidebar-input {
   width: 100%;
   min-height: var(--sidebar-control-height);
-  padding: 0.5rem 0.75rem;
-  border-radius: 10px;
+  padding: var(--ifc-space-sm) var(--ifc-space-md);
+  border-radius: var(--ifc-radius-lg);
   border: 1px solid var(--sidebar-border);
   background: var(--sidebar-control-bg);
   color: var(--sidebar-text);
-  font-size: 0.85rem;
+  font-size: var(--ifc-font-size-base);
   font-family: inherit;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  transition: border-color var(--ifc-transition-base) var(--ifc-ease-default),
+              box-shadow var(--ifc-transition-base) var(--ifc-ease-default),
+              background-color var(--ifc-transition-base) var(--ifc-ease-default),
+              transform var(--ifc-transition-base) var(--ifc-ease-default);
 }
 
 .ifc-viewer-library-container .sidebar textarea {
-  min-height: 90px;
+  min-height: var(--ifc-textarea-min-height, 90px);
   resize: vertical;
 }
 
@@ -163,16 +177,19 @@
 .ifc-viewer-library-container .sidebar button,
 .ifc-viewer-library-container .sidebar .sidebar-button {
   min-height: var(--sidebar-control-height);
-  padding: 0.55rem 0.9rem;
-  border-radius: 10px;
+  padding: var(--ifc-space-sm) var(--ifc-space-md);
+  border-radius: var(--ifc-radius-lg);
   border: 1px solid var(--sidebar-border);
   background: var(--sidebar-control-bg);
   color: var(--sidebar-text);
-  font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  font-size: var(--ifc-font-size-base);
+  font-weight: var(--ifc-font-weight-medium);
+  letter-spacing: var(--ifc-letter-spacing);
   cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  transition: border-color var(--ifc-transition-base) var(--ifc-ease-default),
+              background-color var(--ifc-transition-base) var(--ifc-ease-default),
+              box-shadow var(--ifc-transition-base) var(--ifc-ease-default),
+              transform var(--ifc-transition-fast) var(--ifc-ease-default);
 }
 
 .ifc-viewer-library-container .sidebar button:hover,
@@ -182,7 +199,7 @@
   outline: none;
   background: var(--sidebar-control-hover);
   border-color: var(--sidebar-accent-strong);
-  box-shadow: 0 6px 14px rgba(6, 10, 20, 0.35);
+  box-shadow: var(--ifc-shadow-button);
   transform: translateY(-1px);
 }
 
@@ -212,8 +229,8 @@
 .ifc-viewer-library-container .sidebar button.primary:focus-visible,
 .ifc-viewer-library-container .sidebar .primary-action:focus-visible,
 .ifc-viewer-library-container .sidebar .model-manager__button--primary:focus-visible {
-  background: #708aff;
-  border-color: #8da3ff;
+  background: var(--ifc-color-primary-hover);
+  border-color: var(--ifc-color-primary-hover);
 }
 
 .ifc-viewer-library-container .sidebar .button--danger,
@@ -227,7 +244,7 @@
 .ifc-viewer-library-container .sidebar .model-manager__button--danger:hover {
   background: rgba(248, 113, 113, 0.22);
   border-color: rgba(248, 113, 113, 0.55);
-  color: #ffe5e5;
+  color: var(--ifc-color-danger-hover);
 }
 
 .ifc-viewer-library-container .sidebar .relations-tree-container {
@@ -236,8 +253,9 @@
 
 .ifc-viewer-library-container .relations-tree-container bim-table-row {
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-  border-radius: 10px;
+  transition: background-color var(--ifc-transition-fast) var(--ifc-ease-default),
+              border-color var(--ifc-transition-fast) var(--ifc-ease-default);
+  border-radius: var(--ifc-radius-lg);
 }
 
 .ifc-viewer-library-container .relations-tree-container bim-table-row:hover {
@@ -260,16 +278,16 @@
 
 .ifc-viewer-library-container .relations-label {
   color: var(--sidebar-text);
-  font-size: 0.85rem;
-  letter-spacing: 0.06em;
+  font-size: var(--ifc-font-size-base);
+  letter-spacing: var(--ifc-letter-spacing-wide);
   text-transform: uppercase;
 }
 
 .ifc-viewer-library-container .relations-tree-shell {
   border: 1px solid var(--sidebar-border);
-  border-radius: 12px;
+  border-radius: var(--sidebar-radius);
   background: var(--sidebar-control-bg);
-  padding: 6px;
+  padding: var(--ifc-space-sm);
 }
 
 .ifc-viewer-library-container .relations-file-input {
@@ -279,13 +297,13 @@
 .ifc-viewer-library-container .multi-view-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--ifc-section-gap, 10px);
 }
 
 .ifc-viewer-library-container .multi-view-options__button {
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
+  letter-spacing: var(--ifc-letter-spacing-wide);
+  font-weight: var(--ifc-font-weight-semibold);
   justify-content: center;
   text-align: center;
 }
@@ -293,23 +311,23 @@
 .ifc-viewer-library-container .model-manager {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--ifc-section-gap, 10px);
 }
 
 .ifc-viewer-library-container .model-manager__item-card {
   background: var(--sidebar-control-bg);
   border: 1px solid var(--sidebar-border);
-  padding: 12px 14px;
+  padding: var(--ifc-space-md) var(--ifc-space-lg);
 }
 
 .ifc-viewer-library-container .model-manager__row {
-  gap: 10px;
+  gap: var(--ifc-section-gap, 10px);
 }
 
 .ifc-viewer-library-container .model-manager__name {
   flex: 1;
   min-width: 0;
-  font-size: 0.9rem;
+  font-size: var(--ifc-font-size-base);
   color: var(--sidebar-text);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -318,13 +336,13 @@
 
 .ifc-viewer-library-container .model-manager__actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--ifc-space-sm);
 }
 
 .ifc-viewer-library-container .sidebar .visibility-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--ifc-space-md);
 }
 
 .ifc-viewer-library-container .visibility-card {
@@ -333,17 +351,17 @@
 }
 
 .ifc-viewer-library-container .visibility-list {
-  margin-top: 6px;
+  margin-top: var(--ifc-space-sm);
 }
 
 @media (max-width: 640px) {
   .ifc-viewer-library-container .sidebar {
-    padding: 18px 16px 22px;
+    padding: var(--ifc-space-lg) var(--ifc-space-lg) var(--ifc-space-xl);
   }
 }
 
 .ifc-viewer-library-container .sidebar bim-panel > * {
-  padding-right: 4px;
+  padding-right: var(--ifc-space-xs);
 }
 
 @media (max-width: 768px) {
@@ -353,7 +371,7 @@
   }
 
   .ifc-viewer-library-container .sidebar bim-panel::-webkit-scrollbar {
-    width: 4px;
+    width: var(--ifc-scrollbar-width-mobile, 4px);
   }
 }
 

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Stats from 'stats.js';
 import { useBIM } from '../../context/BIMContext';
 import { Toggle, Button, Text, Stack, ButtonGroup } from '../../ui';
+import './PerformanceSection.css';
 
 const findViewerContainer = () => {
   return document.querySelector<HTMLElement>('.ifc-viewer-library-container .viewer-container');
@@ -28,16 +29,9 @@ export const PerformanceSection: React.FC = () => {
     const stats = new Stats();
     stats.showPanel(2);
     const dom = stats.dom;
-    dom.style.position = 'absolute';
-    dom.style.left = 'auto';
-    dom.style.top = 'auto';
-    dom.style.right = '20px';
-    dom.style.bottom = '20px';
-    dom.style.zIndex = '1400';
-    dom.style.display = 'none';
-    dom.style.borderRadius = '8px';
-    dom.style.overflow = 'hidden';
-    dom.style.boxShadow = '0 14px 32px rgba(0, 0, 0, 0.35)';
+
+    // Use CSS class instead of inline styles
+    dom.classList.add('stats-overlay');
 
     statsRef.current = stats;
     ensureOverlayAttached();
@@ -58,7 +52,12 @@ export const PerformanceSection: React.FC = () => {
 
   useEffect(() => {
     if (!statsRef.current?.dom) {return;}
-    statsRef.current.dom.style.display = statsVisible ? 'block' : 'none';
+    // Toggle visibility via CSS class
+    if (statsVisible) {
+      statsRef.current.dom.classList.add('stats-overlay--visible');
+    } else {
+      statsRef.current.dom.classList.remove('stats-overlay--visible');
+    }
   }, [statsVisible]);
 
   useEffect(() => {

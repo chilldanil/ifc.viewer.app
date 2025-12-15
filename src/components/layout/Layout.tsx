@@ -6,24 +6,26 @@ import { useBIM } from '../../context/BIMContext';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import './Layout.css';
 
-const MIN_SIDEBAR_WIDTH = 260;
-const MAX_SIDEBAR_WIDTH = 680;
-
-const getDefaultSidebarWidth = () => {
-  if (typeof window === 'undefined') {
-    return 320;
-  }
-
-  const viewportWidth = window.innerWidth;
-  const preferredWidth = 0.26 * viewportWidth;
-
-  return Math.max(MIN_SIDEBAR_WIDTH, Math.min(preferredWidth, 360));
-};
-
 export const Layout: React.FC = () => {
-  const { isInitialized, isLoading, error, retry, multiViewPreset } = useBIM();
+  const { isInitialized, isLoading, error, retry, multiViewPreset, config } = useBIM();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isSidebarVisible, setSidebarVisible] = useState(true);
+
+  // Get sidebar config from context - fully configurable, no hardcoded values
+  const sidebarConfig = config.layout.sidebar;
+  const { minWidth, maxWidth, defaultWidth, widthRatio, maxViewportRatio } = sidebarConfig;
+
+  const getDefaultSidebarWidth = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return defaultWidth;
+    }
+
+    const viewportWidth = window.innerWidth;
+    const preferredWidth = widthRatio * viewportWidth;
+
+    return Math.max(minWidth, Math.min(preferredWidth, defaultWidth + 40));
+  }, [defaultWidth, widthRatio, minWidth]);
+
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => getDefaultSidebarWidth());
   const [isResizing, setIsResizing] = useState(false);
   const resizeStateRef = useRef({ startX: 0, startWidth: 0 });
@@ -37,8 +39,10 @@ export const Layout: React.FC = () => {
   const layoutStyle = useMemo<React.CSSProperties>(() => {
     return {
       '--ifc-sidebar-width': `${sidebarWidth}px`,
+      '--ifc-sidebar-min-width': `${minWidth}px`,
+      '--ifc-sidebar-max-width': `${maxWidth}px`,
     } as React.CSSProperties;
-  }, [sidebarWidth]);
+  }, [sidebarWidth, minWidth, maxWidth]);
 
   const toggleSidebar = () => {
     setSidebarVisible((prev) => !prev);
@@ -46,14 +50,14 @@ export const Layout: React.FC = () => {
 
   const clampSidebarWidth = useCallback((width: number) => {
     const viewportLimitedMax = typeof window === 'undefined'
-      ? MAX_SIDEBAR_WIDTH
+      ? maxWidth
       : Math.max(
-          MIN_SIDEBAR_WIDTH,
-          Math.min(MAX_SIDEBAR_WIDTH, Math.round(window.innerWidth * 0.92))
+          minWidth,
+          Math.min(maxWidth, Math.round(window.innerWidth * maxViewportRatio))
         );
 
-    return Math.min(Math.max(width, MIN_SIDEBAR_WIDTH), viewportLimitedMax);
-  }, []);
+    return Math.min(Math.max(width, minWidth), viewportLimitedMax);
+  }, [minWidth, maxWidth, maxViewportRatio]);
 
   const handlePointerMove = useCallback((event: PointerEvent) => {
     if (!isResizingRef.current) {
