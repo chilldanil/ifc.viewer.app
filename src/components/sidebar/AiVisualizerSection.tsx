@@ -465,7 +465,7 @@ export const AiVisualizerSection: React.FC = () => {
                         Download Render
                       </button>
                     )}
-                    {hasComparison && viewerMode !== 'compare' && (
+                    {hasComparison && (
                       <button
                         type="button"
                         className="modal-secondary-btn"
