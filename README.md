@@ -14,7 +14,7 @@
    9. [Performance HUD](#performance-hud)
    10. [Robust Error-Handling Layer](#robust-error-handling-layer)
 3. [Technology Stack](#technology-stack)
-4. [Project Structure](#project-structure)
+4. [Project Structure](#project-structure) 
 5. [Getting Started](#getting-started)
    1. [Prerequisites](#prerequisites)
    2. [Installation](#installation)
