@@ -1,0 +1,13 @@
+.hider-list {
+  max-height: 220px;
+  overflow: auto;
+}
+
+.hider-item {
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.hider-item--selected {
+  box-shadow: 0 0 0 1px var(--ui-primary);
+}
