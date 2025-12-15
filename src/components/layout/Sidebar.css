@@ -249,62 +249,61 @@
   box-shadow: inset 0 0 0 1px var(--sidebar-accent-strong);
 }
 
+.ifc-viewer-library-container .relations-card {
+  background: var(--sidebar-surface);
+  border: 1px solid var(--sidebar-border);
+}
+
+.ifc-viewer-library-container .relations-actions {
+  align-items: center;
+}
+
+.ifc-viewer-library-container .relations-label {
+  color: var(--sidebar-text);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ifc-viewer-library-container .relations-tree-shell {
+  border: 1px solid var(--sidebar-border);
+  border-radius: 12px;
+  background: var(--sidebar-control-bg);
+  padding: 6px;
+}
+
+.ifc-viewer-library-container .relations-file-input {
+  display: none;
+}
+
 .ifc-viewer-library-container .multi-view-options {
-  margin-top: 14px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
 .ifc-viewer-library-container .multi-view-options__button {
-  border-radius: 10px;
-  border: 1px solid var(--sidebar-border);
-  background: var(--sidebar-control-bg);
-  padding: 10px;
-  color: var(--sidebar-text-muted);
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
   text-transform: uppercase;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
-}
-
-.ifc-viewer-library-container .multi-view-options__button:hover {
-  border-color: var(--sidebar-accent-strong);
-  background: var(--sidebar-control-hover);
-  color: var(--sidebar-text);
-  transform: translateY(-1px);
-}
-
-.ifc-viewer-library-container .multi-view-options__button.is-active {
-  border-color: var(--sidebar-accent);
-  background: rgba(94, 124, 255, 0.24);
-  color: #ffffff;
-  box-shadow: 0 8px 20px rgba(82, 113, 255, 0.3);
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  justify-content: center;
+  text-align: center;
 }
 
 .ifc-viewer-library-container .model-manager {
-  margin-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.ifc-viewer-library-container .model-manager__title {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--sidebar-text-muted);
-}
-
-.ifc-viewer-library-container .model-manager__item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--sidebar-surface-muted);
+.ifc-viewer-library-container .model-manager__item-card {
+  background: var(--sidebar-control-bg);
   border: 1px solid var(--sidebar-border);
+  padding: 12px 14px;
+}
+
+.ifc-viewer-library-container .model-manager__row {
+  gap: 10px;
 }
 
 .ifc-viewer-library-container .model-manager__name {
@@ -322,39 +321,19 @@
   gap: 0.5rem;
 }
 
-.ifc-viewer-library-container .model-manager__button {
-  min-height: 32px;
-  padding: 0.45rem 0.85rem;
-  border-radius: 9px;
-  border: 1px solid var(--sidebar-border);
-  background: var(--sidebar-control-bg);
-  color: var(--sidebar-text-muted);
-  font-size: 0.78rem;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
-}
-
-.ifc-viewer-library-container .model-manager__button:hover {
-  background: var(--sidebar-control-hover);
-  border-color: var(--sidebar-accent-strong);
-  color: var(--sidebar-text);
-  transform: translateY(-1px);
-}
-
-.ifc-viewer-library-container .sidebar bim-text-input,
-.ifc-viewer-library-container .sidebar bim-number-input {
-  width: 100%;
-  font-family: inherit;
-}
-
-.ifc-viewer-library-container .sidebar bim-button {
-  font-family: inherit;
-  color: inherit;
-}
-
 .ifc-viewer-library-container .sidebar .visibility-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.ifc-viewer-library-container .visibility-card {
+  background: var(--sidebar-control-bg);
+  border: 1px solid var(--sidebar-border);
+}
+
+.ifc-viewer-library-container .visibility-list {
+  margin-top: 6px;
 }
 
 @media (max-width: 640px) {

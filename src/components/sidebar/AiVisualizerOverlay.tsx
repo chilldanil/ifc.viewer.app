@@ -1,5 +1,6 @@
-import './AiVisualizerOverlay.css';
 import { useEffect, useRef, useState } from 'react';
+import { Button, Row, Stack, Status, Text, Textarea } from '../../ui';
+import './AiVisualizerOverlay.css';
 
 type Props = {
     onClose: () => void;
@@ -63,38 +64,53 @@ export const AiVisualizerOverlay = ({ onClose, captureScreenshot }: Props) => {
     };
 
     return (
-        <div className="ai-overlay" ref={overlayRef}>
-            <div className="ai-panel">
-                <div className="ai-header">
-                    <h2>AI Visualizer</h2>
-                    <button onClick={onClose}>✕</button>
-                </div>
-                <div className="ai-chat">
-                    <textarea
-                        placeholder="Describe the visualization..."
+        <div className="ai-overlay" ref={overlayRef} role="dialog" aria-modal="true">
+            <div className="ai-overlay__panel">
+                <Row between className="ai-overlay__header">
+                    <div>
+                        <h3 className="ai-overlay__title">AI Visualizer</h3>
+                        <Text variant="muted" size="sm" className="ai-overlay__subtitle">
+                            Generate concepts directly from the current viewport.
+                        </Text>
+                    </div>
+                    <Button variant="ghost" size="sm" icon onClick={onClose} aria-label="Close AI Visualizer">
+                        ✕
+                    </Button>
+                </Row>
+
+                <Stack gap="md">
+                    <Textarea
+                        label="Describe the visualization"
+                        placeholder="Describe the mood, materials, and lighting you want to see..."
                         value={prompt}
                         onChange={e => setPrompt(e.target.value)}
                         disabled={loading}
+                        rows={4}
                     />
-                    <button onClick={handleGenerate} disabled={loading || !prompt}>
-                        {loading ? (
-                            <span>
-                                <span className="ai-spinner" /> Generating...
-                            </span>
-                        ) : 'Generate'}
-                    </button>
-                </div>
-                {loading && (
-                    <div className="ai-loading">
-                        <span className="ai-spinner" /> Generating image, please wait...
-                    </div>
-                )}
-                {error && <div className="ai-error">{error}</div>}
-                {resultImage && (
-                    <div className="ai-result">
-                        <img src={resultImage} alt="AI result" style={{ maxWidth: '100%', maxHeight: 300 }} />
-                    </div>
-                )}
+
+                    <Row between className="ai-overlay__actions">
+                        <Text variant="subtle" size="xs">
+                            Uses your current camera view as the base image
+                        </Text>
+                        <Button variant="primary" onClick={handleGenerate} disabled={loading || !prompt}>
+                            {loading ? 'Generating...' : 'Generate'}
+                        </Button>
+                    </Row>
+
+                    {loading && (
+                        <Status variant="info">
+                            Generating image, please wait...
+                        </Status>
+                    )}
+
+                    {error && <Status variant="error">{error}</Status>}
+
+                    {resultImage && (
+                        <div className="ai-overlay__result">
+                            <img src={resultImage} alt="AI result" />
+                        </div>
+                    )}
+                </Stack>
             </div>
         </div>
     );

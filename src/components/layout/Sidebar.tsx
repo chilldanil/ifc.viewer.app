@@ -9,6 +9,9 @@ import './Sidebar.css';
 import { bridge } from '../../utils/bridge';
 import { useElectronFileOpen } from '../../hooks/useElectronFileOpen';
 import { useElementSelection } from '../../hooks/useElementSelection';
+import { Button, Card, Input, Row, Stack, Text } from '../../ui';
+import type { Table } from '@thatopen/ui';
+import { setupIfcLoader } from '../../core/services/ifcLoaderService';
 
 type FragmentIdCollection = Map<string | number, unknown> | Record<string, unknown> | undefined | null;
 
@@ -251,10 +254,13 @@ const SidebarComponent: React.FC = () => {
     multiViewPreset,
     setMultiViewPreset,
     propertyEditingService,
+    setIsModelLoading,
   } = useBIM();
-  const loadButtonContainerRef = useRef<HTMLDivElement>(null);
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const [loadedModels, setLoadedModels] = useState<LoadedModel[]>([]);
+  const treeElementRef = useRef<Table | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [relationsSearch, setRelationsSearch] = useState('');
 
   // Use dedicated hook for element selection tracking
   const { selectedModel, selectedExpressID } = useElementSelection(components, world);
@@ -360,6 +366,31 @@ const SidebarComponent: React.FC = () => {
       console.warn('Failed to refresh loaded model list:', error);
     }
   }, [components]);
+
+  const handleBrowseIfc = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleIfcFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file || !components) {
+      return;
+    }
+
+    try {
+      const loader = setupIfcLoader(components, propertyEditingService ?? undefined);
+      setIsModelLoading(true);
+      const buffer = new Uint8Array(await file.arrayBuffer());
+      await loader.loadFromBuffer(buffer);
+      refreshLoadedModels();
+    } catch (error) {
+      console.warn('Failed to load IFC file:', error);
+    } finally {
+      setIsModelLoading(false);
+    }
+  };
 
   const handleToggleModelVisibility = useCallback((modelId: string) => {
     if (!components) {
@@ -472,38 +503,34 @@ const SidebarComponent: React.FC = () => {
     return undefined;
   }, [components, refreshLoadedModels]);
 
-  // Load button and relations tree setup
+  // Relations tree setup
   useEffect(() => {
-    if (!components || !loadButtonContainerRef.current || !treeContainerRef.current) {return;}
+    if (!components || !treeContainerRef.current) {return;}
 
-    // Create IFC load button
-    const [btn] = BUIC.buttons.loadIfc({ components });
-    loadButtonContainerRef.current.innerHTML = '';
-    loadButtonContainerRef.current.appendChild(btn);
-
-    // Create relations tree with empty models array
     const [tree] = BUIC.tables.relationsTree({
       components,
-      models: [] // Initialize with empty array, will be populated automatically
+      models: []
     });
+
+    treeElementRef.current = tree;
     treeContainerRef.current.innerHTML = '';
     treeContainerRef.current.appendChild(tree);
 
     const cleanupSelectionSync = setupRelationsTreeSelection(tree, components);
 
-    // Search functionality will be handled by the input element's event handlers
-
-    // Clean up function
     return () => {
       if (cleanupSelectionSync) {cleanupSelectionSync();}
-      if (loadButtonContainerRef.current) {
-        loadButtonContainerRef.current.innerHTML = '';
-      }
+      treeElementRef.current = null;
       if (treeContainerRef.current) {
         treeContainerRef.current.innerHTML = '';
       }
     };
   }, [components]);
+
+  useEffect(() => {
+    if (!treeElementRef.current) {return;}
+    treeElementRef.current.queryString = relationsSearch.trim() || null;
+  }, [relationsSearch]);
 
   // Expose the visibility controls panel through the shared context so
   // that other components (for example the viewport) can interact with it.
@@ -874,49 +901,83 @@ const SidebarComponent: React.FC = () => {
       <bim-panel>
         {/* Model / Relations Tree */}
         <bim-panel-section label="Relations Tree" collapsed>
-          <bim-panel-section label="Model Tree">
-            <div ref={loadButtonContainerRef} />
-            <bim-text-input placeholder="Search..." debounce="200" />
-            <div ref={treeContainerRef} className="relations-tree-container" />
-            <div className="multi-view-options">
-              {MULTI_VIEW_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  className={`multi-view-options__button${multiViewPreset === option.id ? ' is-active' : ''}`}
-                  onClick={() => setMultiViewPreset(option.id)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            {loadedModels.length > 0 && (
-              <div className="model-manager">
-                <div className="model-manager__title">Loaded Models</div>
-                {loadedModels.map((model) => (
-                  <div key={model.id} className="model-manager__item">
-                    <span className="model-manager__name" title={model.label}>{model.label}</span>
-                    <div className="model-manager__actions">
-                      <button
-                        type="button"
-                        className="model-manager__button"
-                        onClick={() => handleToggleModelVisibility(model.id)}
-                      >
-                        {model.visible ? 'Hide' : 'Show'}
-                      </button>
-                      <button
-                        type="button"
-                        className="model-manager__button model-manager__button--danger"
-                        onClick={() => handleDeleteModel(model.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+          <Card className="relations-card">
+            <Stack gap="md">
+              <Stack gap="sm">
+                <Row className="relations-actions" between>
+                  <Text variant="label" as="div" className="relations-label">Model Tree</Text>
+                  <Button variant="primary" size="sm" onClick={handleBrowseIfc}>
+                    Load IFC
+                  </Button>
+                </Row>
+                <Input
+                  placeholder="Search..."
+                  value={relationsSearch}
+                  onChange={(e) => setRelationsSearch(e.target.value)}
+                />
+              </Stack>
+
+              <div className="relations-tree-shell">
+                <div ref={treeContainerRef} className="relations-tree-container" />
               </div>
-            )}
-          </bim-panel-section>
+
+              <Stack gap="sm">
+                <Text variant="label" as="div">View Layout</Text>
+                <div className="multi-view-options">
+                  {MULTI_VIEW_OPTIONS.map((option) => (
+                    <Button
+                      key={option.id}
+                      variant={multiViewPreset === option.id ? 'primary' : 'ghost'}
+                      selected={multiViewPreset === option.id}
+                      className="multi-view-options__button"
+                      onClick={() => setMultiViewPreset(option.id)}
+                      block
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+              </Stack>
+
+              {loadedModels.length > 0 && (
+                <Stack gap="sm">
+                  <Text variant="label" as="div">Loaded Models</Text>
+                  <div className="model-manager">
+                    {loadedModels.map((model) => (
+                      <Card key={model.id} className="model-manager__item-card">
+                        <Row between className="model-manager__row">
+                          <Text className="model-manager__name" title={model.label}>{model.label}</Text>
+                          <Row className="model-manager__actions">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleToggleModelVisibility(model.id)}
+                            >
+                              {model.visible ? 'Hide' : 'Show'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => handleDeleteModel(model.id)}
+                            >
+                              Delete
+                            </Button>
+                          </Row>
+                        </Row>
+                      </Card>
+                    ))}
+                  </div>
+                </Stack>
+              )}
+            </Stack>
+            <input
+              type="file"
+              accept=".ifc,.IFC"
+              ref={fileInputRef}
+              className="relations-file-input"
+              onChange={handleIfcFileSelected}
+            />
+          </Card>
         </bim-panel-section>
 
         {/* Visibility controls – content injected dynamically */}
