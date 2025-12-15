@@ -1,0 +1,108 @@
+/**
+ * Error Boundary Styles
+ * All values use CSS variables from tokens.css for full customizability
+ */
+
+.ifc-viewer-library-container .error-boundary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: var(--ifc-space-lg, 20px);
+  background-color: var(--ifc-color-surface, #f8f9fa);
+  border: 1px solid var(--ifc-color-border, #dee2e6);
+  border-radius: var(--ifc-radius-md, 8px);
+  margin: var(--ifc-space-lg, 20px);
+}
+
+.ifc-viewer-library-container .error-boundary__content {
+  text-align: center;
+  max-width: 600px;
+}
+
+.ifc-viewer-library-container .error-boundary__heading {
+  color: var(--ifc-color-danger, #dc3545);
+  margin-bottom: var(--ifc-space-lg, 16px);
+  font-size: var(--ifc-font-size-xl, 24px);
+  font-weight: var(--ifc-font-weight-semibold, 600);
+}
+
+.ifc-viewer-library-container .error-boundary__description {
+  color: var(--ifc-color-text-muted, #6c757d);
+  margin-bottom: var(--ifc-space-lg, 20px);
+  line-height: var(--ifc-line-height, 1.5);
+}
+
+.ifc-viewer-library-container .error-boundary__details {
+  text-align: left;
+  margin: var(--ifc-space-lg, 20px) 0;
+  padding: var(--ifc-space-lg, 16px);
+  background-color: var(--ifc-color-surface-elevated, #fff);
+  border: 1px solid var(--ifc-color-border, #dee2e6);
+  border-radius: var(--ifc-radius-xs, 4px);
+}
+
+.ifc-viewer-library-container .error-boundary__summary {
+  cursor: pointer;
+  font-weight: var(--ifc-font-weight-bold, bold);
+  margin-bottom: var(--ifc-space-sm, 10px);
+  color: var(--ifc-color-text, inherit);
+}
+
+.ifc-viewer-library-container .error-boundary__error-info {
+  margin-top: var(--ifc-space-sm, 10px);
+}
+
+.ifc-viewer-library-container .error-boundary__error-info p {
+  margin: 0 0 var(--ifc-space-sm, 8px) 0;
+  color: var(--ifc-color-text, inherit);
+}
+
+.ifc-viewer-library-container .error-boundary__stack {
+  background-color: var(--ifc-color-surface-muted, #f8f9fa);
+  padding: var(--ifc-space-sm, 10px);
+  border-radius: var(--ifc-radius-xs, 4px);
+  font-size: var(--ifc-font-size-xs, 12px);
+  font-family: monospace;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+  color: var(--ifc-color-text-muted, inherit);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ifc-viewer-library-container .error-boundary__actions {
+  display: flex;
+  gap: var(--ifc-space-md, 12px);
+  justify-content: center;
+  margin-top: var(--ifc-space-lg, 20px);
+}
+
+.ifc-viewer-library-container .error-boundary__button {
+  padding: var(--ifc-space-sm, 10px) var(--ifc-space-lg, 20px);
+  border: none;
+  border-radius: var(--ifc-radius-xs, 4px);
+  cursor: pointer;
+  font-size: var(--ifc-font-size-sm, 14px);
+  font-weight: var(--ifc-font-weight-medium, 500);
+  transition: background-color var(--ifc-transition-base, 0.2s) var(--ifc-ease-default, ease);
+}
+
+.ifc-viewer-library-container .error-boundary__button--retry {
+  background-color: var(--ifc-color-primary, #007bff);
+  color: white;
+}
+
+.ifc-viewer-library-container .error-boundary__button--retry:hover {
+  background-color: var(--ifc-color-primary-hover, #0056b3);
+}
+
+.ifc-viewer-library-container .error-boundary__button--refresh {
+  background-color: var(--ifc-color-text-muted, #6c757d);
+  color: white;
+}
+
+.ifc-viewer-library-container .error-boundary__button--refresh:hover {
+  background-color: var(--ifc-color-text-subtle, #5a6268);
+}

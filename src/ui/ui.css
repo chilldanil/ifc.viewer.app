@@ -1,64 +1,71 @@
-/* IFC Viewer UI Library - Base Styles */
+/**
+ * IFC Viewer UI Library - Base Styles
+ * All values reference the centralized design tokens from tokens.css
+ *
+ * This component library uses the main token system via --ifc-* variables,
+ * with --ui-* aliases for backwards compatibility.
+ */
 
 /* ============================================
-   Design Tokens
+   Design Token Aliases
+   Maps centralized --ifc-* tokens to --ui-* for this component library
    ============================================ */
 
-:root {
+.ifc-viewer-library-container {
   /* Colors */
-  --ui-primary: #5e7cff;
-  --ui-primary-hover: #7b94ff;
-  --ui-primary-active: #4a66e0;
+  --ui-primary: var(--ifc-color-primary);
+  --ui-primary-hover: var(--ifc-color-primary-hover);
+  --ui-primary-active: var(--ifc-color-primary-active);
 
-  --ui-danger: #f87171;
-  --ui-danger-hover: #fca5a5;
-  --ui-danger-active: #ef4444;
+  --ui-danger: var(--ifc-color-danger);
+  --ui-danger-hover: var(--ifc-color-danger-hover);
+  --ui-danger-active: var(--ifc-color-danger-active);
 
-  --ui-success: #4ade80;
-  --ui-warning: #fbbf24;
-  --ui-info: #38bdf8;
+  --ui-success: var(--ifc-color-success);
+  --ui-warning: var(--ifc-color-warning);
+  --ui-info: var(--ifc-color-info);
 
   /* Text */
-  --ui-text: #eef2fb;
-  --ui-text-muted: rgba(238, 242, 251, 0.7);
-  --ui-text-subtle: rgba(238, 242, 251, 0.5);
+  --ui-text: var(--ifc-color-text);
+  --ui-text-muted: var(--ifc-color-text-muted);
+  --ui-text-subtle: var(--ifc-color-text-subtle);
 
   /* Backgrounds */
   --ui-bg: rgba(255, 255, 255, 0.03);
   --ui-bg-hover: rgba(255, 255, 255, 0.06);
   --ui-bg-active: rgba(255, 255, 255, 0.08);
-  --ui-bg-elevated: rgba(255, 255, 255, 0.05);
+  --ui-bg-elevated: var(--ifc-color-surface-elevated);
 
   /* Borders */
-  --ui-border: rgba(255, 255, 255, 0.08);
-  --ui-border-focus: var(--ui-primary);
+  --ui-border: var(--ifc-color-border);
+  --ui-border-focus: var(--ifc-color-border-focus);
 
   /* Spacing scale */
-  --ui-space-xs: 4px;
-  --ui-space-sm: 8px;
-  --ui-space-md: 12px;
-  --ui-space-lg: 16px;
-  --ui-space-xl: 24px;
+  --ui-space-xs: var(--ifc-space-xs);
+  --ui-space-sm: var(--ifc-space-sm);
+  --ui-space-md: var(--ifc-space-md);
+  --ui-space-lg: var(--ifc-space-lg);
+  --ui-space-xl: var(--ifc-space-xl);
 
   /* Border radius */
-  --ui-radius-sm: 6px;
-  --ui-radius-md: 8px;
-  --ui-radius-lg: 12px;
-  --ui-radius-full: 999px;
+  --ui-radius-sm: var(--ifc-radius-sm);
+  --ui-radius-md: var(--ifc-radius-md);
+  --ui-radius-lg: var(--ifc-radius-lg);
+  --ui-radius-full: var(--ifc-radius-full);
 
   /* Typography */
-  --ui-font-xs: 0.7rem;
-  --ui-font-sm: 0.78rem;
-  --ui-font-base: 0.85rem;
-  --ui-font-lg: 0.95rem;
+  --ui-font-xs: var(--ifc-font-size-xs);
+  --ui-font-sm: var(--ifc-font-size-sm);
+  --ui-font-base: var(--ifc-font-size-base);
+  --ui-font-lg: var(--ifc-font-size-lg);
 
   /* Transitions */
-  --ui-transition: 0.15s ease;
+  --ui-transition: var(--ifc-transition-fast) var(--ifc-ease-default);
 
   /* Shadows */
-  --ui-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --ui-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
-  --ui-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --ui-shadow-sm: var(--ifc-shadow-sm);
+  --ui-shadow-md: var(--ifc-shadow-md);
+  --ui-shadow-lg: var(--ifc-shadow-lg);
 }
 
 /* ============================================
@@ -72,9 +79,9 @@
   gap: var(--ui-space-sm);
   padding: var(--ui-space-sm) var(--ui-space-md);
   font-size: var(--ui-font-sm);
-  font-weight: 500;
+  font-weight: var(--ifc-font-weight-medium);
   font-family: inherit;
-  line-height: 1.4;
+  line-height: var(--ifc-line-height);
   color: var(--ui-text);
   background: var(--ui-bg);
   border: 1px solid var(--ui-border);
@@ -163,8 +170,8 @@
 /* Icon only */
 .ui-btn--icon {
   padding: var(--ui-space-sm);
-  min-width: 32px;
-  min-height: 32px;
+  min-width: var(--ifc-button-min-width);
+  min-height: var(--ifc-button-min-width);
 }
 
 /* ============================================
@@ -200,10 +207,10 @@
 
 .ui-input-label {
   font-size: var(--ui-font-sm);
-  font-weight: 500;
+  font-weight: var(--ifc-font-weight-medium);
   color: var(--ui-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--ifc-letter-spacing-wide);
 }
 
 .ui-input {
@@ -238,7 +245,7 @@
 
 /* Textarea */
 .ui-textarea {
-  min-height: 80px;
+  min-height: var(--ifc-textarea-min-height);
   resize: vertical;
 }
 
@@ -295,10 +302,10 @@
 
 .ui-slider-label {
   font-size: var(--ui-font-sm);
-  font-weight: 500;
+  font-weight: var(--ifc-font-weight-medium);
   color: var(--ui-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--ifc-letter-spacing-wide);
 }
 
 .ui-slider-value {
@@ -309,7 +316,7 @@
 
 .ui-slider {
   width: 100%;
-  height: 6px;
+  height: var(--ifc-slider-track-height);
   background: var(--ui-bg);
   border-radius: var(--ui-radius-full);
   outline: none;
@@ -320,8 +327,8 @@
 
 .ui-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
+  width: var(--ifc-slider-thumb-size);
+  height: var(--ifc-slider-thumb-size);
   background: var(--ui-primary);
   border-radius: 50%;
   cursor: pointer;
@@ -334,8 +341,8 @@
 }
 
 .ui-slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: var(--ifc-slider-thumb-size);
+  height: var(--ifc-slider-thumb-size);
   background: var(--ui-primary);
   border: none;
   border-radius: 50%;
@@ -365,8 +372,8 @@
 
 .ui-toggle {
   position: relative;
-  width: 36px;
-  height: 20px;
+  width: var(--ifc-toggle-width);
+  height: var(--ifc-toggle-height);
   background: var(--ui-bg);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-full);
@@ -379,8 +386,8 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 14px;
-  height: 14px;
+  width: var(--ifc-toggle-thumb-size);
+  height: var(--ifc-toggle-thumb-size);
   background: var(--ui-text-muted);
   border-radius: 50%;
   transition: all var(--ui-transition);
@@ -458,7 +465,7 @@
 
 .ui-section-title {
   font-size: var(--ui-font-base);
-  font-weight: 600;
+  font-weight: var(--ifc-font-weight-semibold);
   color: var(--ui-text);
   margin: 0;
 }
@@ -496,9 +503,9 @@
 
 .ui-text--label {
   font-size: var(--ui-font-sm);
-  font-weight: 500;
+  font-weight: var(--ifc-font-weight-medium);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--ifc-letter-spacing-wide);
   color: var(--ui-text-muted);
 }
 
@@ -520,7 +527,7 @@
 
 .ui-field-label {
   font-size: var(--ui-font-sm);
-  font-weight: 500;
+  font-weight: var(--ifc-font-weight-medium);
   color: var(--ui-text-muted);
 }
 

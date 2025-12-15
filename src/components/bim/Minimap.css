@@ -1,9 +1,14 @@
+/**
+ * Minimap Component Styles
+ * All values use CSS variables from tokens.css for full customizability
+ */
+
 .ifc-viewer-library-container .minimap-container {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 1000;
-  transition: opacity 0.3s ease;
+  top: var(--ifc-space-lg, 20px);
+  right: var(--ifc-space-lg, 20px);
+  z-index: var(--ifc-z-minimap, 1000);
+  transition: opacity var(--ifc-transition-base, 0.3s) var(--ifc-ease-default, ease);
 }
 
 .ifc-viewer-library-container .minimap-container.visible {
@@ -15,17 +20,24 @@
   pointer-events: none;
 }
 
+/* Default canvas styles */
 .ifc-viewer-library-container .minimap-container canvas {
   display: block;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  background-color: rgba(248, 249, 250, 0.95);
+  border: 2px solid var(--ifc-color-border, rgba(255, 255, 255, 0.8));
+  background-color: var(--ifc-color-surface-elevated, rgba(248, 249, 250, 0.95));
+}
+
+/* Specific styling for minimap canvas via JavaScript */
+.ifc-viewer-library-container .minimap-canvas {
+  border-radius: var(--ifc-minimap-radius, 12px);
+  box-shadow: var(--ifc-shadow-minimap, 0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
 /* Adjust position for tablets (769px - 1024px) */
 @media (max-width: 1024px) and (min-width: 769px) {
   .ifc-viewer-library-container .minimap-container {
-    top: 60px; /* Account for mobile menu toggle */
-    right: 10px;
+    top: calc(var(--ifc-space-xxl, 60px));
+    right: var(--ifc-space-sm, 10px);
   }
 }
 
@@ -34,4 +46,4 @@
   .ifc-viewer-library-container .minimap-container {
     display: none !important;
   }
-} 
+}

@@ -777,71 +777,94 @@ const SidebarComponent: React.FC = () => {
           
           console.log('Classified groups for model:', classifiedGroupsRef.current[model.uuid]);
 
+          // Get element colors from CSS custom properties (set via token system)
+          const computedStyle = getComputedStyle(document.documentElement);
+          const getElementColor = (varName: string, fallback: string) => {
+            // Try to get from the viewer container first, then root
+            const container = document.querySelector('.ifc-viewer-library-container');
+            if (container) {
+              const containerStyle = getComputedStyle(container);
+              const value = containerStyle.getPropertyValue(varName).trim();
+              if (value) return value;
+            }
+            const value = computedStyle.getPropertyValue(varName).trim();
+            return value || fallback;
+          };
+
+          const elementColors = {
+            walls: getElementColor('--ifc-color-element-walls', '#3498db'),
+            slabs: getElementColor('--ifc-color-element-slabs', '#e74c3c'),
+            curtainWalls: getElementColor('--ifc-color-element-curtain-walls', '#f39c12'),
+            furniture: getElementColor('--ifc-color-element-furniture', '#9b59b6'),
+            doors: getElementColor('--ifc-color-element-doors', '#2ecc71'),
+            windows: getElementColor('--ifc-color-element-windows', '#1abc9c'),
+          };
+
           // Create color control UI
           const classifierPanel = BUI.Component.create(() => {
             return BUI.html`
               <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">
+                <div style="font-size: 0.9rem; color: var(--ifc-color-text-muted, #666); margin-bottom: 0.5rem;">
                   Control element colors by IFC category
                 </div>
-                
-                <bim-color-input 
-                  label="Walls" color="#3498db" 
+
+                <bim-color-input
+                  label="Walls" color="${elementColors.walls}"
                   @input="${({ target }: { target: any }) => {
                     color.set(target.color);
                     classifier.setColor(walls, color);
                   }}">
                 </bim-color-input>
-              
-                <bim-color-input 
-                  label="Slabs" color="#e74c3c" 
+
+                <bim-color-input
+                  label="Slabs" color="${elementColors.slabs}"
                   @input="${({ target }: { target: any }) => {
                     color.set(target.color);
                     classifier.setColor(slabs, color);
                   }}">
                 </bim-color-input>
-              
-                <bim-color-input 
-                  label="Curtain Walls" color="#f39c12" 
+
+                <bim-color-input
+                  label="Curtain Walls" color="${elementColors.curtainWalls}"
                   @input="${({ target }: { target: any }) => {
                     color.set(target.color);
                     classifier.setColor(curtainWalls, color);
                   }}">
                 </bim-color-input>
-              
-                <bim-color-input 
-                  label="Furniture" color="#9b59b6" 
+
+                <bim-color-input
+                  label="Furniture" color="${elementColors.furniture}"
                   @input="${({ target }: { target: any }) => {
                     color.set(target.color);
                     classifier.setColor(furniture, color);
                   }}">
                 </bim-color-input>
-              
-                <bim-color-input 
-                  label="Doors" color="#2ecc71" 
+
+                <bim-color-input
+                  label="Doors" color="${elementColors.doors}"
                   @input="${({ target }: { target: any }) => {
                     color.set(target.color);
                     classifier.setColor(doors, color);
                   }}">
                 </bim-color-input>
 
-                <bim-color-input 
-                  label="Windows" color="#1abc9c" 
+                <bim-color-input
+                  label="Windows" color="${elementColors.windows}"
                   @input="${({ target }: { target: any }) => {
                     color.set(target.color);
                     classifier.setColor(windows, color);
                   }}">
                 </bim-color-input>
-                          
-                <bim-button 
-                  label="Reset All Colors" 
+
+                <bim-button
+                  label="Reset All Colors"
                   @click="${() => {
                     console.log('Reset button clicked, available groups:', classifiedGroupsRef.current);
                     Object.values(classifiedGroupsRef.current).forEach((groups: any) => {
                       console.log('Resetting colors for group:', groups);
                       classifier.resetColor(groups.all);
                     });
-                  }}">  
+                  }}">
                 </bim-button>
               </div>
             `;

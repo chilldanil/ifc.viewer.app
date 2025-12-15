@@ -88,10 +88,9 @@ export const Minimap: React.FC<MinimapProps> = ({ config }) => {
             map.config.sizeX = config.sizeX;
             map.config.sizeY = config.sizeY;
 
-            // Get the canvas and style it
+            // Get the canvas and add CSS class for styling
             const canvas = map.renderer.domElement;
-            canvas.style.borderRadius = '12px';
-            canvas.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+            canvas.classList.add('minimap-canvas');
             
             // Clear any existing content and append the canvas
             if (containerRef.current) {

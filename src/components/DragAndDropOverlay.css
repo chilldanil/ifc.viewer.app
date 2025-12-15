@@ -1,12 +1,17 @@
+/**
+ * Drag and Drop Overlay Styles
+ * All values use CSS variables for full customizability
+ */
+
 .drag-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--ifc-color-overlay-backdrop);
   backdrop-filter: blur(2px);
-  z-index: 9999; /* Should sit above everything */
+  z-index: var(--ifc-z-drag-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,19 +19,19 @@
 
 .drag-overlay__box {
   pointer-events: none; /* Keep box passive; we handle drop on container */
-  border: 4px dashed #bcf124;
-  border-radius: 24px;
+  border: 4px dashed var(--ifc-color-overlay-drag-drop-border);
+  border-radius: var(--ifc-space-xl);
   padding: 60px 80px;
-  color: #bcf124;
+  color: var(--ifc-color-overlay-drag-drop);
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: var(--ifc-font-weight-semibold);
   text-align: center;
   background: rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
-  animation: appear 0.2s ease-out;
+  box-shadow: var(--ifc-shadow-lg);
+  animation: drag-overlay-appear var(--ifc-transition-base) var(--ifc-ease-out);
 }
 
-@keyframes appear {
+@keyframes drag-overlay-appear {
   from {
     transform: scale(0.95);
     opacity: 0;
@@ -35,4 +40,4 @@
     transform: scale(1);
     opacity: 1;
   }
-} 
+}
