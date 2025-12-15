@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import * as OBC from '@thatopen/components';
 import { useBIM } from '../../context/BIMContext';
-import './ExportModifiedIfc.css';
+import { Button, Select, Stack, Text, Status, Card } from '../../ui';
 
 export const ExportModifiedIfc: React.FC = () => {
   const { propertyEditingService, components } = useBIM();
@@ -25,15 +25,11 @@ export const ExportModifiedIfc: React.FC = () => {
         const explicitName = typeof group.name === 'string' ? group.name.trim() : '';
         const displayName = metadataName || explicitName || group.uuid.substring(0, 8);
 
-        models.push({
-          id: group.uuid,
-          name: displayName,
-        });
+        models.push({ id: group.uuid, name: displayName });
       });
 
       return models;
     } catch (error) {
-      console.warn('Error getting loaded models:', error);
       return [];
     }
   };
@@ -54,26 +50,18 @@ export const ExportModifiedIfc: React.FC = () => {
         throw new Error('Selected model not found');
       }
 
-      // Check if there are any changes
       const hasChanges = propertyEditingService.hasChanges(selectedModelId);
 
       if (!hasChanges) {
-        const confirmExport = confirm(
-          'No changes detected for this model. Export anyway?'
-        );
+        const confirmExport = confirm('No changes detected for this model. Export anyway?');
         if (!confirmExport) {
           setIsExporting(false);
           return;
         }
       }
 
-      // Save modifications to IFC
       const modifiedIfcData = await propertyEditingService.saveToIfc(model);
-
-      // Download the file
       propertyEditingService.downloadModifiedIfc(model, modifiedIfcData);
-
-      // Clear changes after export
       propertyEditingService.clearChanges(selectedModelId);
 
       alert('IFC file exported successfully!');
@@ -93,64 +81,63 @@ export const ExportModifiedIfc: React.FC = () => {
     : false;
 
   return (
-    <div className="export-modified-ifc">
-      <div className="export-modified-ifc__info">
+    <Stack gap="sm">
+      <Text variant="muted" size="sm">
         Export your model with all property modifications as a new IFC file.
-      </div>
+      </Text>
 
       {models.length === 0 && (
-        <div className="export-modified-ifc__warning">
+        <Status variant="warning">
           No models loaded. Load an IFC file first.
-        </div>
+        </Status>
       )}
 
       {models.length > 0 && (
         <>
-          <div className="export-modified-ifc__field">
-            <label htmlFor="export-model-select">Select Model:</label>
-            <select
-              id="export-model-select"
-              value={selectedModelId}
-              onChange={(e) => setSelectedModelId(e.target.value)}
-              disabled={isExporting}
-            >
-              <option value="">-- Select a model --</option>
-              {models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Select Model"
+            value={selectedModelId}
+            onChange={(e) => setSelectedModelId(e.target.value)}
+            disabled={isExporting}
+          >
+            <option value="">-- Select a model --</option>
+            {models.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.name}
+              </option>
+            ))}
+          </Select>
 
           {selectedModel && (
-            <div className="export-modified-ifc__status">
-              <strong>Status:</strong>{' '}
-              {hasChanges ? (
-                <span className="export-modified-ifc__status--modified">
-                  Modified (has unsaved changes)
-                </span>
-              ) : (
-                <span className="export-modified-ifc__status--clean">No changes</span>
-              )}
-            </div>
+            <Card>
+              <Text size="sm">
+                <strong>Status:</strong>{' '}
+                {hasChanges ? (
+                  <span style={{ color: 'var(--ui-warning)' }}>
+                    Modified (has unsaved changes)
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--ui-success)' }}>No changes</span>
+                )}
+              </Text>
+            </Card>
           )}
 
-          <button
-            className="export-modified-ifc__button"
+          <Button
+            variant="primary"
             onClick={handleExport}
             disabled={!hasService || !selectedModelId || isExporting}
           >
             {isExporting ? 'Exporting...' : 'Export Modified IFC'}
-          </button>
+          </Button>
         </>
       )}
 
       {!hasService && (
-        <div className="export-modified-ifc__info">
+        <Status variant="info">
           Property editing service is initializing...
-        </div>
+        </Status>
       )}
-    </div>
+    </Stack>
   );
 };
