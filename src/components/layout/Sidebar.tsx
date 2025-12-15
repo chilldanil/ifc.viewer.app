@@ -255,6 +255,7 @@ const SidebarComponent: React.FC = () => {
     setMultiViewPreset,
     propertyEditingService,
     setIsModelLoading,
+    eventBus,
   } = useBIM();
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const [loadedModels, setLoadedModels] = useState<LoadedModel[]>([]);
@@ -264,6 +265,13 @@ const SidebarComponent: React.FC = () => {
 
   // Use dedicated hook for element selection tracking
   const { selectedModel, selectedExpressID } = useElementSelection(components, world);
+
+  useEffect(() => {
+    eventBus.emit('selectionChanged', {
+      modelId: selectedModel?.uuid ?? null,
+      expressId: selectedExpressID ?? null,
+    });
+  }, [eventBus, selectedModel, selectedExpressID]);
 
   // Enable Electron file opening from menu
   useElectronFileOpen(components, propertyEditingService);
@@ -421,10 +429,11 @@ const SidebarComponent: React.FC = () => {
       }
 
       refreshLoadedModels();
+      eventBus.emit('visibilityChanged', { modelId, visible: nextVisibility });
     } catch (error) {
       console.warn('Failed to toggle model visibility:', error);
     }
-  }, [components, refreshLoadedModels]);
+  }, [components, refreshLoadedModels, eventBus]);
 
   const handleDeleteModel = useCallback((modelId: string) => {
     if (!components) {

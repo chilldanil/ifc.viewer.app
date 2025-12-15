@@ -52,6 +52,7 @@ const ViewportComponent: React.FC = () => {
     isModelLoading,
     setIsModelLoading,
     viewCubeEnabled,
+    eventBus,
   } = useBIM();
 
   // Get Three.js camera, renderer, and controls for ViewCube
@@ -529,6 +530,7 @@ const ViewportComponent: React.FC = () => {
 
               // Create visibility controls after classification
               await createVisibilityControls({ model, indexer, classifier, hider });
+              eventBus.emit('modelLoaded', { modelId: model.uuid });
             } else if (alreadyProcessed) {
               // Data already classified; still refresh visibility controls so UI stays synced
               await createVisibilityControls({ model, indexer, classifier, hider });
