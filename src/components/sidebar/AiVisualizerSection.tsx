@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useBIM } from '../../context/BIMContext';
 import { downloadBase64Image } from '../../utils/captureScreenshot';
+import { Button, Input, Textarea, Stack, Text, Card, Status, Grid, Row } from '../../ui';
 import './AiVisualizerSection.css';
 
 // Photorealistic architectural rendering presets
@@ -72,7 +73,6 @@ export const AiVisualizerSection: React.FC = () => {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>(() => {
-    // Load API key from localStorage if available
     return localStorage.getItem('replicate_api_key') || '';
   });
   const [viewerMode, setViewerMode] = useState<'none' | 'original' | 'result' | 'compare'>('none');
@@ -113,10 +113,9 @@ export const AiVisualizerSection: React.FC = () => {
 
     try {
       const imageBase64 = await captureScreenshot();
-      setOriginalImage(imageBase64); // Store original for comparison
+      setOriginalImage(imageBase64);
       const result = await generateImage(prompt, imageBase64, apiKey);
       setResultImage(result);
-      // Save API key to localStorage on successful generation
       localStorage.setItem('replicate_api_key', apiKey);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate image. Please try again.';
@@ -199,289 +198,233 @@ export const AiVisualizerSection: React.FC = () => {
   }, [viewerMode]);
 
   return (
-    <div className="ai-visualizer-section">
-      <div className="ai-visualizer-header">
-        <h3>AI Photorealistic Render</h3>
-        <p className="ai-visualizer-description">
+    <Stack gap="md">
+      <div>
+        <Text size="sm"><strong>AI Photorealistic Render</strong></Text>
+        <Text variant="muted" size="xs">
           Transform your BIM view into photorealistic architectural visualization
-        </p>
+        </Text>
       </div>
 
-      <div className="ai-visualizer-content">
-        {/* API Key Input */}
-        <div className="ai-visualizer-input">
-          <label>Replicate API Token:</label>
-          <input
-            type="password"
-            placeholder="r8_..."
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            disabled={loading}
-          />
-          <small className="ai-visualizer-hint">
-            Get token at <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener noreferrer">replicate.com/account/api-tokens</a>
-          </small>
-        </div>
+      {/* API Key Input */}
+      <Stack gap="sm">
+        <Input
+          type="password"
+          label="Replicate API Token"
+          placeholder="r8_..."
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          disabled={loading}
+        />
+        <Text variant="subtle" size="xs">
+          Get token at{' '}
+          <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener noreferrer" className="ai-link">
+            replicate.com/account/api-tokens
+          </a>
+        </Text>
+      </Stack>
 
-        {/* Render Style Presets */}
-        <div className="render-presets">
-          <label>Render Style:</label>
-          <div className="preset-buttons">
-            {RENDER_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                onClick={() => handlePresetSelect(preset)}
-                className={`preset-btn ${prompt === preset.prompt ? 'active' : ''}`}
-                disabled={loading}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Render Style Presets */}
+      <Stack gap="sm">
+        <Text variant="muted" size="xs"><strong>Render Style</strong></Text>
+        <Grid cols={2}>
+          {RENDER_PRESETS.map((preset) => (
+            <Button
+              key={preset.label}
+              onClick={() => handlePresetSelect(preset)}
+              selected={prompt === preset.prompt}
+              disabled={loading}
+              size="sm"
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </Grid>
+      </Stack>
 
-        {/* Custom Prompt */}
-        <div className="ai-visualizer-input">
-          <label>Custom Prompt (optional):</label>
-          <textarea
-            placeholder="Customize your render style..."
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            disabled={loading}
-            rows={2}
-          />
-        </div>
+      {/* Custom Prompt */}
+      <Textarea
+        label="Custom Prompt (optional)"
+        placeholder="Customize your render style..."
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        disabled={loading}
+        rows={2}
+      />
 
-        {/* Action Buttons */}
-        <div className="ai-visualizer-actions">
-          <button
-            onClick={handleGenerate}
-            disabled={loading || !prompt.trim()}
-            className="generate-btn"
-          >
-            {loading ? 'Rendering...' : 'Render View'}
-          </button>
+      {/* Action Buttons */}
+      <Row stretch>
+        <Button
+          variant="primary"
+          onClick={handleGenerate}
+          disabled={loading || !prompt.trim()}
+        >
+          {loading ? 'Rendering...' : 'Render View'}
+        </Button>
+        <Button onClick={handleClear} disabled={loading}>
+          Clear
+        </Button>
+      </Row>
 
-          <button
-            onClick={handleClear}
-            className="clear-btn"
-            disabled={loading}
-          >
-            Clear
-          </button>
-        </div>
+      {/* Error Display */}
+      {error && <Status variant="error">{error}</Status>}
 
-        {/* Error Display */}
-        {error && (
-          <div className="ai-visualizer-error">
-            {error}
-          </div>
-        )}
+      {/* Side-by-Side Comparison */}
+      {(originalImage || resultImage) && (
+        <Stack gap="sm">
+          <Text variant="muted" size="sm"><strong>Comparison</strong></Text>
 
-        {/* Side-by-Side Comparison */}
-        {(originalImage || resultImage) && (
-          <div className="ai-visualizer-comparison">
-            <h4>Comparison:</h4>
-            <div className="comparison-grid">
-              {originalImage && (
-                <div className="comparison-item">
-                  <label>Original View</label>
-                  <div className="comparison-thumb">
-                    <img
-                      src={originalImage}
-                      alt="Original View"
-                      className="comparison-image"
-                      onClick={() => openViewer('original')}
-                    />
-                  </div>
-                  <div className="comparison-actions">
-                    <button
-                      type="button"
-                      className="preview-mini-btn"
-                      onClick={() => openViewer('original')}
-                    >
-                      Preview
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDownloadOriginal}
-                      className="download-mini-btn"
-                    >
-                      Download
-                    </button>
-                  </div>
+          <Grid cols={2}>
+            {originalImage && (
+              <Card className="ai-comparison-card">
+                <Text variant="label" size="xs">ORIGINAL VIEW</Text>
+                <div className="ai-thumb" onClick={() => openViewer('original')}>
+                  <img src={originalImage} alt="Original View" />
                 </div>
-              )}
-
-              {resultImage && (
-                <div className="comparison-item">
-                  <label>AI Render</label>
-                  <div className="comparison-thumb">
-                    <img
-                      src={resultImage}
-                      alt="AI Rendered"
-                      className="comparison-image"
-                      onClick={() => openViewer('result')}
-                    />
-                  </div>
-                  <div className="comparison-actions">
-                    <button
-                      type="button"
-                      className="preview-mini-btn"
-                      onClick={() => openViewer('result')}
-                    >
-                      Preview
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDownloadResult}
-                      className="download-mini-btn"
-                    >
-                      Download
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {loading && !resultImage && (
-                <div className="comparison-item loading-placeholder">
-                  <label>AI Render</label>
-                  <div className="comparison-thumb">
-                    <div className="spinner" />
-                  </div>
-                  <p>Generating photorealistic render...</p>
-                </div>
-              )}
-            </div>
-
-            {hasComparison && (
-              <div className="comparison-toolbar">
-                <button
-                  type="button"
-                  className="compare-open-btn"
-                  onClick={() => openViewer('compare')}
-                >
-                  Open Compare View
-                </button>
-              </div>
+                <Row stretch>
+                  <Button size="sm" variant="ghost" onClick={() => openViewer('original')}>
+                    Preview
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={handleDownloadOriginal}>
+                    Download
+                  </Button>
+                </Row>
+              </Card>
             )}
-          </div>
-        )}
-      </div>
 
+            {resultImage && (
+              <Card className="ai-comparison-card">
+                <Text variant="label" size="xs">AI RENDER</Text>
+                <div className="ai-thumb" onClick={() => openViewer('result')}>
+                  <img src={resultImage} alt="AI Rendered" />
+                </div>
+                <Row stretch>
+                  <Button size="sm" variant="ghost" onClick={() => openViewer('result')}>
+                    Preview
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={handleDownloadResult}>
+                    Download
+                  </Button>
+                </Row>
+              </Card>
+            )}
+
+            {loading && !resultImage && (
+              <Card className="ai-comparison-card ai-loading-card">
+                <Text variant="label" size="xs">AI RENDER</Text>
+                <div className="ai-thumb">
+                  <div className="ai-spinner" />
+                </div>
+                <Text variant="subtle" size="xs">Generating photorealistic render...</Text>
+              </Card>
+            )}
+          </Grid>
+
+          {hasComparison && (
+            <Button variant="primary" size="sm" onClick={() => openViewer('compare')}>
+              Open Compare View
+            </Button>
+          )}
+        </Stack>
+      )}
+
+      {/* Modal Portal */}
       {viewerMode !== 'none' && portalContainerRef.current
         ? createPortal(
             <div
-              className="ai-visualizer-modal"
+              className="ai-modal"
               role="dialog"
               aria-modal="true"
               onClick={closeViewer}
             >
-              <div
-                className="ai-visualizer-modal__content"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <div className="ai-visualizer-modal__header">
-                  <h4 className="ai-visualizer-modal__title">
-                    {viewerMode === 'compare'
-                      ? 'Compare Result'
-                      : viewerMode === 'original'
-                      ? 'Original View'
-                      : 'AI Render'}
-                  </h4>
-                  <button
-                    type="button"
-                    className="ai-visualizer-modal__close"
+              <div className="ai-modal-content" onClick={(event) => event.stopPropagation()}>
+                <Row between className="ai-modal-header">
+                  <Text size="sm">
+                    <strong>
+                      {viewerMode === 'compare'
+                        ? 'Compare Result'
+                        : viewerMode === 'original'
+                        ? 'Original View'
+                        : 'AI Render'}
+                    </strong>
+                  </Text>
+                  <Button
+                    size="sm"
+                    icon
                     onClick={closeViewer}
                     aria-label="Close preview"
                   >
                     ✕
-                  </button>
-                </div>
+                  </Button>
+                </Row>
 
                 {viewerMode === 'compare' && hasComparison ? (
-                  <div className="ai-visualizer-compare">
-                    <div className="compare-stage">
+                  <div className="ai-compare-stage">
+                    <div className="ai-compare-images">
                       <img
                         src={originalImage as string}
                         alt="Original view"
-                        className="compare-stage__image compare-stage__image--base"
+                        className="ai-compare-base"
                       />
                       <img
                         src={resultImage as string}
                         alt="AI render overlay"
-                        className="compare-stage__image compare-stage__image--overlay"
+                        className="ai-compare-overlay"
                         style={{ clipPath: `inset(0 ${100 - compareSplit}% 0 0)` }}
                       />
                       <div
-                        className="compare-stage__divider"
+                        className="ai-compare-divider"
                         style={{ left: `${compareSplit}%` }}
                       />
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={compareSplit}
-                        onChange={handleCompareSlider}
-                        className="compare-stage__slider"
-                        aria-label="Adjust comparison slider"
-                      />
                     </div>
-                    <div className="compare-stage__labels">
-                      <span>Original</span>
-                      <span>AI Render</span>
-                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={compareSplit}
+                      onChange={handleCompareSlider}
+                      className="ai-compare-slider"
+                      aria-label="Adjust comparison slider"
+                    />
+                    <Row between>
+                      <Text variant="subtle" size="xs">Original</Text>
+                      <Text variant="subtle" size="xs">AI Render</Text>
+                    </Row>
                   </div>
                 ) : (
-                  <div className="ai-visualizer-modal__image">
+                  <div className="ai-modal-image">
                     <img
-                      src={
-                        viewerMode === 'original'
-                          ? (originalImage as string)
-                          : (resultImage as string)
-                      }
+                      src={viewerMode === 'original' ? (originalImage as string) : (resultImage as string)}
                       alt={viewerMode === 'original' ? 'Original view' : 'AI render'}
                     />
                   </div>
                 )}
 
                 {viewerMode !== 'compare' && (
-                  <div className="ai-visualizer-modal__actions">
+                  <Row>
                     {viewerMode === 'original' && originalImage && (
-                      <button
-                        type="button"
-                        className="modal-primary-btn"
-                        onClick={handleDownloadOriginal}
-                      >
+                      <Button variant="primary" onClick={handleDownloadOriginal}>
                         Download Original
-                      </button>
+                      </Button>
                     )}
                     {viewerMode === 'result' && resultImage && (
-                      <button
-                        type="button"
-                        className="modal-primary-btn"
-                        onClick={handleDownloadResult}
-                      >
+                      <Button variant="primary" onClick={handleDownloadResult}>
                         Download Render
-                      </button>
+                      </Button>
                     )}
                     {hasComparison && (
-                      <button
-                        type="button"
-                        className="modal-secondary-btn"
-                        onClick={() => openViewer('compare')}
-                      >
+                      <Button onClick={() => openViewer('compare')}>
                         Switch to Compare
-                      </button>
+                      </Button>
                     )}
-                  </div>
+                  </Row>
                 )}
               </div>
             </div>,
             portalContainerRef.current
           )
         : null}
-    </div>
+    </Stack>
   );
 };
 

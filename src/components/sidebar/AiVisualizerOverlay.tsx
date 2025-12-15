@@ -1,5 +1,6 @@
-import './AiVisualizerOverlay.css';
 import { useEffect, useRef, useState } from 'react';
+import { Button, Textarea, Stack, Text, Status, Row, Card } from '../../ui';
+import './AiVisualizerOverlay.css';
 
 type Props = {
     onClose: () => void;
@@ -17,15 +18,12 @@ async function generateImage(prompt: string, imageBase64: string): Promise<strin
         throw new Error('Failed to generate image');
     }
     const data = await response.json();
-    // If HuggingFace returned a link to the image
     if (typeof data === 'object' && data.url) {
         return data.url;
     }
-    // If HuggingFace returned an array with an image
     if (Array.isArray(data) && data[0]?.image) {
         return `data:image/png;base64,${data[0].image}`;
     }
-    // If HuggingFace returned just base64
     if (data.image) {
         return `data:image/png;base64,${data.image}`;
     }
@@ -64,38 +62,43 @@ export const AiVisualizerOverlay = ({ onClose, captureScreenshot }: Props) => {
 
     return (
         <div className="ai-overlay" ref={overlayRef}>
-            <div className="ai-panel">
-                <div className="ai-header">
-                    <h2>AI Visualizer</h2>
-                    <button onClick={onClose}>✕</button>
-                </div>
-                <div className="ai-chat">
-                    <textarea
+            <Stack gap="md" className="ai-overlay-panel">
+                <Row between className="ai-overlay-header">
+                    <Text size="sm"><strong>AI Visualizer</strong></Text>
+                    <Button size="sm" icon onClick={onClose}>✕</Button>
+                </Row>
+
+                <Stack gap="sm" className="ai-overlay-chat">
+                    <Textarea
                         placeholder="Describe the visualization..."
                         value={prompt}
                         onChange={e => setPrompt(e.target.value)}
                         disabled={loading}
+                        rows={4}
                     />
-                    <button onClick={handleGenerate} disabled={loading || !prompt}>
-                        {loading ? (
-                            <span>
-                                <span className="ai-spinner" /> Generating...
-                            </span>
-                        ) : 'Generate'}
-                    </button>
-                </div>
+                    <Button
+                        variant="primary"
+                        onClick={handleGenerate}
+                        disabled={loading || !prompt}
+                    >
+                        {loading ? 'Generating...' : 'Generate'}
+                    </Button>
+                </Stack>
+
                 {loading && (
-                    <div className="ai-loading">
-                        <span className="ai-spinner" /> Generating image, please wait...
-                    </div>
+                    <Status variant="info">
+                        <span className="ai-overlay-spinner" /> Generating image, please wait...
+                    </Status>
                 )}
-                {error && <div className="ai-error">{error}</div>}
+
+                {error && <Status variant="error">{error}</Status>}
+
                 {resultImage && (
-                    <div className="ai-result">
-                        <img src={resultImage} alt="AI result" style={{ maxWidth: '100%', maxHeight: 300 }} />
-                    </div>
+                    <Card className="ai-overlay-result">
+                        <img src={resultImage} alt="AI result" />
+                    </Card>
                 )}
-            </div>
+            </Stack>
         </div>
     );
 };
