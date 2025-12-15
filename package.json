@@ -47,7 +47,7 @@
       "import": "./dist/ifc-viewer.es.js",
       "require": "./dist/ifc-viewer.umd.js"
     },
-    "./styles": "./dist/core.css"
+    "./styles": "./dist/style.css"
   },
   "files": [
     "dist",

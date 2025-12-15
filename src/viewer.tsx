@@ -249,7 +249,41 @@ export function createIFCViewer(options: CreateViewerOptions): ViewerHandle {
 
 // Re-export types and utilities for convenience
 export type { SelectionMap } from './context/BIMContext';
-export type { PartialViewerConfig, ViewerConfig } from './config/viewerConfig';
-export type { PartialDesignTokens, DesignTokens } from './config/tokens';
-export { defaultViewerConfig } from './config/viewerConfig';
-export { defaultDarkTokens, defaultLightTokens } from './config/tokens';
+export type {
+  PartialViewerConfig,
+  ViewerConfig,
+  SidebarConfig,
+  ViewCubeConfig,
+  StatsOverlayConfig,
+  DragDropConfig,
+  GridConfig,
+  ViewportConfig,
+  ElementColorsConfig,
+  ThemeTokens,
+} from './config/viewerConfig';
+export type {
+  PartialDesignTokens,
+  DesignTokens,
+  ColorTokens,
+  SpacingTokens,
+  RadiusTokens,
+  ShadowTokens,
+  TypographyTokens,
+  LayoutTokens,
+  ComponentTokens,
+  AnimationTokens,
+} from './config/tokens';
+export {
+  defaultViewerConfig,
+  mergeViewerConfig,
+  getConfigTokens,
+  getConfigCSSVariables,
+  applyConfigToContainer,
+} from './config/viewerConfig';
+export {
+  defaultDarkTokens,
+  defaultLightTokens,
+  mergeTokens,
+  tokensToCSSVariables,
+  getThemeTokens,
+} from './config/tokens';
