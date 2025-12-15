@@ -1,128 +1,144 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import * as OBC from '@thatopen/components';
 import { useBIM } from '../../context/BIMContext';
-import './CameraSection.css';
-import { ensureBUIInitialised } from '../../utils/bui';
 import { fitSceneToView } from '../../utils/cameraUtils';
+import { Select, Toggle, Button, Stack, Status } from '../../ui';
+
+type NavMode = 'Orbit' | 'FirstPerson' | 'Plan';
+type Projection = 'Perspective' | 'Orthographic';
 
 export const CameraSection: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
   const { world, zoomToSelection, setZoomToSelection } = useBIM();
+  const [navMode, setNavMode] = useState<NavMode>('Orbit');
+  const [projection, setProjection] = useState<Projection>('Perspective');
+  const [userInput, setUserInput] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!containerRef.current || !world || !world.camera) {return;}
-
-    // Ensure camera is OrthoPerspectiveCamera, otherwise skip rendering UI
+  const getCamera = useCallback(() => {
+    if (!world?.camera) return null;
     if (!(world.camera instanceof (OBC as any).OrthoPerspectiveCamera)) {
-      console.warn('CameraSection: current world camera is not an OrthoPerspectiveCamera. Skipping UI render.');
+      return null;
+    }
+    return world.camera as unknown as OBC.OrthoPerspectiveCamera;
+  }, [world]);
+
+  // Sync state with camera on mount
+  useEffect(() => {
+    const camera = getCamera();
+    if (camera) {
+      setNavMode(camera.mode.id as NavMode);
+      setProjection(camera.projection.current as Projection);
+    }
+  }, [getCamera]);
+
+  const handleNavModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = e.target.value as NavMode;
+    const camera = getCamera();
+    if (!camera) return;
+
+    if (projection === 'Orthographic' && selected === 'FirstPerson') {
+      setError('First person is not compatible with orthographic projection');
       return;
     }
 
-    const camera = world.camera as unknown as OBC.OrthoPerspectiveCamera;
+    setError(null);
+    try {
+      camera.set(selected as OBC.NavModeID);
+      setNavMode(selected);
+    } catch (err) {
+      console.warn('Failed to set camera navigation mode:', err);
+    }
+  };
 
-    ensureBUIInitialised();
+  const handleProjectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = e.target.value as Projection;
+    const camera = getCamera();
+    if (!camera) return;
 
-    // clear previous content
-    containerRef.current.innerHTML = '';
+    if (selected === 'Orthographic' && navMode === 'FirstPerson') {
+      setError('Orthographic is not compatible with first person mode');
+      return;
+    }
 
-    // Build UI markup
-    const html = `
-      <div class="camera-controls-wrapper">
-        <bim-dropdown label="Navigation mode" name="navMode" required>
-          <bim-option label="Orbit" checked></bim-option>
-          <bim-option label="FirstPerson"></bim-option>
-          <bim-option label="Plan"></bim-option>
-        </bim-dropdown>
+    setError(null);
+    try {
+      camera.projection.set(selected as OBC.CameraProjection);
+      setProjection(selected);
+    } catch (err) {
+      console.warn('Failed to set camera projection:', err);
+    }
+  };
 
-        <bim-dropdown label="Camera projection" name="projection" required style="margin-top:8px;">
-          <bim-option label="Perspective" checked></bim-option>
-          <bim-option label="Orthographic"></bim-option>
-        </bim-dropdown>
+  const handleUserInputChange = (checked: boolean) => {
+    const camera = getCamera();
+    if (!camera) return;
 
-        <bim-checkbox label="Allow user input" name="userInput" checked style="margin-top:8px;"></bim-checkbox>
+    try {
+      camera.setUserInput(checked);
+      setUserInput(checked);
+    } catch (err) {
+      console.warn('Failed to toggle camera user input:', err);
+    }
+  };
 
-        <bim-checkbox label="Fly to Selection" name="flyToSelection" ${zoomToSelection ? 'checked' : ''} style="margin-top:8px;"></bim-checkbox>
+  const handleFitToModel = async () => {
+    if (!world) return;
+    try {
+      await fitSceneToView(world, { paddingRatio: 1.2 });
+    } catch (err) {
+      console.warn('Failed to fit camera to model:', err);
+    }
+  };
 
-        <bim-button label="Fit to model" name="fitButton" style="margin-top:12px;"></bim-button>
-      </div>
-    `;
+  const camera = getCamera();
+  if (!camera) {
+    return (
+      <Status variant="warning">
+        Camera controls not available
+      </Status>
+    );
+  }
 
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    containerRef.current.appendChild(wrapper);
+  return (
+    <Stack gap="sm">
+      {error && <Status variant="warning">{error}</Status>}
 
-    // Navigation mode handler
-    const navDropdown = wrapper.querySelector('bim-dropdown[name="navMode"]') as any;
-    navDropdown?.addEventListener('change', (e: any) => {
-      const selected = e.target.value?.[0] as OBC.NavModeID;
-      if (!selected) {return;}
-      const currentProj = camera.projection.current;
-      if (currentProj === 'Orthographic' && selected === 'FirstPerson') {
-        console.warn('First person is not compatible with orthographic projection');
-        // revert selection to previous value
-        (e.target as any).value = [camera.mode.id];
-        return;
-      }
-      try {
-        camera.set(selected);
-      } catch (err) {
-        console.warn('Failed to set camera navigation mode:', err);
-      }
-    });
+      <Select
+        label="Navigation Mode"
+        value={navMode}
+        onChange={handleNavModeChange}
+        options={[
+          { value: 'Orbit', label: 'Orbit' },
+          { value: 'FirstPerson', label: 'First Person' },
+          { value: 'Plan', label: 'Plan' },
+        ]}
+      />
 
-    // Projection handler
-    const projDropdown = wrapper.querySelector('bim-dropdown[name="projection"]') as any;
-    projDropdown?.addEventListener('change', (e: any) => {
-      const selected = e.target.value?.[0] as OBC.CameraProjection;
-      if (!selected) {return;}
-      const isOrtho = selected === 'Orthographic';
-      const isFirstPerson = camera.mode.id === 'FirstPerson';
-      if (isOrtho && isFirstPerson) {
-        console.warn('First person is not compatible with orthographic projection');
-        (e.target as any).value = [camera.projection.current];
-        return;
-      }
-      try {
-        camera.projection.set(selected);
-      } catch (err) {
-        console.warn('Failed to set camera projection:', err);
-      }
-    });
+      <Select
+        label="Projection"
+        value={projection}
+        onChange={handleProjectionChange}
+        options={[
+          { value: 'Perspective', label: 'Perspective' },
+          { value: 'Orthographic', label: 'Orthographic' },
+        ]}
+      />
 
-    // User input toggle
-    const userCheckbox = wrapper.querySelector('bim-checkbox[name="userInput"]') as any;
-    userCheckbox?.addEventListener('change', (e: any) => {
-      const allow = e.target.checked;
-      try {
-        camera.setUserInput(allow);
-      } catch (err) {
-        console.warn('Failed to toggle camera user input:', err);
-      }
-    });
+      <Toggle
+        checked={userInput}
+        onChange={handleUserInputChange}
+        label="Allow user input"
+      />
 
-    // Fly to Selection toggle
-    const flyToSelectionCheckbox = wrapper.querySelector('bim-checkbox[name="flyToSelection"]') as any;
-    flyToSelectionCheckbox?.addEventListener('change', (e: any) => {
-      const enabled = e.target.checked;
-      setZoomToSelection(enabled);
-    });
+      <Toggle
+        checked={zoomToSelection}
+        onChange={setZoomToSelection}
+        label="Fly to selection"
+      />
 
-    // Fit button
-    const fitBtn = wrapper.querySelector('bim-button[name="fitButton"]') as any;
-    fitBtn?.addEventListener('click', async () => {
-      try {
-        await fitSceneToView(world, { paddingRatio: 1.2 });
-      } catch (err) {
-        console.warn('Failed to fit camera to model:', err);
-      }
-    });
-
-    // Cleanup listeners on unmount
-    return () => {
-      const clone = wrapper.cloneNode(false);
-      wrapper.parentElement?.replaceChild(clone, wrapper);
-    };
-  }, [world, zoomToSelection]);
-
-  return <div ref={containerRef} className="camera-section" />;
-}; 
+      <Button variant="primary" onClick={handleFitToModel}>
+        Fit to Model
+      </Button>
+    </Stack>
+  );
+};

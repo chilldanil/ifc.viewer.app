@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useCallback } from 'react';
+import { createRoot, Root } from 'react-dom/client';
 import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
 import * as OBF from '@thatopen/fragments';
 import * as WEBIFC from 'web-ifc';
-import * as BUI from '@thatopen/ui';
 import { useBIM } from '../../context/BIMContext';
 import { ErrorType, handleBIMError, withErrorHandling } from '../../utils/errorHandler';
 import { Minimap } from './Minimap';
 import { ModelLoader } from '../layout/ModelLoader';
 import { useViewCube } from '../../hooks/useViewCube';
+import { Card, Stack, Text, Toggle } from '../../ui';
 import './Viewport.css';
 
 // Extend JSX.IntrinsicElements to include the custom element
@@ -40,6 +41,7 @@ const ViewportComponent: React.FC = () => {
   const worldRef = useRef<OBC.World | null>(null);
   const highlighterInitializedRef = useRef(false);
   const processedModelsRef = useRef<Set<string>>(new Set());
+  const visibilityRootRef = useRef<Root | null>(null);
   const {
     components,
     visibilityPanelRef,
@@ -50,6 +52,7 @@ const ViewportComponent: React.FC = () => {
     isModelLoading,
     setIsModelLoading,
     viewCubeEnabled,
+    eventBus,
   } = useBIM();
 
   // Get Three.js camera, renderer, and controls for ViewCube
@@ -69,10 +72,8 @@ const ViewportComponent: React.FC = () => {
     const { model, indexer, classifier, hider } = params;
     
     return withErrorHandling(async () => {
-      // Check if component is unmounted
       if (isUnmountedRef.current) {return;}
 
-      // Ensure we have a valid panel element to inject controls into
       const panelElement = visibilityPanelRef.current;
 
       if (!panelElement) {
@@ -85,120 +86,119 @@ const ViewportComponent: React.FC = () => {
         return;
       }
 
-      // Find or create the internal container where we'll actually place the sections
       let container = panelElement.querySelector<HTMLElement>('.visibility-container');
 
       if (!container) {
-        // If for some reason the container is missing, create it to avoid runtime errors
         container = document.createElement('div');
         container.classList.add('visibility-container');
         panelElement.appendChild(container);
       }
 
-      // Clear any existing content (so we can rebuild for each loaded model)
       container.innerHTML = '';
 
-      // Create panel-sections for Floors and Categories
-      const floorSection = BUI.Component.create<BUI.PanelSection>(() => {
-        return BUI.html`<bim-panel-section collapsed label="Floors" name="floors"></bim-panel-section>`;
-      });
-
-      const categorySection = BUI.Component.create<BUI.PanelSection>(() => {
-        return BUI.html`<bim-panel-section collapsed label="Categories" name="categories"></bim-panel-section>`;
-      });
-
-      container.append(floorSection);
-      container.append(categorySection);
-      
-      // Add floor controls
-      if (classifier.list?.spatialStructures) {
-        const structureNames = Object.keys(classifier.list.spatialStructures);
-        if (structureNames.length > 0) {
-          for (const name of structureNames) {
-            const checkbox = BUI.Component.create<BUI.Checkbox>(() => {
-              return BUI.html`
-                <bim-checkbox checked label="${name}"
-                  @change="${({ target }: { target: BUI.Checkbox }) => {
-                    try {
-                      const found = classifier.list.spatialStructures[name];
-                      if (found?.id !== null && found?.id !== undefined) {
-                        const foundIDs = indexer.getEntityChildren(model, found.id);
-                        const fragMap = model.getFragmentMap(foundIDs);
-                        hider.set(target.value, fragMap);
-                      }
-                    } catch (error) {
-                      handleBIMError(
-                        ErrorType.USER_INTERACTION,
-                        `Floor control interaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        { error, floorName: name },
-                        'Viewport'
-                      );
-                    }
-                  }}">
-                </bim-checkbox>
-              `;
-            });
-            floorSection.append(checkbox);
-          }
-        } else {
-          // Add a message indicating no floors were found
-          const noFloorsMessage = BUI.Component.create(() => {
-            return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">No floor structures found in this model</div>`;
-          });
-          floorSection.append(noFloorsMessage);
-        }
-      } else {
-        // Add a message indicating spatial structures are not available
-        const noSpatialMessage = BUI.Component.create(() => {
-          return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">Spatial structures not available in this model</div>`;
-        });
-        floorSection.append(noSpatialMessage);
-        console.log('No spatial structures available for floor controls - this is normal for some IFC models');
-      }
-      
-      // Add category controls
-      if (classifier.list?.entities) {
-        const classNames = Object.keys(classifier.list.entities);
-        if (classNames.length > 0) {
-          for (const name of classNames) {
-            const checkbox = BUI.Component.create<BUI.Checkbox>(() => {
-              return BUI.html`
-                <bim-checkbox checked label="${name}"
-                  @change="${({ target }: { target: BUI.Checkbox }) => {
-                    try {
-                      const found = classifier.find({ entities: [name] });
-                      hider.set(target.value, found);
-                    } catch (error) {
-                      handleBIMError(
-                        ErrorType.USER_INTERACTION,
-                        `Category control interaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        { error, categoryName: name },
-                        'Viewport'
-                      );
-                    }
-                  }}">
-                </bim-checkbox>
-              `;
-            });
-            categorySection.append(checkbox);
-          }
-        } else {
-          // Add a message indicating no categories were found
-          const noCategoriesMessage = BUI.Component.create(() => {
-            return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">No entity categories found in this model</div>`;
-          });
-          categorySection.append(noCategoriesMessage);
-        }
-      } else {
-        // Add a message indicating entities are not available
-        const noEntitiesMessage = BUI.Component.create(() => {
-          return BUI.html`<div style="color: #666; font-size: 0.9rem; padding: 8px;">Entity information not available in this model</div>`;
-        });
-        categorySection.append(noEntitiesMessage);
-        console.log('No entities available for category controls - this is normal for some IFC models');
+      if (visibilityRootRef.current) {
+        visibilityRootRef.current.unmount();
+        visibilityRootRef.current = null;
       }
 
-      // Mark container as visible by default to keep existing toggle logic consistent
+      const floors = classifier.list?.spatialStructures
+        ? Object.keys(classifier.list.spatialStructures)
+        : [];
+      const categories = classifier.list?.entities
+        ? Object.keys(classifier.list.entities)
+        : [];
+
+      const handleFloorToggle = (name: string, value: boolean) => {
+        try {
+          const found = classifier.list?.spatialStructures?.[name];
+          if (found?.id !== null && found?.id !== undefined) {
+            const foundIDs = indexer.getEntityChildren(model, found.id);
+            const fragMap = model.getFragmentMap(foundIDs);
+            hider.set(value, fragMap);
+          }
+        } catch (error) {
+          handleBIMError(
+            ErrorType.USER_INTERACTION,
+            `Floor control interaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            { error, floorName: name },
+            'Viewport'
+          );
+        }
+      };
+
+      const handleCategoryToggle = (name: string, value: boolean) => {
+        try {
+          const found = classifier.find({ entities: [name] });
+          hider.set(value, found);
+        } catch (error) {
+          handleBIMError(
+            ErrorType.USER_INTERACTION,
+            `Category control interaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            { error, categoryName: name },
+            'Viewport'
+          );
+        }
+      };
+
+      const VisibilityPanel: React.FC = () => {
+        const [floorState, setFloorState] = React.useState<Record<string, boolean>>(() => (
+          floors.reduce((acc, name) => ({ ...acc, [name]: true }), {})
+        ));
+        const [categoryState, setCategoryState] = React.useState<Record<string, boolean>>(() => (
+          categories.reduce((acc, name) => ({ ...acc, [name]: true }), {})
+        ));
+
+        return (
+          <Stack gap="md">
+            <Card className="visibility-card">
+              <Stack gap="sm" className="visibility-list">
+                <Text variant="label" as="div">Floors</Text>
+                {floors.length > 0 ? (
+                  floors.map((name) => (
+                    <Toggle
+                      key={name}
+                      label={name}
+                      checked={floorState[name] ?? true}
+                      onChange={(checked) => {
+                        setFloorState((prev) => ({ ...prev, [name]: checked }));
+                        handleFloorToggle(name, checked);
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text variant="subtle" size="sm">No floor structures found in this model</Text>
+                )}
+              </Stack>
+            </Card>
+
+            <Card className="visibility-card">
+              <Stack gap="sm" className="visibility-list">
+                <Text variant="label" as="div">Categories</Text>
+                {categories.length > 0 ? (
+                  categories.map((name) => (
+                    <Toggle
+                      key={name}
+                      label={name}
+                      checked={categoryState[name] ?? true}
+                      onChange={(checked) => {
+                        setCategoryState((prev) => ({ ...prev, [name]: checked }));
+                        handleCategoryToggle(name, checked);
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text variant="subtle" size="sm">No entity categories found in this model</Text>
+                )}
+              </Stack>
+            </Card>
+          </Stack>
+        );
+      };
+
+      const root = createRoot(container);
+      visibilityRootRef.current = root;
+      root.render(<VisibilityPanel />);
+
       panelElement.classList.add('panel-visible');
     }, ErrorType.COMPONENT_ERROR, 'Viewport');
   }, [visibilityPanelRef]);
@@ -530,6 +530,7 @@ const ViewportComponent: React.FC = () => {
 
               // Create visibility controls after classification
               await createVisibilityControls({ model, indexer, classifier, hider });
+              eventBus.emit('modelLoaded', { modelId: model.uuid });
             } else if (alreadyProcessed) {
               // Data already classified; still refresh visibility controls so UI stays synced
               await createVisibilityControls({ model, indexer, classifier, hider });
@@ -597,6 +598,10 @@ const ViewportComponent: React.FC = () => {
       
       // Clean up BIM components
       cleanupBIMComponents();
+      if (visibilityRootRef.current) {
+        visibilityRootRef.current.unmount();
+        visibilityRootRef.current = null;
+      }
       
       // Reset initialization flag
       viewerInitializedRef.current = false;

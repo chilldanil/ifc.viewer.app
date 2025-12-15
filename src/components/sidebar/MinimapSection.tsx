@@ -1,8 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import * as BUI from '@thatopen/ui';
+import React from 'react';
 import { MinimapConfig } from '../bim/Minimap';
-import './MinimapSection.css';
-import { ensureBUIInitialised } from '../../utils/bui';
+import { Toggle, Slider, Stack, Row } from '../../ui';
 
 interface MinimapSectionProps {
   config: MinimapConfig;
@@ -10,92 +8,63 @@ interface MinimapSectionProps {
 }
 
 export const MinimapSection: React.FC<MinimapSectionProps> = ({ config, onConfigChange }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  return (
+    <Stack gap="sm">
+      <Toggle
+        checked={config.enabled}
+        onChange={(value) => onConfigChange({ enabled: value })}
+        label="Enabled"
+      />
 
-  useEffect(() => {
-    if (!containerRef.current) {return;}
+      <Toggle
+        checked={config.visible}
+        onChange={(value) => onConfigChange({ visible: value })}
+        label="Visible"
+      />
 
-    ensureBUIInitialised();
+      <Toggle
+        checked={config.lockRotation}
+        onChange={(value) => onConfigChange({ lockRotation: value })}
+        label="Lock rotation"
+      />
 
-    // Create each control individually and append to container
-    const container = containerRef.current;
-    container.innerHTML = '';
+      <Slider
+        label="Zoom"
+        value={config.zoom}
+        min={0.01}
+        max={0.5}
+        step={0.01}
+        onChange={(e) => onConfigChange({ zoom: parseFloat(e.target.value) })}
+        formatValue={(v) => v.toFixed(2)}
+      />
 
-    const createCheckbox = (label: string, checked: boolean, onChange: (value: boolean) => void) => {
-      const checkbox = BUI.Component.create<BUI.Checkbox>(() => {
-        return BUI.html`
-          <bim-checkbox 
-            checked="${checked}" 
-            label="${label}" 
-            @change="${({ target }: { target: BUI.Checkbox }) => onChange(target.value)}">
-          </bim-checkbox>
-        `;
-      });
-      return checkbox;
-    };
+      <Slider
+        label="Front Offset"
+        value={config.frontOffset}
+        min={0}
+        max={5}
+        step={1}
+        onChange={(e) => onConfigChange({ frontOffset: parseFloat(e.target.value) })}
+      />
 
-    const createSlider = (label: string, value: number, min: number, max: number, step: number, onChange: (value: number) => void) => {
-      const slider = BUI.Component.create<BUI.NumberInput>(() => {
-        return BUI.html`
-          <bim-number-input 
-            slider 
-            label="${label}" 
-            value="${value}" 
-            min="${min}" 
-            max="${max}" 
-            step="${step}" 
-            @change="${({ target }: { target: BUI.NumberInput }) => onChange(target.value)}">
-          </bim-number-input>
-        `;
-      });
-      return slider;
-    };
-
-    const enabledCheckbox = createCheckbox('Enabled', config.enabled, (value) => onConfigChange({ enabled: value }));
-    const visibleCheckbox = createCheckbox('Visible', config.visible, (value) => onConfigChange({ visible: value }));
-    const lockRotationCheckbox = createCheckbox('Lock rotation', config.lockRotation, (value) => onConfigChange({ lockRotation: value }));
-    const zoomSlider = createSlider('Zoom', config.zoom, 0.01, 0.5, 0.01, (value) => onConfigChange({ zoom: value }));
-    const frontOffsetSlider = createSlider('Front offset', config.frontOffset, 0, 5, 1, (value) => onConfigChange({ frontOffset: value }));
-
-    const sizeContainer = document.createElement('div');
-    sizeContainer.style.display = 'flex';
-    sizeContainer.style.gap = '12px';
-    sizeContainer.style.marginTop = '12px';
-
-    const widthSlider = createSlider('Width', config.sizeX, 100, 500, 10, (value) => onConfigChange({ sizeX: value }));
-    const heightSlider = createSlider('Height', config.sizeY, 100, 500, 10, (value) => onConfigChange({ sizeY: value }));
-
-    widthSlider.setAttribute('pref', 'Width');
-    heightSlider.setAttribute('pref', 'Height');
-
-    sizeContainer.appendChild(widthSlider);
-    sizeContainer.appendChild(heightSlider);
-
-    container.appendChild(enabledCheckbox);
-    container.appendChild(visibleCheckbox);
-    container.appendChild(lockRotationCheckbox);
-    container.appendChild(zoomSlider);
-    container.appendChild(frontOffsetSlider);
-    container.appendChild(sizeContainer);
-
-    const stopAllPropagation = (e: Event) => {
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-    };
-    container.addEventListener('click', stopAllPropagation, true);
-    container.addEventListener('mousedown', stopAllPropagation, true);
-    container.addEventListener('mouseup', stopAllPropagation, true);
-    container.addEventListener('change', stopAllPropagation, true);
-    container.addEventListener('input', stopAllPropagation, true);
-
-    return () => {
-      container.removeEventListener('click', stopAllPropagation, true);
-      container.removeEventListener('mousedown', stopAllPropagation, true);
-      container.removeEventListener('mouseup', stopAllPropagation, true);
-      container.removeEventListener('change', stopAllPropagation, true);
-      container.removeEventListener('input', stopAllPropagation, true);
-    };
-  }, [config, onConfigChange]);
-
-  return <div ref={containerRef} className="minimap-section minimap-controls-container" />;
+      <Row stretch>
+        <Slider
+          label="Width"
+          value={config.sizeX}
+          min={100}
+          max={500}
+          step={10}
+          onChange={(e) => onConfigChange({ sizeX: parseFloat(e.target.value) })}
+        />
+        <Slider
+          label="Height"
+          value={config.sizeY}
+          min={100}
+          max={500}
+          step={10}
+          onChange={(e) => onConfigChange({ sizeY: parseFloat(e.target.value) })}
+        />
+      </Row>
+    </Stack>
+  );
 };

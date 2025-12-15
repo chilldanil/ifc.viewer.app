@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useBIM } from '../../context/BIMContext';
-import './ScreenshotSection.css';
+import { Button, Text, Stack, Status } from '../../ui';
 
 export const ScreenshotSection: React.FC = () => {
   const { captureScreenshot, world } = useBIM();
@@ -34,20 +34,19 @@ export const ScreenshotSection: React.FC = () => {
 
   return (
     <bim-panel-section label="Screenshot" collapsed>
-      <div className="screenshot-section">
-        <p className="screenshot-description">
+      <Stack gap="sm">
+        <Text variant="muted" size="sm">
           Capture the current viewport as a PNG image. Make sure the model is fully visible before downloading.
-        </p>
-        {error && <p className="screenshot-error">{error}</p>}
-        <button
-          type="button"
-          className="screenshot-download-btn"
+        </Text>
+        {error && <Status variant="error">{error}</Status>}
+        <Button
+          variant="primary"
           onClick={handleDownload}
           disabled={isDownloading || !world?.renderer}
         >
           {isDownloading ? 'Preparing…' : 'Download Screenshot'}
-        </button>
-      </div>
+        </Button>
+      </Stack>
     </bim-panel-section>
   );
 };

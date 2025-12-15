@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useBIM } from '../../context/BIMContext';
-import './ClippingSection.css';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import { Button, ButtonGroup, Slider, Stack } from '../../ui';
 
 export const ClippingSection: React.FC = () => {
   const { world } = useBIM();
@@ -14,7 +14,6 @@ export const ClippingSection: React.FC = () => {
   const helperRef = useRef<THREE.PlaneHelper | null>(null);
   const transformControlsRef = useRef<TransformControls | null>(null);
 
-  // Reset when world changes
   useEffect(() => {
     deactivate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -25,7 +24,6 @@ export const ClippingSection: React.FC = () => {
     const scene = world.scene.three as THREE.Scene;
     const renderer = (world.renderer as any).three as THREE.WebGLRenderer;
 
-    // Compute extents along chosen axis
     const bbox = new THREE.Box3().setFromObject(scene);
     let min = 0, max = 0, initial = 0, normal: THREE.Vector3;
     switch (axis) {
@@ -52,37 +50,26 @@ export const ClippingSection: React.FC = () => {
     helperRef.current = helper;
     scene.add(helper);
 
-    // -------------------- 3-axis gizmo (TransformControls) --------------------
-    // Obtain the active camera and create TransformControls that will allow the
-    // user to drag the plane helper with the standard red/green/blue arrows.
     const camera = (world.camera as any)?.three as THREE.Camera | undefined;
     if (camera) {
-      // Create TransformControls once and reuse if the user toggles clipping on/off
       if (!transformControlsRef.current) {
         transformControlsRef.current = new TransformControls(camera, renderer.domElement);
       }
       const controls = transformControlsRef.current;
-      // Attach to the plane helper so moving the gizmo moves the plane
       controls!.attach(helper);
-      // Add the gizmo (helper Object3D) to the scene if not already present
       const gizmo = controls!.getHelper?.() as unknown as THREE.Object3D | undefined;
       if (gizmo && !scene.children.includes(gizmo)) {
         scene.add(gizmo);
       }
 
-      // When the gizmo is dragged, update the clipping plane constant so the
-      // renderer clipping plane follows the helper's new position
       controls!.addEventListener('objectChange', () => {
         if (!planeRef.current || !helperRef.current) {return;}
-        // Constant sign follows Three.js plane definition: n·p + constant = 0
         const newConstant = -planeRef.current.normal.dot(helperRef.current.position);
         planeRef.current.constant = newConstant;
         setClipY(newConstant);
-        // Ensure helper matrix is up-to-date
         helperRef.current.updateMatrixWorld(true);
       });
 
-      // Disable orbit controls while the user is dragging the gizmo
       controls!.addEventListener('dragging-changed', (e: any) => {
         const orbit = (world.camera as any)?.controls;
         if (orbit) {orbit.enabled = !e.value;}
@@ -128,26 +115,38 @@ export const ClippingSection: React.FC = () => {
   };
 
   return (
-    <div className="clipping-controls">
-      <div className="axis-buttons">
-        {(['X','Y','Z'] as const).map(a => (
-          <button key={a} onClick={() => setAxis(a)} disabled={active || axis === a} className={axis===a ? 'selected' : ''}>{a}
-          </button>
+    <Stack gap="sm">
+      <ButtonGroup stretch>
+        {(['X', 'Y', 'Z'] as const).map((a) => (
+          <Button
+            key={a}
+            size="sm"
+            selected={axis === a}
+            onClick={() => setAxis(a)}
+            disabled={active}
+          >
+            {a}
+          </Button>
         ))}
-      </div>
-      <button onClick={active ? deactivate : activate} disabled={!world} className="primary">
+      </ButtonGroup>
+      <Button
+        variant="primary"
+        onClick={active ? deactivate : activate}
+        disabled={!world}
+      >
         {active ? 'Disable' : 'Enable'} Clipping ({axis})
-      </button>
+      </Button>
       {active && (
-        <input
-          type="range"
+        <Slider
+          label="Position"
           min={range.min}
           max={range.max}
           step={(range.max - range.min) / 1000}
           value={clipY}
           onChange={(e) => updateConstant(parseFloat(e.target.value))}
+          formatValue={(v) => v.toFixed(2)}
         />
       )}
-    </div>
+    </Stack>
   );
-}; 
+};

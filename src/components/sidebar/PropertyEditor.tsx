@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import * as OBF from '@thatopen/fragments';
 import { useBIM } from '../../context/BIMContext';
+import { Button, Input, Select, Stack, Text, Card, Row, Status } from '../../ui';
 import './PropertyEditor.css';
 
 interface PropertyData {
@@ -32,28 +33,11 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
     type: 'string' as 'string' | 'number' | 'boolean',
   });
 
-  // Debug: Log when props change
-  useEffect(() => {
-    console.log('PropertyEditor props updated:', {
-      hasModel: !!selectedModel,
-      modelUUID: selectedModel?.uuid,
-      expressID: selectedExpressID,
-      hasComponents: !!components,
-    });
-  }, [selectedModel, selectedExpressID, components]);
-
-  // Load properties when selection changes
   useEffect(() => {
     if (!selectedModel || selectedExpressID === null || !components) {
-      console.log('PropertyEditor: Skipping load - missing dependencies', {
-        hasModel: !!selectedModel,
-        hasExpressID: selectedExpressID !== null,
-        hasComponents: !!components,
-      });
       setProperties([]);
       return;
     }
-
     loadProperties();
   }, [selectedModel, selectedExpressID, components]);
 
@@ -61,93 +45,35 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
     if (!selectedModel || selectedExpressID === null || !components) return;
 
     try {
-      console.log('=== Loading Properties ===');
-      console.log('Model UUID:', selectedModel.uuid);
-      console.log('ExpressID:', selectedExpressID);
-
-      // Access the model's internal property storage
       const modelData = (selectedModel as any);
       let entity: any = null;
 
-      console.log('Attempting to access properties...');
-
-      // Method 1: Try _properties (internal storage used by ThatOpen)
       if (modelData._properties && modelData._properties[selectedExpressID]) {
         entity = modelData._properties[selectedExpressID];
-        console.log('✅ Found properties via _properties');
-      }
-      // Method 2: Try ifcMetadata.properties
-      else if (modelData.ifcMetadata?.properties?.[selectedExpressID]) {
+      } else if (modelData.ifcMetadata?.properties?.[selectedExpressID]) {
         entity = modelData.ifcMetadata.properties[selectedExpressID];
-        console.log('✅ Found properties via ifcMetadata.properties');
-      }
-      // Method 3: Try data property
-      else if (modelData.data?.[selectedExpressID]) {
+      } else if (modelData.data?.[selectedExpressID]) {
         entity = modelData.data[selectedExpressID];
-        console.log('✅ Found properties via data');
-      }
-      // Method 4: Try direct properties object
-      else if (modelData.properties?.[selectedExpressID]) {
+      } else if (modelData.properties?.[selectedExpressID]) {
         entity = modelData.properties[selectedExpressID];
-        console.log('✅ Found properties via properties');
       }
-
-      console.log('Property search result:', {
-        found: !!entity,
-        has_properties: !!modelData._properties,
-        has_ifcMetadata: !!modelData.ifcMetadata,
-        has_data: !!modelData.data,
-        expressID: selectedExpressID,
-      });
 
       if (!entity) {
-        console.warn('No properties found for expressID:', selectedExpressID);
-        console.log('Available model keys:', Object.keys(selectedModel));
-
-        // Show basic model info even if no detailed properties
         const basicProps: PropertyData[] = [
-          {
-            name: 'ExpressID',
-            value: selectedExpressID,
-            type: 'number',
-            expressID: selectedExpressID,
-            isEditable: false,
-          },
-          {
-            name: 'Model',
-            value: selectedModel.uuid,
-            type: 'string',
-            expressID: selectedExpressID,
-            isEditable: false,
-          },
+          { name: 'ExpressID', value: selectedExpressID, type: 'number', expressID: selectedExpressID, isEditable: false },
+          { name: 'Model', value: selectedModel.uuid, type: 'string', expressID: selectedExpressID, isEditable: false },
         ];
-
         setProperties(basicProps);
         return;
       }
 
-      console.log('Entity data:', entity);
       const propertyList: PropertyData[] = [];
 
-      // Extract properties from the entity
       for (const [key, value] of Object.entries(entity)) {
-        // Skip internal properties, complex objects, and null values
         if (key.startsWith('_') || value === null || value === undefined) continue;
+        if (typeof value === 'object' && !value.hasOwnProperty('value') && typeof value !== 'string') continue;
 
-        // Skip complex nested objects (but allow simple objects with value)
-        if (typeof value === 'object' && !value.hasOwnProperty('value') && typeof value !== 'string') {
-          continue;
-        }
-
-        const isEditable = [
-          'Name',
-          'Description',
-          'ObjectType',
-          'Tag',
-          'LongName',
-          'OverallHeight',
-          'OverallWidth',
-        ].includes(key);
+        const isEditable = ['Name', 'Description', 'ObjectType', 'Tag', 'LongName', 'OverallHeight', 'OverallWidth'].includes(key);
 
         propertyList.push({
           name: key,
@@ -158,7 +84,6 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
         });
       }
 
-      console.log(`Extracted ${propertyList.length} properties`);
       setProperties(propertyList);
     } catch (error) {
       console.error('Failed to load properties:', error);
@@ -173,10 +98,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   };
 
   const handleSaveChanges = async () => {
-    if (!propertyEditingService || !selectedModel || selectedExpressID === null) {
-      return;
-    }
-
+    if (!propertyEditingService || !selectedModel || selectedExpressID === null) return;
     if (editedProperties.size === 0) {
       alert('No changes to save');
       return;
@@ -184,23 +106,12 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
     setIsSaving(true);
     try {
-      // Apply all edited properties
       for (const [propertyName, newValue] of editedProperties) {
-        await propertyEditingService.updateProperty(
-          selectedModel,
-          selectedExpressID,
-          propertyName,
-          newValue
-        );
+        await propertyEditingService.updateProperty(selectedModel, selectedExpressID, propertyName, newValue);
       }
-
-      // Reload properties to show updated values
       await loadProperties();
-
-      // Clear edited properties
       setEditedProperties(new Map());
       setIsEditMode(false);
-
       alert('Properties updated successfully!');
     } catch (error) {
       console.error('Failed to save properties:', error);
@@ -216,17 +127,13 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   };
 
   const handleCreateProperty = async () => {
-    if (!propertyEditingService || !selectedModel) {
-      return;
-    }
-
+    if (!propertyEditingService || !selectedModel) return;
     if (!newProperty.name || !newProperty.value) {
       alert('Please provide both name and value for the new property');
       return;
     }
 
     try {
-      // Convert value to appropriate type
       let value: string | number | boolean = newProperty.value;
       if (newProperty.type === 'number') {
         value = parseFloat(newProperty.value);
@@ -238,20 +145,9 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
         value = newProperty.value.toLowerCase() === 'true';
       }
 
-      // Create the property
-      const propId = await propertyEditingService.createProperty(
-        selectedModel,
-        newProperty.type,
-        newProperty.name,
-        value
-      );
-
-      console.log(`Created property ${newProperty.name} with ID ${propId}`);
-
-      // Reset form
+      await propertyEditingService.createProperty(selectedModel, newProperty.type, newProperty.name, value);
       setNewProperty({ name: '', value: '', type: 'string' });
       setShowCreateProperty(false);
-
       alert(`Property "${newProperty.name}" created successfully!`);
     } catch (error) {
       console.error('Failed to create property:', error);
@@ -260,54 +156,30 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   };
 
   const getCurrentValue = (propertyName: string, originalValue: any) => {
-    return editedProperties.has(propertyName)
-      ? editedProperties.get(propertyName)
-      : originalValue;
-  };
-
-  const renderPropertyValue = (prop: PropertyData) => {
-    const currentValue = getCurrentValue(prop.name, prop.value);
-    const hasChanges = editedProperties.has(prop.name);
-
-    if (!isEditMode || !prop.isEditable) {
-      return (
-        <span className={`property-value ${hasChanges ? 'property-value--edited' : ''}`}>
-          {String(currentValue ?? 'N/A')}
-        </span>
-      );
-    }
-
-    // Editable input
-    return (
-      <input
-        type="text"
-        className="property-input"
-        value={currentValue ?? ''}
-        onChange={(e) => handlePropertyChange(prop.name, e.target.value)}
-      />
-    );
+    return editedProperties.has(propertyName) ? editedProperties.get(propertyName) : originalValue;
   };
 
   if (!selectedModel || selectedExpressID === null) {
     return (
-      <div className="property-editor property-editor--empty">
-        <p>No element selected. Select an element to view/edit its properties.</p>
-      </div>
+      <Card>
+        <Text variant="muted" size="sm">
+          No element selected. Select an element to view/edit its properties.
+        </Text>
+      </Card>
     );
   }
 
   if (properties.length === 0) {
     return (
-      <div className="property-editor property-editor--empty">
-        <p>No editable properties found for this element.</p>
-        <p className="property-editor__meta">
-          ExpressID: {selectedExpressID}<br/>
+      <Stack gap="sm">
+        <Card>
+          <Text variant="muted" size="sm">No editable properties found for this element.</Text>
+        </Card>
+        <Text variant="subtle" size="xs">
+          ExpressID: {selectedExpressID}<br />
           Model: {selectedModel?.uuid.substring(0, 8)}...
-        </p>
-        <p className="property-editor__meta">
-          Check browser console for detailed property structure.
-        </p>
-      </div>
+        </Text>
+      </Stack>
     );
   }
 
@@ -315,150 +187,115 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   const hasService = propertyEditingService !== null;
 
   return (
-    <div className="property-editor">
-      {/* Header with mode toggle */}
-      <div className="property-editor__header">
-        <h3 className="property-editor__title">
-          Element Properties
-          {hasChanges && <span className="property-editor__badge">{editedProperties.size} edited</span>}
-        </h3>
-
-        {hasService && (
-          <div className="property-editor__actions">
-            {!isEditMode && (
-              <button
-                className="property-editor__button property-editor__button--primary"
-                onClick={() => setIsEditMode(true)}
-              >
-                Edit Properties
-              </button>
-            )}
-
-            {isEditMode && (
-              <>
-                <button
-                  className="property-editor__button property-editor__button--success"
-                  onClick={handleSaveChanges}
-                  disabled={!hasChanges || isSaving}
-                >
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </button>
-                <button
-                  className="property-editor__button property-editor__button--secondary"
-                  onClick={handleCancelEdit}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-              </>
-            )}
-          </div>
+    <Stack gap="sm">
+      <Row between>
+        <Text size="sm">
+          <strong>Element Properties</strong>
+          {hasChanges && (
+            <span style={{ marginLeft: '8px', color: 'var(--ui-warning)', fontSize: '0.75rem' }}>
+              ({editedProperties.size} edited)
+            </span>
+          )}
+        </Text>
+        {hasService && !isEditMode && (
+          <Button size="sm" variant="primary" onClick={() => setIsEditMode(true)}>
+            Edit
+          </Button>
         )}
-      </div>
+      </Row>
 
-      {/* Properties list */}
-      <div className="property-editor__list">
+      {isEditMode && (
+        <Row>
+          <Button size="sm" variant="primary" onClick={handleSaveChanges} disabled={!hasChanges || isSaving}>
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+          <Button size="sm" onClick={handleCancelEdit} disabled={isSaving}>
+            Cancel
+          </Button>
+        </Row>
+      )}
+
+      <div className="property-list">
         {properties.map((prop) => (
-          <div
-            key={prop.name}
-            className={`property-row ${prop.isEditable ? 'property-row--editable' : ''}`}
-          >
-            <div className="property-name">
+          <div key={prop.name} className="property-row">
+            <Text variant="muted" size="xs" className="property-name">
               {prop.name}
               {prop.isEditable && isEditMode && (
-                <span className="property-editable-badge">editable</span>
+                <span style={{ marginLeft: '4px', color: 'var(--ui-primary)', fontSize: '0.65rem' }}>
+                  (editable)
+                </span>
               )}
-            </div>
-            <div className="property-value-wrapper">
-              {renderPropertyValue(prop)}
+            </Text>
+            <div className="property-value">
+              {isEditMode && prop.isEditable ? (
+                <Input
+                  value={getCurrentValue(prop.name, prop.value) ?? ''}
+                  onChange={(e) => handlePropertyChange(prop.name, e.target.value)}
+                />
+              ) : (
+                <Text size="sm" style={{ color: editedProperties.has(prop.name) ? 'var(--ui-warning)' : undefined }}>
+                  {String(getCurrentValue(prop.name, prop.value) ?? 'N/A')}
+                </Text>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Create new property section */}
       {hasService && isEditMode && (
-        <div className="property-editor__create">
-          {!showCreateProperty && (
-            <button
-              className="property-editor__button property-editor__button--secondary"
-              onClick={() => setShowCreateProperty(true)}
-            >
+        <Stack gap="sm">
+          {!showCreateProperty ? (
+            <Button size="sm" variant="ghost" onClick={() => setShowCreateProperty(true)}>
               + Create New Property
-            </button>
-          )}
-
-          {showCreateProperty && (
-            <div className="property-create-form">
-              <h4>Create New Property</h4>
-              <div className="property-create-field">
-                <label>Name:</label>
-                <input
-                  type="text"
+            </Button>
+          ) : (
+            <Card>
+              <Stack gap="sm">
+                <Text size="sm"><strong>Create New Property</strong></Text>
+                <Input
+                  label="Name"
                   value={newProperty.name}
-                  onChange={(e) =>
-                    setNewProperty({ ...newProperty, name: e.target.value })
-                  }
+                  onChange={(e) => setNewProperty({ ...newProperty, name: e.target.value })}
                   placeholder="Property name"
                 />
-              </div>
-              <div className="property-create-field">
-                <label>Type:</label>
-                <select
+                <Select
+                  label="Type"
                   value={newProperty.type}
-                  onChange={(e) =>
-                    setNewProperty({
-                      ...newProperty,
-                      type: e.target.value as 'string' | 'number' | 'boolean',
-                    })
-                  }
+                  onChange={(e) => setNewProperty({ ...newProperty, type: e.target.value as any })}
                 >
                   <option value="string">String</option>
                   <option value="number">Number</option>
                   <option value="boolean">Boolean</option>
-                </select>
-              </div>
-              <div className="property-create-field">
-                <label>Value:</label>
-                <input
-                  type="text"
+                </Select>
+                <Input
+                  label="Value"
                   value={newProperty.value}
-                  onChange={(e) =>
-                    setNewProperty({ ...newProperty, value: e.target.value })
-                  }
-                  placeholder={
-                    newProperty.type === 'boolean' ? 'true or false' : 'Property value'
-                  }
+                  onChange={(e) => setNewProperty({ ...newProperty, value: e.target.value })}
+                  placeholder={newProperty.type === 'boolean' ? 'true or false' : 'Property value'}
                 />
-              </div>
-              <div className="property-create-actions">
-                <button
-                  className="property-editor__button property-editor__button--success"
-                  onClick={handleCreateProperty}
-                >
-                  Create
-                </button>
-                <button
-                  className="property-editor__button property-editor__button--secondary"
-                  onClick={() => {
-                    setShowCreateProperty(false);
-                    setNewProperty({ name: '', value: '', type: 'string' });
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
+                <Row>
+                  <Button size="sm" variant="primary" onClick={handleCreateProperty}>
+                    Create
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShowCreateProperty(false);
+                      setNewProperty({ name: '', value: '', type: 'string' });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </Row>
+              </Stack>
+            </Card>
           )}
-        </div>
+        </Stack>
       )}
 
-      {/* Info message if no service */}
       {!hasService && (
-        <div className="property-editor__info">
-          Property editing service is initializing...
-        </div>
+        <Status variant="info">Property editing service is initializing...</Status>
       )}
-    </div>
+    </Stack>
   );
 };
