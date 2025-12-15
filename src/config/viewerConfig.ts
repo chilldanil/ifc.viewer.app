@@ -27,6 +27,7 @@ export interface ViewerConfig {
       elementColors: { enabled: boolean; collapsed: boolean };
       renderModes: { enabled: boolean; collapsed: boolean };
       hider: { enabled: boolean; collapsed: boolean };
+      worlds: { enabled: boolean; collapsed: boolean };
       grids: { enabled: boolean; collapsed: boolean };
       camera: { enabled: boolean; collapsed: boolean };
       floorPlan: { enabled: boolean; collapsed: boolean };
@@ -78,6 +79,7 @@ export const defaultViewerConfig: ViewerConfig = {
       elementColors: { enabled: true, collapsed: true },
       renderModes: { enabled: true, collapsed: true },
       hider: { enabled: true, collapsed: true },
+      worlds: { enabled: true, collapsed: true },
       camera: { enabled: true, collapsed: true },
       floorPlan: { enabled: true, collapsed: true },
       measurements: { enabled: true, collapsed: true },
