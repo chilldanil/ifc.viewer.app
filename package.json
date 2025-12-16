@@ -1,7 +1,7 @@
 {
   "name": "deployable-ifc-viewer",
   "private": false,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Professional IFC viewer library built with React and Three.js",
   "type": "module",
   "keywords": [
