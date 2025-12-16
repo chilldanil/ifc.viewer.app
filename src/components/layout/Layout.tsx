@@ -1,21 +1,32 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import { Viewport } from '../bim/Viewport';
 import { SecondaryViewport } from '../bim/SecondaryViewport';
 import { Sidebar } from './Sidebar';
 import { Toolbar, type MenuConfig } from './Toolbar';
 import { Panel } from './Panel';
-import { useBIM } from '../../context/BIMContext';
+import { useBIM, type MultiViewPreset } from '../../context/BIMContext';
 import DragAndDropOverlay from '../DragAndDropOverlay';
+import { setupIfcLoader } from '../../core/services/ifcLoaderService';
+import { fitSceneToView, setTopView } from '../../utils/cameraUtils';
+import * as OBC from '@thatopen/components';
+import * as OBCF from '@thatopen/components-front';
 import './Layout.css';
 
 // ============================================================================
 // Icons for Toolbar Menus
 // ============================================================================
 
-const FileIcon = () => (
+const FolderOpenIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    <path d="M2 10h20" />
+  </svg>
+);
+
+const CameraIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+    <circle cx="12" cy="13" r="4" />
   </svg>
 );
 
@@ -66,13 +77,75 @@ const InfoIcon = () => (
   </svg>
 );
 
+const MaximizeIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+  </svg>
+);
+
+const EyeIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
+const RulerIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21.21 15.89A9 9 0 1 1 8 2.83" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+    <line x1="21" y1="3" x2="14.5" y2="9.5" />
+    <line x1="21" y1="8" x2="17" y2="8" />
+    <line x1="16" y1="3" x2="16" y2="7" />
+  </svg>
+);
+
+const ScissorsIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="6" cy="6" r="3" />
+    <circle cx="6" cy="18" r="3" />
+    <line x1="20" y1="4" x2="8.12" y2="15.88" />
+    <line x1="14.47" y1="14.48" x2="20" y2="20" />
+    <line x1="8.12" y1="8.12" x2="12" y2="12" />
+  </svg>
+);
+
+const CubeIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+  </svg>
+);
+
 // ============================================================================
 // Layout Component
 // ============================================================================
 
 export const Layout: React.FC = () => {
-  const { isInitialized, isLoading, error, retry, multiViewPreset, config } = useBIM();
+  const {
+    isInitialized,
+    isLoading,
+    error,
+    retry,
+    multiViewPreset,
+    setMultiViewPreset,
+    config,
+    components,
+    world,
+    captureScreenshot,
+    viewCubeEnabled,
+    setViewCubeEnabled,
+    setIsModelLoading,
+  } = useBIM();
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Panel visibility states
   const [isLeftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
@@ -109,54 +182,155 @@ export const Layout: React.FC = () => {
     }
   }, [presetKey]);
 
-  // Toolbar menu configuration
+  // ============================================================================
+  // Action Handlers
+  // ============================================================================
+
+  // File: Open IFC
+  const handleOpenIfcClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleIfcFileSelected = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !components) return;
+
+    setIsModelLoading(true);
+    try {
+      const loader = setupIfcLoader(components);
+      const buffer = await file.arrayBuffer();
+      await loader.loadFromBuffer(new Uint8Array(buffer));
+
+      // Fit to model after loading
+      if (world) {
+        await fitSceneToView(world, { paddingRatio: 1.2 });
+      }
+    } catch (err) {
+      console.error('Failed to load IFC file:', err);
+    } finally {
+      setIsModelLoading(false);
+      // Reset input so same file can be loaded again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [components, world, setIsModelLoading]);
+
+  // File: Screenshot
+  const handleScreenshot = useCallback(async () => {
+    try {
+      const dataUrl = await captureScreenshot();
+      if (dataUrl) {
+        const link = document.createElement('a');
+        link.download = `ifc-screenshot-${Date.now()}.png`;
+        link.href = dataUrl;
+        link.click();
+      }
+    } catch (err) {
+      console.error('Failed to capture screenshot:', err);
+    }
+  }, [captureScreenshot]);
+
+  // View: Fit to Model
+  const handleFitToModel = useCallback(async () => {
+    if (world) {
+      await fitSceneToView(world, { paddingRatio: 1.2 });
+    }
+  }, [world]);
+
+  // View: Top View
+  const handleTopView = useCallback(async () => {
+    if (world) {
+      await setTopView(world);
+    }
+  }, [world]);
+
+  // View: Toggle ViewCube
+  const handleToggleViewCube = useCallback(() => {
+    setViewCubeEnabled(!viewCubeEnabled);
+  }, [viewCubeEnabled, setViewCubeEnabled]);
+
+  // View: Viewport layouts
+  const handleSetViewportLayout = useCallback((preset: MultiViewPreset) => {
+    setMultiViewPreset(preset);
+  }, [setMultiViewPreset]);
+
+  // Tools: Show All (Reset Visibility)
+  const handleShowAll = useCallback(() => {
+    if (!components) return;
+    try {
+      const hider = components.get(OBC.Hider);
+      hider.set(true);
+    } catch (err) {
+      console.error('Failed to show all:', err);
+    }
+  }, [components]);
+
+  // Tools: Clear Selection
+  const handleClearSelection = useCallback(() => {
+    if (!components) return;
+    try {
+      const highlighter = components.get(OBCF.Highlighter);
+      highlighter.clear('select');
+      highlighter.clear('hover');
+    } catch (err) {
+      console.error('Failed to clear selection:', err);
+    }
+  }, [components]);
+
+  // ============================================================================
+  // Toolbar Menu Configuration
+  // ============================================================================
+
   const toolbarMenus: MenuConfig[] = useMemo(() => [
     {
       label: 'File',
       items: [
-        { label: 'Open IFC...', icon: <FileIcon />, shortcut: 'Ctrl+O' },
+        { label: 'Open IFC...', icon: <FolderOpenIcon />, shortcut: 'Ctrl+O', onClick: handleOpenIfcClick },
         { label: 'Recent Files', type: 'submenu', items: [
           { label: 'No recent files', disabled: true }
         ]},
         { type: 'divider' },
-        { label: 'Export...', icon: <FileIcon /> },
+        { label: 'Capture Screenshot', icon: <CameraIcon />, onClick: handleScreenshot },
         { type: 'divider' },
-        { label: 'Settings', icon: <SettingsIcon />, shortcut: 'Ctrl+,' },
+        { label: 'Settings', icon: <SettingsIcon />, shortcut: 'Ctrl+,', onClick: () => setRightPanelCollapsed(false) },
       ],
     },
     {
       label: 'View',
       items: [
-        { label: 'Left Panel', onClick: () => setLeftPanelCollapsed(c => !c) },
-        { label: 'Right Panel', onClick: () => setRightPanelCollapsed(c => !c) },
-        { label: 'Bottom Panel', onClick: () => setBottomPanelCollapsed(c => !c) },
+        { label: 'Fit to Model', icon: <MaximizeIcon />, shortcut: 'F', onClick: handleFitToModel },
+        { label: 'Top View', onClick: handleTopView },
         { type: 'divider' },
-        { label: 'Viewport Layout', type: 'submenu', icon: <GridIcon />, items: [
-          { label: 'Single View' },
-          { label: '2 Views (Horizontal)' },
-          { label: '3 Views' },
-          { label: '4 Views (Quad)' },
+        { label: viewCubeEnabled ? 'Hide ViewCube' : 'Show ViewCube', icon: <CubeIcon />, onClick: handleToggleViewCube },
+        { type: 'divider' },
+        { label: 'Panels', type: 'submenu', items: [
+          { label: isLeftPanelCollapsed ? 'Show Left Panel' : 'Hide Left Panel', onClick: () => setLeftPanelCollapsed(c => !c) },
+          { label: isRightPanelCollapsed ? 'Show Right Panel' : 'Hide Right Panel', onClick: () => setRightPanelCollapsed(c => !c) },
+          { label: isBottomPanelCollapsed ? 'Show Bottom Panel' : 'Hide Bottom Panel', onClick: () => setBottomPanelCollapsed(c => !c) },
         ]},
         { type: 'divider' },
-        { label: 'Reset Layout' },
+        { label: 'Viewport Layout', type: 'submenu', icon: <GridIcon />, items: [
+          { label: 'Single View', onClick: () => handleSetViewportLayout('single') },
+          { label: '2 Views', onClick: () => handleSetViewportLayout('dual') },
+          { label: '3 Views', onClick: () => handleSetViewportLayout('triple') },
+          { label: '4 Views (Quad)', onClick: () => handleSetViewportLayout('quad') },
+        ]},
       ],
     },
     {
       label: 'Tools',
       items: [
-        { label: 'Measure', type: 'submenu', items: [
-          { label: 'Distance' },
-          { label: 'Area' },
-          { label: 'Angle' },
+        { label: 'Measure', type: 'submenu', icon: <RulerIcon />, items: [
+          { label: 'Length', disabled: true },
+          { label: 'Volume', disabled: true },
         ]},
-        { label: 'Section', type: 'submenu', items: [
-          { label: 'Clipping Plane' },
-          { label: 'Section Box' },
+        { label: 'Section', type: 'submenu', icon: <ScissorsIcon />, items: [
+          { label: 'Clipping Plane', disabled: true },
         ]},
         { type: 'divider' },
-        { label: 'Isolate Selected' },
-        { label: 'Hide Selected' },
-        { label: 'Show All' },
+        { label: 'Show All', icon: <EyeIcon />, onClick: handleShowAll },
+        { label: 'Clear Selection', icon: <EyeOffIcon />, onClick: handleClearSelection },
       ],
     },
     {
@@ -168,16 +342,32 @@ export const Layout: React.FC = () => {
         { label: 'About' },
       ],
     },
-  ], []);
+  ], [
+    handleOpenIfcClick,
+    handleScreenshot,
+    handleFitToModel,
+    handleTopView,
+    handleToggleViewCube,
+    viewCubeEnabled,
+    isLeftPanelCollapsed,
+    isRightPanelCollapsed,
+    isBottomPanelCollapsed,
+    handleSetViewportLayout,
+    handleShowAll,
+    handleClearSelection,
+  ]);
 
   // Toolbar right content
   const toolbarRightContent = useMemo(() => (
     <>
+      <button className="toolbar-action" title="Capture Screenshot" onClick={handleScreenshot}>
+        <CameraIcon />
+      </button>
       <button className="toolbar-action" title="Settings" onClick={() => setRightPanelCollapsed(c => !c)}>
         <SettingsIcon />
       </button>
     </>
-  ), []);
+  ), [handleScreenshot]);
 
   if (isLoading) {
     return (
@@ -216,6 +406,15 @@ export const Layout: React.FC = () => {
 
   return (
     <div ref={containerRef} className={`${containerClassName} multi-view--${presetKey}`} style={layoutStyle}>
+      {/* Hidden file input for IFC loading */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".ifc,.IFC"
+        style={{ display: 'none' }}
+        onChange={handleIfcFileSelected}
+      />
+
       <DragAndDropOverlay container={containerRef.current} />
 
       {/* Top Toolbar */}
