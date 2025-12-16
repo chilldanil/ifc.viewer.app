@@ -158,6 +158,8 @@ export const Layout: React.FC = () => {
     setViewCubeEnabled,
     setIsModelLoading,
     eventBus,
+    minimapConfig,
+    setMinimapConfig,
   } = useBIM();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -190,6 +192,7 @@ export const Layout: React.FC = () => {
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef<Stats | null>(null);
   const statsOverlayHostRef = useRef<HTMLElement | null>(null);
+  const MINIMAP_LIMITS = { minZoom: 0.01, maxZoom: 0.5 };
 
   const findViewerContainer = useCallback(() => {
     return document.querySelector<HTMLElement>('.ifc-viewer-library-container .viewer-container');
@@ -271,6 +274,27 @@ export const Layout: React.FC = () => {
     stats?.showPanel(panel);
     setStatsVisible(true);
   }, [ensureStats]);
+
+  // Minimap controls (toolbar shortcut)
+  const toggleMinimapEnabled = useCallback(() => {
+    setMinimapConfig({ enabled: !minimapConfig.enabled });
+  }, [minimapConfig.enabled, setMinimapConfig]);
+
+  const toggleMinimapVisible = useCallback(() => {
+    setMinimapConfig({ visible: !minimapConfig.visible, enabled: true });
+  }, [minimapConfig.visible, setMinimapConfig]);
+
+  const toggleMinimapLock = useCallback(() => {
+    setMinimapConfig({ lockRotation: !minimapConfig.lockRotation });
+  }, [minimapConfig.lockRotation, setMinimapConfig]);
+
+  const nudgeMinimapZoom = useCallback((delta: number) => {
+    const next = Math.min(
+      MINIMAP_LIMITS.maxZoom,
+      Math.max(MINIMAP_LIMITS.minZoom, (minimapConfig.zoom ?? 0.2) + delta)
+    );
+    setMinimapConfig({ zoom: next, enabled: true });
+  }, [minimapConfig.zoom, setMinimapConfig]);
 
   // Get sidebar config from context - fully configurable, no hardcoded values
   const sidebarConfig = config.layout.sidebar;
@@ -891,6 +915,14 @@ export const Layout: React.FC = () => {
           { label: 'Show MS', onClick: () => selectStatsPanel(1), disabled: !world },
           { label: 'Show MB', onClick: () => selectStatsPanel(2), disabled: !world },
         ]},
+        { label: 'Minimap', type: 'submenu', icon: <GridIcon />, items: [
+          { label: minimapConfig.enabled ? 'Disable Minimap' : 'Enable Minimap', onClick: toggleMinimapEnabled },
+          { label: minimapConfig.visible ? 'Hide Minimap' : 'Show Minimap', onClick: toggleMinimapVisible, disabled: !minimapConfig.enabled },
+          { label: minimapConfig.lockRotation ? 'Unlock Rotation' : 'Lock Rotation', onClick: toggleMinimapLock, disabled: !minimapConfig.enabled },
+          { type: 'divider' },
+          { label: 'Zoom In', onClick: () => nudgeMinimapZoom(0.02), disabled: !minimapConfig.enabled },
+          { label: 'Zoom Out', onClick: () => nudgeMinimapZoom(-0.02), disabled: !minimapConfig.enabled },
+        ]},
         { type: 'divider' },
         { label: 'Show All', icon: <EyeIcon />, onClick: handleShowAll },
         { label: 'Clear Selection', icon: <EyeOffIcon />, onClick: handleClearSelection },
@@ -934,6 +966,11 @@ export const Layout: React.FC = () => {
     statsVisible,
     toggleStatsOverlay,
     selectStatsPanel,
+    minimapConfig,
+    toggleMinimapEnabled,
+    toggleMinimapVisible,
+    toggleMinimapLock,
+    nudgeMinimapZoom,
   ]);
 
   // Toolbar right content
