@@ -246,6 +246,47 @@
 }
 
 /* ============================================================================
+   Custom Menu Content
+   ============================================================================ */
+
+.toolbar-menu-custom {
+  padding: var(--ifc-space-sm);
+  background: linear-gradient(
+    140deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.06)
+  );
+  border: 1px solid var(--ifc-color-border);
+  border-radius: var(--ifc-radius-md);
+  min-width: 320px;
+  max-width: 440px;
+  color: var(--ifc-color-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.toolbar-world-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ifc-space-sm);
+}
+
+.toolbar-world-section {
+  background: var(--ifc-color-surface);
+  border: 1px solid var(--ifc-color-border);
+  border-radius: var(--ifc-radius-md);
+  padding: var(--ifc-space-sm);
+  box-shadow: var(--ifc-shadow-sm);
+}
+
+.toolbar-world-section .ui-text {
+  margin: 0;
+}
+
+.toolbar-world-field .ui-input {
+  width: 100%;
+}
+
+/* ============================================================================
    Toolbar Action Buttons (for right side)
    ============================================================================ */
 

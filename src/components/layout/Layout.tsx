@@ -4,7 +4,9 @@ import { SecondaryViewport } from '../bim/SecondaryViewport';
 import { Sidebar } from './Sidebar';
 import { Toolbar, type MenuConfig, type MenuItem } from './Toolbar';
 import { Panel } from './Panel';
+import { CategoryHiderModal } from './CategoryHiderModal';
 import { useBIM, type MultiViewPreset } from '../../context/BIMContext';
+import { WorldToolbarMenu } from './WorldToolbarMenu';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import { setupIfcLoader } from '../../core/services/ifcLoaderService';
 import { fitSceneToView, setStandardView, type StandardViewDirection } from '../../utils/cameraUtils';
@@ -175,6 +177,7 @@ export const Layout: React.FC = () => {
   const [floorVisibility, setFloorVisibility] = useState<Record<string, boolean>>({});
   const [categoryVisibility, setCategoryVisibility] = useState<Record<string, boolean>>({});
   const [hasSelection, setHasSelection] = useState(false);
+  const [isCategoryHiderModalOpen, setIsCategoryHiderModalOpen] = useState(false);
 
   // Get sidebar config from context - fully configurable, no hardcoded values
   const sidebarConfig = config.layout.sidebar;
@@ -345,7 +348,9 @@ export const Layout: React.FC = () => {
       fragmentsManager.groups.forEach((group: any) => {
         if (!group) {return;}
         try {
-          const foundIDs = indexer.getEntityChildren(group, structure.id);
+          const structureId = structure.id;
+          if (structureId === null) return;
+          const foundIDs = indexer.getEntityChildren(group, structureId);
           const fragMap = group.getFragmentMap(foundIDs);
           updateTasks.push(Promise.resolve(hider.set(nextVisible, fragMap)));
         } catch (groupError) {
@@ -554,6 +559,15 @@ export const Layout: React.FC = () => {
       ],
     },
     {
+      label: 'World',
+      items: [
+        {
+          type: 'custom',
+          render: () => <WorldToolbarMenu />,
+        },
+      ],
+    },
+    {
       label: 'Hider',
       items: [
         { label: 'Predefined', type: 'submenu', icon: <LayersIcon />, items: [
@@ -561,6 +575,8 @@ export const Layout: React.FC = () => {
           { label: 'Categories', type: 'submenu', icon: <BoxIcon />, items: categoryMenuItems },
         ]},
         { label: 'Selection Tools', type: 'submenu', icon: <EyeIcon />, items: selectionHiderMenuItems },
+        { type: 'divider' },
+        { label: 'Isolate or Hide...', icon: <EyeIcon />, onClick: () => setIsCategoryHiderModalOpen(true) },
       ],
     },
     {
@@ -737,6 +753,12 @@ export const Layout: React.FC = () => {
           </div>
         </Panel>
       </div>
+
+      {/* Category Hider Modal */}
+      <CategoryHiderModal
+        isOpen={isCategoryHiderModalOpen}
+        onClose={() => setIsCategoryHiderModalOpen(false)}
+      />
     </div>
   );
 };

@@ -26,7 +26,13 @@ export interface MenuItemSubmenu {
   items: MenuItem[];
 }
 
-export type MenuItem = MenuItemAction | MenuItemDivider | MenuItemSubmenu;
+export interface MenuItemCustom {
+  type: 'custom';
+  render: React.ReactNode | (() => React.ReactNode);
+  className?: string;
+}
+
+export type MenuItem = MenuItemAction | MenuItemDivider | MenuItemSubmenu | MenuItemCustom;
 
 export interface MenuConfig {
   label: string;
@@ -96,6 +102,15 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ menu, isOpen, onToggle, onC
   const renderMenuItem = (item: MenuItem, index: number) => {
     if (item.type === 'divider') {
       return <div key={`divider-${index}`} className="toolbar-menu-divider" />;
+    }
+
+    if (item.type === 'custom') {
+      const content = typeof item.render === 'function' ? item.render() : item.render;
+      return (
+        <div key={`custom-${index}`} className={`toolbar-menu-custom ${item.className ?? ''}`}>
+          {content}
+        </div>
+      );
     }
 
     if (item.type === 'submenu') {
@@ -177,6 +192,15 @@ const SubmenuItem: React.FC<SubmenuItemProps> = ({ item }) => {
   const renderSubmenuItem = (subItem: MenuItem, index: number) => {
     if (subItem.type === 'divider') {
       return <div key={`divider-${index}`} className="toolbar-menu-divider" />;
+    }
+
+    if (subItem.type === 'custom') {
+      const content = typeof subItem.render === 'function' ? subItem.render() : subItem.render;
+      return (
+        <div key={`custom-${index}`} className={`toolbar-menu-custom ${subItem.className ?? ''}`}>
+          {content}
+        </div>
+      );
     }
 
     if (subItem.type === 'submenu') {

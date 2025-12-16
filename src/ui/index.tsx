@@ -450,3 +450,44 @@ export const Grid: React.FC<GridProps> = ({
     </div>
   );
 };
+
+/* ============================================
+   Modal
+   ============================================ */
+
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  size?: 'sm' | 'md' | 'lg';
+  children: React.ReactNode;
+}
+
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  size = 'sm',
+  children,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="ui-modal-overlay" onClick={onClose}>
+      <div
+        className={`ui-modal ui-modal--${size}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {title && (
+          <div className="ui-modal-header">
+            <h3 className="ui-modal-title">{title}</h3>
+            <button className="ui-modal-close" onClick={onClose} aria-label="Close">
+              ×
+            </button>
+          </div>
+        )}
+        <div className="ui-modal-body">{children}</div>
+      </div>
+    </div>
+  );
+};
