@@ -28,6 +28,40 @@ interface WorldWithCamera {
   };
 }
 
+const MIN_VIEW_DISTANCE = 10;
+
+const VIEW_DIRECTIONS = {
+  top: new THREE.Vector3(0, 1, 0),
+  bottom: new THREE.Vector3(0, -1, 0),
+  front: new THREE.Vector3(0, 0, 1),
+  back: new THREE.Vector3(0, 0, -1),
+  left: new THREE.Vector3(-1, 0, 0),
+  right: new THREE.Vector3(1, 0, 0),
+} as const;
+
+export type StandardViewDirection = keyof typeof VIEW_DIRECTIONS;
+
+const getSceneCenterAndSize = (scene?: THREE.Scene) => {
+  const center = new THREE.Vector3(0, 0, 0);
+  let maxDimension = MIN_VIEW_DISTANCE;
+
+  if (!scene) {
+    return { center, maxDimension };
+  }
+
+  const box = new THREE.Box3();
+  scene.updateMatrixWorld(true);
+  box.setFromObject(scene);
+
+  if (!box.isEmpty()) {
+    box.getCenter(center);
+    const size = box.getSize(new THREE.Vector3());
+    maxDimension = Math.max(size.x, size.y, size.z, MIN_VIEW_DISTANCE);
+  }
+
+  return { center, maxDimension };
+};
+
 /**
  * Fits the scene to the camera view with optional padding
  */
@@ -111,30 +145,53 @@ export const fitSceneToView = async (world: OBC.World, options: FitOptions = {})
   }
 };
 
+const setCameraPosition = async (
+  camera: CameraWithControls,
+  scene: THREE.Scene | undefined,
+  direction: StandardViewDirection
+) => {
+  const threeCamera = camera.three;
+  const controls = camera.controls;
+  const { center, maxDimension } = getSceneCenterAndSize(scene);
+  const distance = Math.max(maxDimension * 1.5, MIN_VIEW_DISTANCE);
+  const offset = VIEW_DIRECTIONS[direction].clone().multiplyScalar(distance);
+  const position = center.clone().add(offset);
+
+  if (controls?.setLookAt) {
+    await controls.setLookAt(position.x, position.y, position.z, center.x, center.y, center.z);
+    return;
+  }
+
+  threeCamera.position.set(position.x, position.y, position.z);
+  threeCamera.lookAt(center);
+
+  if ('updateProjectionMatrix' in threeCamera) {
+    (threeCamera as THREE.PerspectiveCamera | THREE.OrthographicCamera).updateProjectionMatrix();
+  }
+};
+
+/**
+ * Sets the camera to one of the standard orthogonal directions
+ */
+export const setStandardView = async (
+  world: OBC.World,
+  direction: StandardViewDirection
+): Promise<void> => {
+  const worldWithCamera = world as unknown as WorldWithCamera;
+  const camera = worldWithCamera.camera;
+  const scene = worldWithCamera.scene?.three;
+
+  if (!camera) {
+    console.warn('Camera not available for setStandardView');
+    return;
+  }
+
+  await setCameraPosition(camera, scene, direction);
+};
+
 /**
  * Sets the camera to a top-down view
  */
 export const setTopView = async (world: OBC.World): Promise<void> => {
-  const worldWithCamera = world as unknown as WorldWithCamera;
-  const camera = worldWithCamera.camera;
-
-  if (!camera) {
-    console.warn('Camera not available for setTopView');
-    return;
-  }
-
-  const threeCamera = camera.three;
-  const controls = camera.controls;
-  const center = new THREE.Vector3(0, 0, 0);
-  const height = 100;
-
-  if (controls?.setLookAt) {
-    await controls.setLookAt(center.x, height, center.z, center.x, center.y, center.z);
-  } else {
-    threeCamera.position.set(center.x, height, center.z);
-    threeCamera.lookAt(center);
-    if ('updateProjectionMatrix' in threeCamera) {
-      (threeCamera as THREE.PerspectiveCamera | THREE.OrthographicCamera).updateProjectionMatrix();
-    }
-  }
+  await setStandardView(world, 'top');
 };

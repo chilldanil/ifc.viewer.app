@@ -154,6 +154,18 @@
   cursor: not-allowed;
 }
 
+.toolbar-menu-item-check {
+  width: 14px;
+  margin-right: var(--ifc-space-xs);
+  text-align: center;
+  font-size: 12px;
+  color: transparent;
+}
+
+.toolbar-menu-item-check--checked {
+  color: var(--ifc-color-primary);
+}
+
 .toolbar-menu-item-icon {
   display: flex;
   align-items: center;

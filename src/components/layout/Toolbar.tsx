@@ -15,6 +15,7 @@ export interface MenuItemAction {
   icon?: React.ReactNode;
   shortcut?: string;
   disabled?: boolean;
+  checked?: boolean;
   onClick?: () => void;
 }
 
@@ -114,6 +115,11 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ menu, isOpen, onToggle, onC
         }}
         disabled={actionItem.disabled}
       >
+        {typeof actionItem.checked === 'boolean' && (
+          <span className={`toolbar-menu-item-check${actionItem.checked ? ' toolbar-menu-item-check--checked' : ''}`}>
+            ✓
+          </span>
+        )}
         {actionItem.icon && <span className="toolbar-menu-item-icon">{actionItem.icon}</span>}
         <span className="toolbar-menu-item-label">{actionItem.label}</span>
         {actionItem.shortcut && (
@@ -185,6 +191,11 @@ const SubmenuItem: React.FC<SubmenuItemProps> = ({ item }) => {
         onClick={actionItem.onClick}
         disabled={actionItem.disabled}
       >
+        {typeof actionItem.checked === 'boolean' && (
+          <span className={`toolbar-menu-item-check${actionItem.checked ? ' toolbar-menu-item-check--checked' : ''}`}>
+            ✓
+          </span>
+        )}
         {actionItem.icon && <span className="toolbar-menu-item-icon">{actionItem.icon}</span>}
         <span className="toolbar-menu-item-label">{actionItem.label}</span>
         {actionItem.shortcut && (

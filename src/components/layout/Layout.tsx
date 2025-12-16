@@ -1,13 +1,13 @@
-import React, { useRef, useState, useMemo, useCallback } from 'react';
+import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import { Viewport } from '../bim/Viewport';
 import { SecondaryViewport } from '../bim/SecondaryViewport';
 import { Sidebar } from './Sidebar';
-import { Toolbar, type MenuConfig } from './Toolbar';
+import { Toolbar, type MenuConfig, type MenuItem } from './Toolbar';
 import { Panel } from './Panel';
 import { useBIM, type MultiViewPreset } from '../../context/BIMContext';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import { setupIfcLoader } from '../../core/services/ifcLoaderService';
-import { fitSceneToView, setTopView } from '../../utils/cameraUtils';
+import { fitSceneToView, setStandardView, type StandardViewDirection } from '../../utils/cameraUtils';
 import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
 import './Layout.css';
@@ -123,6 +123,24 @@ const CubeIcon = () => (
   </svg>
 );
 
+const HIGHLIGHTER_SELECTION_KEY = 'select';
+
+const hasFragmentEntries = (value: unknown): boolean => {
+  if (!value) {
+    return false;
+  }
+  if (value instanceof Map || value instanceof Set) {
+    return value.size > 0;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  if (typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>).length > 0;
+  }
+  return false;
+};
+
 // ============================================================================
 // Layout Component
 // ============================================================================
@@ -142,6 +160,7 @@ export const Layout: React.FC = () => {
     viewCubeEnabled,
     setViewCubeEnabled,
     setIsModelLoading,
+    eventBus,
   } = useBIM();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -151,6 +170,11 @@ export const Layout: React.FC = () => {
   const [isLeftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [isRightPanelCollapsed, setRightPanelCollapsed] = useState(true);
   const [isBottomPanelCollapsed, setBottomPanelCollapsed] = useState(true);
+  const [floorOptions, setFloorOptions] = useState<string[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [floorVisibility, setFloorVisibility] = useState<Record<string, boolean>>({});
+  const [categoryVisibility, setCategoryVisibility] = useState<Record<string, boolean>>({});
+  const [hasSelection, setHasSelection] = useState(false);
 
   // Get sidebar config from context - fully configurable, no hardcoded values
   const sidebarConfig = config.layout.sidebar;
@@ -181,6 +205,90 @@ export const Layout: React.FC = () => {
         return [] as const;
     }
   }, [presetKey]);
+
+  const refreshHiderMetadata = useCallback(() => {
+    if (!components) {
+      setFloorOptions([]);
+      setCategoryOptions([]);
+      setFloorVisibility({});
+      setCategoryVisibility({});
+      return;
+    }
+
+    try {
+      const classifier = components.get(OBC.Classifier);
+      const floors = classifier?.list?.spatialStructures
+        ? Object.keys(classifier.list.spatialStructures)
+        : [];
+      const categories = classifier?.list?.entities
+        ? Object.keys(classifier.list.entities)
+        : [];
+
+      setFloorOptions(floors);
+      setCategoryOptions(categories);
+      setFloorVisibility((prev) => {
+        const next: Record<string, boolean> = {};
+        floors.forEach((name) => {
+          next[name] = prev[name] ?? true;
+        });
+        return next;
+      });
+      setCategoryVisibility((prev) => {
+        const next: Record<string, boolean> = {};
+        categories.forEach((name) => {
+          next[name] = prev[name] ?? true;
+        });
+        return next;
+      });
+    } catch (error) {
+      console.warn('Failed to refresh visibility metadata:', error);
+      setFloorOptions([]);
+      setCategoryOptions([]);
+      setFloorVisibility({});
+      setCategoryVisibility({});
+    }
+  }, [components]);
+
+  useEffect(() => {
+    refreshHiderMetadata();
+  }, [refreshHiderMetadata]);
+
+  useEffect(() => {
+    const off = eventBus.on('modelLoaded', () => refreshHiderMetadata());
+    return () => off();
+  }, [eventBus, refreshHiderMetadata]);
+
+  const getSelectionFragments = useCallback(() => {
+    if (!components) {
+      return null;
+    }
+
+    try {
+      const highlighter = components.get(OBCF.Highlighter) as any;
+      const selection = highlighter?.selection?.[HIGHLIGHTER_SELECTION_KEY];
+      if (hasFragmentEntries(selection)) {
+        return selection;
+      }
+    } catch (error) {
+      console.warn('Failed to read selection fragments:', error);
+    }
+
+    return null;
+  }, [components]);
+
+  const refreshSelectionState = useCallback(() => {
+    setHasSelection(!!getSelectionFragments());
+  }, [getSelectionFragments]);
+
+  useEffect(() => {
+    refreshSelectionState();
+  }, [refreshSelectionState]);
+
+  useEffect(() => {
+    const off = eventBus.on('selectionChanged', () => refreshSelectionState());
+    return () => off();
+  }, [eventBus, refreshSelectionState]);
+
 
   // ============================================================================
   // Action Handlers
@@ -216,6 +324,88 @@ export const Layout: React.FC = () => {
     }
   }, [components, world, setIsModelLoading]);
 
+  const handleToggleFloorVisibility = useCallback(async (floorName: string) => {
+    if (!components) {return;}
+
+    try {
+      const classifier = components.get(OBC.Classifier);
+      const indexer = components.get(OBC.IfcRelationsIndexer);
+      const hider = components.get(OBC.Hider);
+      const fragmentsManager = components.get(OBC.FragmentsManager);
+      const structure = classifier?.list?.spatialStructures?.[floorName];
+
+      if (!structure?.id || !indexer || !hider || !fragmentsManager) {
+        console.warn('Floor visibility toggle unavailable for', floorName);
+        return;
+      }
+
+      const nextVisible = !(floorVisibility[floorName] ?? true);
+      const updateTasks: Promise<unknown>[] = [];
+
+      fragmentsManager.groups.forEach((group: any) => {
+        if (!group) {return;}
+        try {
+          const foundIDs = indexer.getEntityChildren(group, structure.id);
+          const fragMap = group.getFragmentMap(foundIDs);
+          updateTasks.push(Promise.resolve(hider.set(nextVisible, fragMap)));
+        } catch (groupError) {
+          console.warn(`Failed to update floor "${floorName}" for model`, groupError);
+        }
+      });
+
+      if (updateTasks.length) {
+        await Promise.allSettled(updateTasks);
+      }
+
+      setFloorVisibility((prev) => ({ ...prev, [floorName]: nextVisible }));
+    } catch (error) {
+      console.error('Failed to toggle floor visibility:', error);
+    }
+  }, [components, floorVisibility]);
+
+  const handleToggleCategoryVisibility = useCallback(async (categoryName: string) => {
+    if (!components) {return;}
+
+    try {
+      const classifier = components.get(OBC.Classifier);
+      const hider = components.get(OBC.Hider);
+      if (!classifier || !hider) {
+        return;
+      }
+
+      const nextVisible = !(categoryVisibility[categoryName] ?? true);
+      const fragments = classifier.find({ entities: [categoryName] });
+      await Promise.resolve(hider.set(nextVisible, fragments));
+      setCategoryVisibility((prev) => ({ ...prev, [categoryName]: nextVisible }));
+    } catch (error) {
+      console.error('Failed to toggle category visibility:', error);
+    }
+  }, [components, categoryVisibility]);
+
+  const runSelectionHiderAction = useCallback(async (action: 'hide' | 'show' | 'isolate') => {
+    if (!components) {return;}
+
+    const selection = getSelectionFragments();
+    if (!selection) {
+      console.warn('No selection available for hider action');
+      return;
+    }
+
+    try {
+      const hider = components.get(OBC.Hider);
+      if (!hider) {return;}
+
+      if (action === 'isolate') {
+        await Promise.resolve(hider.isolate(selection));
+      } else {
+        await Promise.resolve(hider.set(action === 'show', selection));
+      }
+      refreshSelectionState();
+    } catch (error) {
+      console.error('Failed to update selection visibility:', error);
+    }
+  }, [components, getSelectionFragments, refreshSelectionState]);
+
   // File: Screenshot
   const handleScreenshot = useCallback(async () => {
     try {
@@ -238,12 +428,19 @@ export const Layout: React.FC = () => {
     }
   }, [world]);
 
-  // View: Top View
-  const handleTopView = useCallback(async () => {
-    if (world) {
-      await setTopView(world);
+  // View: Standard orthographic views
+  const handleSetViewDirection = useCallback(async (direction: StandardViewDirection) => {
+    if (!world) {return;}
+    try {
+      await setStandardView(world, direction);
+    } catch (err) {
+      console.error(`Failed to set ${direction} view`, err);
     }
   }, [world]);
+
+  const handleTopView = useCallback(() => {
+    void handleSetViewDirection('top');
+  }, [handleSetViewDirection]);
 
   // View: Toggle ViewCube
   const handleToggleViewCube = useCallback(() => {
@@ -278,6 +475,37 @@ export const Layout: React.FC = () => {
     }
   }, [components]);
 
+
+  const floorMenuItems = useMemo<MenuItem[]>(() => {
+    if (!floorOptions.length) {
+      return [{ label: 'No floors available', disabled: true }];
+    }
+
+    return floorOptions.map((floor) => ({
+      label: floor,
+      onClick: () => { void handleToggleFloorVisibility(floor); },
+      checked: floorVisibility[floor] ?? true,
+    }));
+  }, [floorOptions, floorVisibility, handleToggleFloorVisibility]);
+
+  const categoryMenuItems = useMemo<MenuItem[]>(() => {
+    if (!categoryOptions.length) {
+      return [{ label: 'No categories available', disabled: true }];
+    }
+
+    return categoryOptions.map((category) => ({
+      label: category,
+      onClick: () => { void handleToggleCategoryVisibility(category); },
+      checked: categoryVisibility[category] ?? true,
+    }));
+  }, [categoryOptions, categoryVisibility, handleToggleCategoryVisibility]);
+
+  const selectionHiderMenuItems = useMemo<MenuItem[]>(() => [
+    { label: 'Hide Selection', onClick: () => { void runSelectionHiderAction('hide'); }, disabled: !hasSelection },
+    { label: 'Isolate Selection', onClick: () => { void runSelectionHiderAction('isolate'); }, disabled: !hasSelection },
+    { label: 'Reset Selection Visibility', onClick: () => { void runSelectionHiderAction('show'); }, disabled: !hasSelection },
+  ], [hasSelection, runSelectionHiderAction]);
+
   // ============================================================================
   // Toolbar Menu Configuration
   // ============================================================================
@@ -300,7 +528,14 @@ export const Layout: React.FC = () => {
       label: 'View',
       items: [
         { label: 'Fit to Model', icon: <MaximizeIcon />, shortcut: 'F', onClick: handleFitToModel },
-        { label: 'Top View', onClick: handleTopView },
+        { label: 'Standard Views', type: 'submenu', icon: <BoxIcon />, items: [
+          { label: 'Top', onClick: handleTopView },
+          { label: 'Bottom', onClick: () => handleSetViewDirection('bottom') },
+          { label: 'Front', onClick: () => handleSetViewDirection('front') },
+          { label: 'Back', onClick: () => handleSetViewDirection('back') },
+          { label: 'Left', onClick: () => handleSetViewDirection('left') },
+          { label: 'Right', onClick: () => handleSetViewDirection('right') },
+        ]},
         { type: 'divider' },
         { label: viewCubeEnabled ? 'Hide ViewCube' : 'Show ViewCube', icon: <CubeIcon />, onClick: handleToggleViewCube },
         { type: 'divider' },
@@ -316,6 +551,16 @@ export const Layout: React.FC = () => {
           { label: '3 Views', onClick: () => handleSetViewportLayout('triple') },
           { label: '4 Views (Quad)', onClick: () => handleSetViewportLayout('quad') },
         ]},
+      ],
+    },
+    {
+      label: 'Hider',
+      items: [
+        { label: 'Predefined', type: 'submenu', icon: <LayersIcon />, items: [
+          { label: 'Floors', type: 'submenu', icon: <GridIcon />, items: floorMenuItems },
+          { label: 'Categories', type: 'submenu', icon: <BoxIcon />, items: categoryMenuItems },
+        ]},
+        { label: 'Selection Tools', type: 'submenu', icon: <EyeIcon />, items: selectionHiderMenuItems },
       ],
     },
     {
@@ -347,6 +592,7 @@ export const Layout: React.FC = () => {
     handleScreenshot,
     handleFitToModel,
     handleTopView,
+    handleSetViewDirection,
     handleToggleViewCube,
     viewCubeEnabled,
     isLeftPanelCollapsed,
@@ -355,6 +601,9 @@ export const Layout: React.FC = () => {
     handleSetViewportLayout,
     handleShowAll,
     handleClearSelection,
+    floorMenuItems,
+    categoryMenuItems,
+    selectionHiderMenuItems,
   ]);
 
   // Toolbar right content
