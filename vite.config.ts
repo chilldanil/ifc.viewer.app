@@ -201,14 +201,23 @@ export default defineConfig(({ mode }) => ({
       fileName: (format) => `ifc-viewer.${format}.js`,
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      external: (id) => {
+        // Externalize all react-related imports
+        if (id === 'react' || id.startsWith('react/') || id.startsWith('react-dom')) {
+          return true;
+        }
+        return false;
+      },
       output: {
         globals: {
-          react: 'React',
+          'react': 'React',
           'react-dom': 'ReactDOM',
-          'react/jsx-runtime': 'react/jsx-runtime',
+          'react-dom/client': 'ReactDOM',
+          'react/jsx-runtime': 'jsxRuntime',
         },
         exports: 'named',
+        // Prevent code splitting to ensure externals work properly
+        inlineDynamicImports: true,
         assetFileNames: (assetInfo) => {
           if (assetInfo.name?.endsWith('.css')) {
             return 'deployable-ifc-viewer.css';
