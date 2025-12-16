@@ -1,7 +1,7 @@
 {
   "name": "deployable-ifc-viewer",
   "private": false,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Professional IFC viewer library built with React and Three.js",
   "type": "module",
   "keywords": [
@@ -26,8 +26,8 @@
   "homepage": "https://github.com/go36dic/deployable-ifc-viewer#readme",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.build.json && vite build",
-    "build:lib": "tsc -p tsconfig.build.json && vite build",
+    "build": "vite build",
+    "build:lib": "vite build",
     "preview": "vite preview",
     "electron:dev": "tsc --project tsconfig.electron.json && vite --config vite.electron.config.ts",
     "electron:build": "tsc --project tsconfig.electron.json && vite build --config vite.electron.config.ts && electron-builder",
@@ -38,7 +38,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\"",
     "type-check": "tsc --noEmit"
   },
-  "main": "./dist-electron/main.js",
+  "main": "./dist/ifc-viewer.umd.js",
   "module": "./dist/ifc-viewer.es.js",
   "types": "./dist/index.d.ts",
   "exports": {

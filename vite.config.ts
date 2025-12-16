@@ -15,6 +15,8 @@ export default defineConfig(({ mode }) => ({
       insertTypesEntry: true,
       include: ['src/**/*.ts', 'src/**/*.tsx'],
       exclude: ['src/**/__tests__', 'src/**/*.test.ts', 'src/**/*.test.tsx', 'src/main.tsx'],
+      rollupTypes: true,
+      outDir: 'dist',
     }),
     {
       name: 'ai-api-middleware',
@@ -208,8 +210,8 @@ export default defineConfig(({ mode }) => ({
         },
         exports: 'named',
         assetFileNames: (assetInfo) => {
-          if (assetInfo.name === 'style.css') {
-            return 'style.css';
+          if (assetInfo.name?.endsWith('.css')) {
+            return 'deployable-ifc-viewer.css';
           }
           return assetInfo.name || 'assets/[name][extname]';
         },
