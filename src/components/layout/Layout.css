@@ -1,169 +1,85 @@
 /**
  * Layout Component Styles
- * All values use CSS variables from tokens.css for full customizability
+ * Professional 3D software layout with toolbar, panels, and viewport
  */
 
+/* ============================================================================
+   Main Layout Container
+   ============================================================================ */
+
 .ifc-viewer-library-container.layout {
-  /* Use CSS variables - these can all be overridden by users */
-  --ifc-sidebar-width-expanded: min(var(--ifc-sidebar-width, 320px), calc(var(--ifc-sidebar-max-viewport-ratio, 0.92) * 100vw));
+  --ifc-toolbar-height: 40px;
+  --ifc-panel-collapsed-size: 40px;
 
   position: relative;
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
   color: var(--ifc-color-text);
   font-family: var(--ifc-font-family);
-  background: radial-gradient(
-    circle at 20% -10%,
-    rgba(88, 115, 255, 0.18) 0%,
-    rgba(19, 26, 40, 0.9) 38%,
-    var(--ifc-color-background) 75%
-  );
+  background: var(--ifc-color-background);
 }
 
 .ifc-viewer-library-container.layout * {
   box-sizing: border-box;
 }
 
-/* Sidebar Slot */
-.ifc-viewer-library-container.layout .sidebar-slot {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: var(--ifc-sidebar-width-expanded);
-  background: var(--ifc-color-surface);
-  border-right: 1px solid var(--ifc-color-border);
-  box-shadow: var(--ifc-shadow-sidebar);
-  backdrop-filter: blur(18px);
-  transform: translateX(0);
-  transition: transform var(--ifc-transition-slow) var(--ifc-ease-default),
-              opacity var(--ifc-transition-base) var(--ifc-ease-default);
+/* ============================================================================
+   Layout Body (Below Toolbar)
+   ============================================================================ */
+
+.ifc-viewer-library-container .layout-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ============================================================================
+   Center Area (Viewport + Bottom Panel)
+   ============================================================================ */
+
+.ifc-viewer-library-container .layout-center {
   display: flex;
   flex-direction: column;
-  z-index: var(--ifc-z-sidebar);
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
-/* Sidebar Resizer */
-.ifc-viewer-library-container.layout .sidebar-resizer {
-  position: absolute;
-  top: 0;
-  right: -6px;
-  width: 12px;
-  height: 100%;
-  cursor: col-resize;
-  z-index: var(--ifc-z-sidebar-resizer);
-  touch-action: none;
-}
+/* ============================================================================
+   Main Content (Viewport Area)
+   ============================================================================ */
 
-.ifc-viewer-library-container.layout .sidebar-resizer::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 4px;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 56px;
-  border-radius: var(--ifc-radius-full);
-  background: var(--ifc-color-border);
-  opacity: 0;
-  transition: opacity var(--ifc-transition-base) var(--ifc-ease-default),
-              background-color var(--ifc-transition-base) var(--ifc-ease-default);
-}
-
-.ifc-viewer-library-container.layout .sidebar-resizer:hover::after,
-.ifc-viewer-library-container.layout .sidebar-resizer:active::after,
-.ifc-viewer-library-container.layout.sidebar-resizing .sidebar-resizer::after {
-  opacity: 0.7;
-  background: var(--ifc-color-primary);
-}
-
-/* Sidebar Hidden State */
-.ifc-viewer-library-container.layout.sidebar-hidden .sidebar-slot {
-  transform: translateX(calc(-1 * (var(--ifc-sidebar-width-expanded) + 32px)));
-  opacity: 0;
-  pointer-events: none;
-}
-
-.ifc-viewer-library-container.layout .sidebar {
-  width: 100%;
-  height: 100%;
-  transition: opacity var(--ifc-transition-base) var(--ifc-ease-default);
-}
-
-/* Sidebar Toggle Button */
-.ifc-viewer-library-container.layout .sidebar-toggle {
-  position: absolute;
-  top: var(--ifc-space-lg);
-  left: calc(var(--ifc-sidebar-width-expanded) + var(--ifc-space-md));
-  z-index: var(--ifc-z-sidebar-toggle);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--ifc-control-height-lg);
-  height: var(--ifc-control-height-lg);
-  padding: 0;
-  border-radius: 50%;
-  border: 1px solid var(--ifc-color-border);
-  background: var(--ifc-color-surface);
-  color: var(--ifc-color-text);
-  cursor: pointer;
-  box-shadow: var(--ifc-shadow-lg);
-  transition: background-color var(--ifc-transition-base) var(--ifc-ease-default),
-              border-color var(--ifc-transition-base) var(--ifc-ease-default),
-              color var(--ifc-transition-base) var(--ifc-ease-default),
-              left var(--ifc-transition-slow) var(--ifc-ease-default),
-              transform var(--ifc-transition-slow) var(--ifc-ease-default);
-}
-
-.ifc-viewer-library-container.layout.sidebar-resizing .sidebar-toggle {
-  transition: background-color var(--ifc-transition-base) var(--ifc-ease-default),
-              border-color var(--ifc-transition-base) var(--ifc-ease-default),
-              color var(--ifc-transition-base) var(--ifc-ease-default),
-              transform var(--ifc-transition-slow) var(--ifc-ease-default);
-}
-
-.ifc-viewer-library-container.layout .sidebar-toggle:hover,
-.ifc-viewer-library-container.layout .sidebar-toggle:focus-visible {
-  background: var(--ifc-color-surface-hover);
-  border-color: var(--ifc-color-border-strong);
-  outline: none;
-}
-
-.ifc-viewer-library-container.layout.sidebar-hidden .sidebar-toggle {
-  left: var(--ifc-space-lg);
-  box-shadow: var(--ifc-shadow-lg);
-}
-
-.ifc-viewer-library-container.layout .sidebar-toggle svg {
-  transition: transform var(--ifc-transition-slow) var(--ifc-ease-default);
-}
-
-.ifc-viewer-library-container.layout .sidebar-toggle--collapsed svg {
-  transform: rotate(-90deg);
-}
-
-/* Main Content */
 .ifc-viewer-library-container .main-content {
   position: relative;
-  width: 100%;
-  height: 100%;
+  flex: 1;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  padding: var(--ifc-main-content-padding);
+  padding: var(--ifc-space-sm);
+  min-height: 0;
+  overflow: hidden;
+  background: radial-gradient(
+    circle at 20% -10%,
+    rgba(88, 115, 255, 0.12) 0%,
+    rgba(19, 26, 40, 0.6) 38%,
+    var(--ifc-color-background) 75%
+  );
 }
 
-.ifc-viewer-library-container.layout.sidebar-hidden .main-content {
-  padding-left: var(--ifc-space-lg);
-}
+/* ============================================================================
+   Viewer Grid
+   ============================================================================ */
 
-/* Viewer Grid */
 .ifc-viewer-library-container .viewer-grid {
   width: 100%;
   height: 100%;
   display: grid;
-  gap: var(--ifc-viewer-grid-gap);
+  gap: var(--ifc-viewer-grid-gap, 12px);
 }
 
 .ifc-viewer-library-container .viewer-grid--single {
@@ -186,10 +102,13 @@
   grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 
-/* Viewer Pane */
+/* ============================================================================
+   Viewer Pane
+   ============================================================================ */
+
 .ifc-viewer-library-container .viewer-pane {
   position: relative;
-  border-radius: var(--ifc-viewport-radius);
+  border-radius: var(--ifc-viewport-radius, 14px);
   overflow: hidden;
   backdrop-filter: blur(6px);
   background: linear-gradient(
@@ -221,7 +140,39 @@
   display: block;
 }
 
-/* Loading States */
+/* ============================================================================
+   Panel Content (Inside Panels)
+   ============================================================================ */
+
+/* Left panel - contains the existing sidebar */
+.ifc-viewer-library-container .panel--left .panel-content {
+  padding: 0;
+}
+
+.ifc-viewer-library-container .panel--left .sidebar {
+  width: 100%;
+  height: 100%;
+}
+
+/* Output panel placeholder */
+.ifc-viewer-library-container .output-panel-content {
+  font-family: var(--ifc-font-family);
+  font-size: var(--ifc-font-size-sm);
+}
+
+.ifc-viewer-library-container .output-placeholder,
+.ifc-viewer-library-container .properties-placeholder {
+  color: var(--ifc-color-text-subtle);
+  font-size: var(--ifc-font-size-sm);
+  text-align: center;
+  padding: var(--ifc-space-xl);
+  margin: 0;
+}
+
+/* ============================================================================
+   Loading States
+   ============================================================================ */
+
 .ifc-viewer-library-container .loading {
   display: flex;
   justify-content: center;
@@ -249,8 +200,8 @@
 }
 
 .ifc-viewer-library-container .loading-spinner {
-  width: var(--ifc-spinner-size);
-  height: var(--ifc-spinner-size);
+  width: var(--ifc-spinner-size, 40px);
+  height: var(--ifc-spinner-size, 40px);
   border: 4px solid rgba(255, 255, 255, 0.1);
   border-top: 4px solid var(--ifc-color-primary);
   border-radius: 50%;
@@ -263,7 +214,10 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Error State */
+/* ============================================================================
+   Error State
+   ============================================================================ */
+
 .ifc-viewer-library-container .error-content {
   text-align: center;
   padding: var(--ifc-space-xxl);
@@ -307,33 +261,65 @@
   cursor: not-allowed;
 }
 
-/* Responsive Breakpoints - Using CSS variables for breakpoint values */
-@media (max-width: 900px) {
+/* ============================================================================
+   Responsive Breakpoints
+   ============================================================================ */
+
+@media (max-width: 1200px) {
   .ifc-viewer-library-container.layout {
-    --ifc-sidebar-width: clamp(
-      var(--ifc-sidebar-min-width, 260px),
-      40vw,
-      var(--ifc-sidebar-default-width, 320px)
-    );
+    --ifc-panel-collapsed-size: 36px;
+  }
+}
+
+@media (max-width: 900px) {
+  .ifc-viewer-library-container .layout-body {
+    flex-direction: column;
+  }
+
+  .ifc-viewer-library-container .panel--left,
+  .ifc-viewer-library-container .panel--right {
+    width: 100% !important;
+    height: auto;
+    max-height: 40vh;
+  }
+
+  .ifc-viewer-library-container .panel--left.panel--collapsed,
+  .ifc-viewer-library-container .panel--right.panel--collapsed {
+    max-height: var(--ifc-panel-collapsed-size);
   }
 }
 
 @media (max-width: 640px) {
   .ifc-viewer-library-container.layout {
-    --ifc-sidebar-width: clamp(
-      calc(var(--ifc-sidebar-min-width, 260px) - 20px),
-      80vw,
-      var(--ifc-sidebar-default-width, 320px)
-    );
+    --ifc-toolbar-height: 36px;
+    --ifc-panel-collapsed-size: 32px;
   }
 
-  .ifc-viewer-library-container.layout .sidebar-toggle {
-    top: var(--ifc-space-lg);
-    left: calc(var(--ifc-sidebar-width-expanded) - 70px);
-    font-size: var(--ifc-font-size-sm);
+  .ifc-viewer-library-container .main-content {
+    padding: var(--ifc-space-xs);
   }
 
-  .ifc-viewer-library-container.layout.sidebar-hidden .sidebar-toggle {
-    left: var(--ifc-space-lg);
+  .ifc-viewer-library-container .viewer-grid {
+    gap: var(--ifc-space-xs);
   }
+}
+
+/* ============================================================================
+   Legacy Sidebar Support (for migration)
+   ============================================================================ */
+
+/* Hide the old sidebar-toggle button if it exists */
+.ifc-viewer-library-container.layout .sidebar-toggle {
+  display: none;
+}
+
+/* Ensure sidebar fills the panel */
+.ifc-viewer-library-container .panel--left bim-panel {
+  height: 100%;
+  width: 100%;
+}
+
+/* Adjust sidebar internal padding when inside panel */
+.ifc-viewer-library-container .panel--left .sidebar {
+  padding: 0;
 }

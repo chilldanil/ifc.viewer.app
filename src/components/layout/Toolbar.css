@@ -1,0 +1,292 @@
+/**
+ * Toolbar Component Styles
+ * Professional 3D software toolbar with dropdown menus
+ */
+
+/* ============================================================================
+   Toolbar Container
+   ============================================================================ */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--ifc-toolbar-height, 40px);
+  min-height: var(--ifc-toolbar-height, 40px);
+  padding: 0 var(--ifc-space-sm);
+  background: var(--ifc-color-toolbar-bg, var(--ifc-color-surface));
+  border-bottom: 1px solid var(--ifc-color-border);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--ifc-space-xs);
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--ifc-space-sm);
+}
+
+/* ============================================================================
+   Logo
+   ============================================================================ */
+
+.toolbar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--ifc-color-primary);
+  margin-right: var(--ifc-space-sm);
+}
+
+.toolbar-logo svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ============================================================================
+   Menu Navigation
+   ============================================================================ */
+
+.toolbar-menus {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar-dropdown {
+  position: relative;
+}
+
+/* ============================================================================
+   Menu Trigger Button
+   ============================================================================ */
+
+.toolbar-menu-trigger {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 var(--ifc-space-sm);
+  background: transparent;
+  border: none;
+  border-radius: var(--ifc-radius-sm);
+  color: var(--ifc-color-text-muted);
+  font-family: var(--ifc-font-family);
+  font-size: var(--ifc-font-size-sm);
+  font-weight: var(--ifc-font-weight-medium);
+  cursor: pointer;
+  transition: background-color var(--ifc-transition-fast),
+              color var(--ifc-transition-fast);
+}
+
+.toolbar-menu-trigger:hover {
+  background: var(--ifc-color-surface-hover);
+  color: var(--ifc-color-text);
+}
+
+.toolbar-menu-trigger--open {
+  background: var(--ifc-color-surface-active);
+  color: var(--ifc-color-text);
+}
+
+/* ============================================================================
+   Dropdown Menu
+   ============================================================================ */
+
+.toolbar-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 200px;
+  padding: var(--ifc-space-xs);
+  background: var(--ifc-color-surface-elevated);
+  border: 1px solid var(--ifc-color-border);
+  border-radius: var(--ifc-radius-md);
+  box-shadow: var(--ifc-shadow-lg);
+  z-index: var(--ifc-z-toolbar-menu, 2000);
+  animation: toolbar-menu-appear 0.15s ease-out;
+}
+
+@keyframes toolbar-menu-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   Menu Items
+   ============================================================================ */
+
+.toolbar-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--ifc-space-xs) var(--ifc-space-sm);
+  background: transparent;
+  border: none;
+  border-radius: var(--ifc-radius-sm);
+  color: var(--ifc-color-text);
+  font-family: var(--ifc-font-family);
+  font-size: var(--ifc-font-size-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--ifc-transition-fast);
+}
+
+.toolbar-menu-item:hover:not(:disabled) {
+  background: var(--ifc-color-surface-hover);
+}
+
+.toolbar-menu-item:disabled {
+  color: var(--ifc-color-text-subtle);
+  cursor: not-allowed;
+}
+
+.toolbar-menu-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: var(--ifc-space-sm);
+  color: var(--ifc-color-text-muted);
+}
+
+.toolbar-menu-item-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.toolbar-menu-item-label {
+  flex: 1;
+}
+
+.toolbar-menu-item-shortcut {
+  margin-left: var(--ifc-space-lg);
+  color: var(--ifc-color-text-subtle);
+  font-size: var(--ifc-font-size-xs);
+  font-family: monospace;
+}
+
+/* ============================================================================
+   Submenu
+   ============================================================================ */
+
+.toolbar-submenu-container {
+  position: relative;
+}
+
+.toolbar-menu-item--submenu {
+  padding-right: var(--ifc-space-xs);
+}
+
+.toolbar-submenu-arrow {
+  margin-left: auto;
+  color: var(--ifc-color-text-subtle);
+}
+
+.toolbar-submenu {
+  position: absolute;
+  top: -4px;
+  left: 100%;
+  margin-left: 4px;
+  min-width: 180px;
+  padding: var(--ifc-space-xs);
+  background: var(--ifc-color-surface-elevated);
+  border: 1px solid var(--ifc-color-border);
+  border-radius: var(--ifc-radius-md);
+  box-shadow: var(--ifc-shadow-lg);
+  z-index: var(--ifc-z-toolbar-menu, 2000);
+  animation: toolbar-submenu-appear 0.12s ease-out;
+}
+
+@keyframes toolbar-submenu-appear {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================================================
+   Divider
+   ============================================================================ */
+
+.toolbar-menu-divider {
+  height: 1px;
+  margin: var(--ifc-space-xs) 0;
+  background: var(--ifc-color-border);
+}
+
+/* ============================================================================
+   Toolbar Action Buttons (for right side)
+   ============================================================================ */
+
+.toolbar-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: var(--ifc-radius-sm);
+  color: var(--ifc-color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--ifc-transition-fast),
+              color var(--ifc-transition-fast);
+}
+
+.toolbar-action:hover {
+  background: var(--ifc-color-surface-hover);
+  color: var(--ifc-color-text);
+}
+
+.toolbar-action svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ============================================================================
+   Responsive
+   ============================================================================ */
+
+@media (max-width: 640px) {
+  .toolbar {
+    height: var(--ifc-toolbar-height-mobile, 36px);
+    min-height: var(--ifc-toolbar-height-mobile, 36px);
+    padding: 0 var(--ifc-space-xs);
+  }
+
+  .toolbar-menu-trigger {
+    height: 24px;
+    padding: 0 var(--ifc-space-xs);
+    font-size: var(--ifc-font-size-xs);
+  }
+
+  .toolbar-logo {
+    width: 28px;
+    height: 28px;
+    margin-right: var(--ifc-space-xs);
+  }
+
+  .toolbar-logo svg {
+    width: 16px;
+    height: 16px;
+  }
+}

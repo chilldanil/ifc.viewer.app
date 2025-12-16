@@ -1,0 +1,372 @@
+/**
+ * Panel Component Styles
+ * Reusable panel for left, right, and bottom positions
+ */
+
+/* ============================================================================
+   Base Panel
+   ============================================================================ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--ifc-color-surface);
+  border: 1px solid var(--ifc-color-border);
+  overflow: hidden;
+  transition: width var(--ifc-transition-slow) var(--ifc-ease-default),
+              height var(--ifc-transition-slow) var(--ifc-ease-default);
+}
+
+.panel--resizing {
+  transition: none;
+}
+
+/* ============================================================================
+   Left Panel
+   ============================================================================ */
+
+.panel--left {
+  width: var(--panel-size, 280px);
+  height: 100%;
+  border-top: none;
+  border-bottom: none;
+  border-left: none;
+}
+
+.panel--left.panel--collapsed {
+  width: var(--ifc-panel-collapsed-size, 40px);
+}
+
+/* ============================================================================
+   Right Panel
+   ============================================================================ */
+
+.panel--right {
+  width: var(--panel-size, 280px);
+  height: 100%;
+  border-top: none;
+  border-bottom: none;
+  border-right: none;
+}
+
+.panel--right.panel--collapsed {
+  width: var(--ifc-panel-collapsed-size, 40px);
+}
+
+/* ============================================================================
+   Bottom Panel
+   ============================================================================ */
+
+.panel--bottom {
+  width: 100%;
+  height: var(--panel-size, 200px);
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  flex-direction: column;
+}
+
+.panel--bottom.panel--collapsed {
+  height: var(--ifc-panel-collapsed-size, 36px);
+}
+
+.panel--bottom .panel-header {
+  min-height: var(--ifc-panel-collapsed-size, 36px);
+}
+
+/* ============================================================================
+   Panel Header
+   ============================================================================ */
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ifc-space-xs);
+  padding: var(--ifc-space-xs) var(--ifc-space-sm);
+  min-height: 36px;
+  background: var(--ifc-color-surface-muted);
+  border-bottom: 1px solid var(--ifc-color-border);
+  flex-shrink: 0;
+}
+
+.panel--collapsed .panel-header {
+  border-bottom: none;
+  justify-content: center;
+  padding: var(--ifc-space-xs);
+}
+
+.panel--left.panel--collapsed .panel-header,
+.panel--right.panel--collapsed .panel-header {
+  flex-direction: column;
+  padding: var(--ifc-space-sm) var(--ifc-space-xs);
+}
+
+.panel-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--ifc-radius-sm);
+  color: var(--ifc-color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--ifc-transition-fast),
+              color var(--ifc-transition-fast);
+  flex-shrink: 0;
+}
+
+.panel-collapse-btn:hover {
+  background: var(--ifc-color-surface-hover);
+  color: var(--ifc-color-text);
+}
+
+.panel-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--ifc-color-primary);
+  flex-shrink: 0;
+}
+
+.panel-header-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.panel--collapsed .panel-header-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.panel--collapsed .panel-header-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.panel-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--ifc-font-size-sm);
+  font-weight: var(--ifc-font-weight-semibold);
+  color: var(--ifc-color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel--collapsed .panel-title {
+  display: none;
+}
+
+.panel--left.panel--collapsed .panel-title,
+.panel--right.panel--collapsed .panel-title {
+  display: block;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: var(--ifc-font-size-xs);
+  margin-top: var(--ifc-space-sm);
+}
+
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ifc-space-xs);
+  margin-left: auto;
+}
+
+/* ============================================================================
+   Panel Content
+   ============================================================================ */
+
+.panel-content {
+  flex: 1;
+  overflow: auto;
+  padding: var(--ifc-space-sm);
+}
+
+.panel--collapsed .panel-content {
+  display: none;
+}
+
+/* Custom scrollbar for panel content */
+.panel-content::-webkit-scrollbar {
+  width: var(--ifc-scrollbar-width, 8px);
+}
+
+.panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background: var(--ifc-color-border);
+  border-radius: var(--ifc-radius-full);
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+  background: var(--ifc-color-border-strong);
+}
+
+/* ============================================================================
+   Resizer
+   ============================================================================ */
+
+.panel-resizer {
+  position: absolute;
+  background: transparent;
+  z-index: 10;
+  touch-action: none;
+}
+
+.panel-resizer::after {
+  content: '';
+  position: absolute;
+  background: var(--ifc-color-border);
+  opacity: 0;
+  transition: opacity var(--ifc-transition-fast),
+              background-color var(--ifc-transition-fast);
+}
+
+.panel-resizer:hover::after,
+.panel--resizing .panel-resizer::after {
+  opacity: 1;
+  background: var(--ifc-color-primary);
+}
+
+/* Left panel resizer */
+.panel-resizer--left {
+  top: 0;
+  right: -6px;
+  width: 12px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.panel-resizer--left::after {
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 48px;
+  border-radius: var(--ifc-radius-full);
+}
+
+/* Right panel resizer */
+.panel-resizer--right {
+  top: 0;
+  left: -6px;
+  width: 12px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.panel-resizer--right::after {
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 48px;
+  border-radius: var(--ifc-radius-full);
+}
+
+/* Bottom panel resizer */
+.panel-resizer--bottom {
+  top: -6px;
+  left: 0;
+  width: 100%;
+  height: 12px;
+  cursor: row-resize;
+}
+
+.panel-resizer--bottom::after {
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 4px;
+  border-radius: var(--ifc-radius-full);
+}
+
+/* ============================================================================
+   Panel Sections (for organizing content)
+   ============================================================================ */
+
+.panel-section {
+  margin-bottom: var(--ifc-space-md);
+}
+
+.panel-section:last-child {
+  margin-bottom: 0;
+}
+
+.panel-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ifc-space-xs) 0;
+  margin-bottom: var(--ifc-space-xs);
+  border-bottom: 1px solid var(--ifc-color-border);
+}
+
+.panel-section-title {
+  margin: 0;
+  font-size: var(--ifc-font-size-xs);
+  font-weight: var(--ifc-font-weight-semibold);
+  color: var(--ifc-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--ifc-letter-spacing-wide);
+}
+
+/* ============================================================================
+   Responsive
+   ============================================================================ */
+
+@media (max-width: 900px) {
+  .panel--left,
+  .panel--right {
+    width: min(var(--panel-size, 280px), 40vw);
+  }
+
+  .panel--left.panel--collapsed,
+  .panel--right.panel--collapsed {
+    width: 36px;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel--left,
+  .panel--right {
+    position: fixed;
+    top: var(--ifc-toolbar-height, 40px);
+    bottom: 0;
+    z-index: var(--ifc-z-panel, 1000);
+    width: min(var(--panel-size, 280px), 85vw);
+    box-shadow: var(--ifc-shadow-xl);
+  }
+
+  .panel--left {
+    left: 0;
+  }
+
+  .panel--right {
+    right: 0;
+  }
+
+  .panel--left.panel--collapsed,
+  .panel--right.panel--collapsed {
+    width: 32px;
+  }
+
+  .panel--bottom {
+    height: min(var(--panel-size, 200px), 40vh);
+  }
+
+  .panel--bottom.panel--collapsed {
+    height: 32px;
+  }
+}

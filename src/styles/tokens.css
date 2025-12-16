@@ -165,6 +165,25 @@
   --ifc-z-drag-overlay: 9999;
   --ifc-z-minimap: 1000;
   --ifc-z-viewcube: 1000;
+  --ifc-z-toolbar: 1500;
+  --ifc-z-toolbar-menu: 2000;
+  --ifc-z-panel: 1000;
+
+  /* -------------------------------------------------------------------------
+     Toolbar
+     ------------------------------------------------------------------------- */
+  --ifc-toolbar-height: 40px;
+  --ifc-toolbar-height-mobile: 36px;
+  --ifc-color-toolbar-bg: var(--ifc-color-surface);
+
+  /* -------------------------------------------------------------------------
+     Panels
+     ------------------------------------------------------------------------- */
+  --ifc-panel-collapsed-size: 40px;
+  --ifc-panel-header-height: 36px;
+  --ifc-panel-left-default-width: 280px;
+  --ifc-panel-right-default-width: 300px;
+  --ifc-panel-bottom-default-height: 200px;
 
   /* -------------------------------------------------------------------------
      Component Sizes
