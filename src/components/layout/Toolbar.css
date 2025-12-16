@@ -270,7 +270,21 @@
   gap: var(--ifc-space-sm);
 }
 
+.toolbar-camera-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ifc-space-sm);
+}
+
 .toolbar-world-section {
+  background: var(--ifc-color-surface);
+  border: 1px solid var(--ifc-color-border);
+  border-radius: var(--ifc-radius-md);
+  padding: var(--ifc-space-sm);
+  box-shadow: var(--ifc-shadow-sm);
+}
+
+.toolbar-camera-section {
   background: var(--ifc-color-surface);
   border: 1px solid var(--ifc-color-border);
   border-radius: var(--ifc-radius-md);
@@ -283,6 +297,12 @@
 }
 
 .toolbar-world-field .ui-input {
+  width: 100%;
+}
+
+.toolbar-camera-section .ui-select,
+.toolbar-camera-section .ui-toggle-wrapper,
+.toolbar-camera-section .ui-btn {
   width: 100%;
 }
 

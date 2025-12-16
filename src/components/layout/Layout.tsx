@@ -1,4 +1,6 @@
 import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
+import * as THREE from 'three';
+import Stats from 'stats.js';
 import { Viewport } from '../bim/Viewport';
 import { SecondaryViewport } from '../bim/SecondaryViewport';
 import { Sidebar } from './Sidebar';
@@ -7,11 +9,14 @@ import { Panel } from './Panel';
 import { CategoryHiderModal } from './CategoryHiderModal';
 import { useBIM, type MultiViewPreset } from '../../context/BIMContext';
 import { WorldToolbarMenu } from './WorldToolbarMenu';
+import { CameraToolbarMenu } from './CameraToolbarMenu';
+import { ModelTreePanel } from './ModelTreePanel';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import { setupIfcLoader } from '../../core/services/ifcLoaderService';
 import { fitSceneToView, setStandardView, type StandardViewDirection } from '../../utils/cameraUtils';
 import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import './Layout.css';
 
 // ============================================================================
@@ -99,16 +104,6 @@ const EyeOffIcon = () => (
   </svg>
 );
 
-const RulerIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21.21 15.89A9 9 0 1 1 8 2.83" />
-    <line x1="1" y1="1" x2="23" y2="23" />
-    <line x1="21" y1="3" x2="14.5" y2="9.5" />
-    <line x1="21" y1="8" x2="17" y2="8" />
-    <line x1="16" y1="3" x2="16" y2="7" />
-  </svg>
-);
-
 const ScissorsIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="6" cy="6" r="3" />
@@ -178,6 +173,104 @@ export const Layout: React.FC = () => {
   const [categoryVisibility, setCategoryVisibility] = useState<Record<string, boolean>>({});
   const [hasSelection, setHasSelection] = useState(false);
   const [isCategoryHiderModalOpen, setIsCategoryHiderModalOpen] = useState(false);
+  const [clippingActive, setClippingActive] = useState(false);
+  const [clippingAxis, setClippingAxis] = useState<'X' | 'Y' | 'Z'>('Z');
+  const clippingRefs = useRef<{
+    plane: THREE.Plane | null;
+    helper: THREE.PlaneHelper | null;
+    controls: TransformControls | null;
+  }>({
+    plane: null,
+    helper: null,
+    controls: null,
+  });
+  const [transformActive, setTransformActive] = useState(false);
+  const transformControlsRef = useRef<TransformControls | null>(null);
+  const attachedModelRef = useRef<any>(null);
+  const [statsVisible, setStatsVisible] = useState(false);
+  const statsRef = useRef<Stats | null>(null);
+  const statsOverlayHostRef = useRef<HTMLElement | null>(null);
+
+  const findViewerContainer = useCallback(() => {
+    return document.querySelector<HTMLElement>('.ifc-viewer-library-container .viewer-container');
+  }, []);
+
+  const attachStatsOverlay = useCallback(() => {
+    if (!statsRef.current) {return;}
+    const viewer = findViewerContainer();
+    if (viewer && statsRef.current.dom.parentElement !== viewer) {
+      viewer.appendChild(statsRef.current.dom);
+      statsOverlayHostRef.current = viewer;
+    }
+  }, [findViewerContainer]);
+
+  const ensureStats = useCallback(() => {
+    if (!statsRef.current) {
+      const stats = new Stats();
+      stats.showPanel(2);
+      stats.dom.classList.add('stats-overlay');
+      statsRef.current = stats;
+    }
+    attachStatsOverlay();
+    return statsRef.current;
+  }, [attachStatsOverlay]);
+
+  useEffect(() => {
+    const stats = ensureStats();
+    return () => {
+      if (stats?.dom?.parentElement) {
+        stats.dom.parentElement.removeChild(stats.dom);
+      }
+      statsRef.current = null;
+      statsOverlayHostRef.current = null;
+    };
+  }, [ensureStats]);
+
+  useEffect(() => {
+    attachStatsOverlay();
+  }, [world, attachStatsOverlay]);
+
+  useEffect(() => {
+    if (!statsRef.current?.dom) {return;}
+    if (statsVisible) {
+      statsRef.current.dom.classList.add('stats-overlay--visible');
+    } else {
+      statsRef.current.dom.classList.remove('stats-overlay--visible');
+    }
+  }, [statsVisible]);
+
+  useEffect(() => {
+    if (!world?.renderer || !statsRef.current) {return;}
+
+    const beforeUpdate = () => {
+      if (statsVisible) {statsRef.current?.begin();}
+    };
+
+    const afterUpdate = () => {
+      if (statsVisible) {statsRef.current?.end();}
+    };
+
+    world.renderer.onBeforeUpdate.add(beforeUpdate);
+    world.renderer.onAfterUpdate.add(afterUpdate);
+
+    return () => {
+      if (world.renderer) {
+        world.renderer.onBeforeUpdate.remove(beforeUpdate);
+        world.renderer.onAfterUpdate.remove(afterUpdate);
+      }
+    };
+  }, [world, statsVisible]);
+
+  const toggleStatsOverlay = useCallback(() => {
+    ensureStats();
+    setStatsVisible((v) => !v);
+  }, [ensureStats]);
+
+  const selectStatsPanel = useCallback((panel: number) => {
+    const stats = ensureStats();
+    stats?.showPanel(panel);
+    setStatsVisible(true);
+  }, [ensureStats]);
 
   // Get sidebar config from context - fully configurable, no hardcoded values
   const sidebarConfig = config.layout.sidebar;
@@ -457,6 +550,198 @@ export const Layout: React.FC = () => {
     setMultiViewPreset(preset);
   }, [setMultiViewPreset]);
 
+  // Tools: Clipping (toolbar shortcut)
+  const disableClipping = useCallback(() => {
+    const renderer = (world?.renderer as any)?.three as THREE.WebGLRenderer | undefined;
+    if (renderer) {
+      renderer.clippingPlanes = [];
+      renderer.localClippingEnabled = false;
+    }
+    if (world?.scene && clippingRefs.current.helper) {
+      (world.scene.three as THREE.Scene).remove(clippingRefs.current.helper);
+    }
+    if (clippingRefs.current.controls) {
+      try {
+        const gizmo = clippingRefs.current.controls.getHelper?.() as unknown as THREE.Object3D | undefined;
+        if (gizmo && world?.scene) {
+          (world.scene.three as THREE.Scene).remove(gizmo);
+        }
+        clippingRefs.current.controls.dispose();
+      } catch {
+        /* ignore */
+      }
+    }
+    clippingRefs.current = { plane: null, helper: null, controls: null };
+    setClippingActive(false);
+  }, [world]);
+
+  const enableClipping = useCallback((axis: 'X' | 'Y' | 'Z') => {
+    if (!world?.scene || !world.renderer) {
+      console.warn('Cannot enable clipping: world not ready');
+      return;
+    }
+
+    disableClipping();
+
+    const scene = world.scene.three as THREE.Scene;
+    const renderer = (world.renderer as any).three as THREE.WebGLRenderer;
+    const bbox = new THREE.Box3().setFromObject(scene);
+
+    let min = 0; let max = 0; let normal = new THREE.Vector3();
+    switch (axis) {
+      case 'X':
+        min = bbox.min.x; max = bbox.max.x; normal = new THREE.Vector3(-1, 0, 0); break;
+      case 'Y':
+        min = bbox.min.y; max = bbox.max.y; normal = new THREE.Vector3(0, -1, 0); break;
+      case 'Z':
+      default:
+        min = bbox.min.z; max = bbox.max.z; normal = new THREE.Vector3(0, 0, -1); break;
+    }
+    const initial = (min + max) / 2;
+
+    const plane = new THREE.Plane(normal, initial);
+    renderer.clippingPlanes = [plane];
+    renderer.localClippingEnabled = true;
+
+    const helper = new THREE.PlaneHelper(plane, bbox.getSize(new THREE.Vector3()).length(), 0xff6b6b);
+    scene.add(helper);
+
+    const camera = (world.camera as any)?.three as THREE.Camera | undefined;
+    if (camera) {
+    const controls = new TransformControls(camera, renderer.domElement);
+    controls.attach(helper);
+      const gizmo = controls.getHelper?.() as unknown as THREE.Object3D | undefined;
+      if (gizmo && !scene.children.includes(gizmo)) {
+        scene.add(gizmo);
+      }
+
+      controls.addEventListener('objectChange', () => {
+        const newConstant = -plane.normal.dot(helper.position);
+        plane.constant = newConstant;
+      });
+
+      controls.addEventListener('dragging-changed', (e: any) => {
+        const orbit = (world.camera as any)?.controls;
+        if (orbit) {
+          orbit.enabled = !e.value;
+        }
+      });
+
+      clippingRefs.current.controls = controls;
+    }
+
+    clippingRefs.current.plane = plane;
+    clippingRefs.current.helper = helper;
+    setClippingAxis(axis);
+    setClippingActive(true);
+  }, [world, disableClipping]);
+
+  // Tools: Model transform (toolbar shortcut)
+  const disableTransform = useCallback(() => {
+    if (transformControlsRef.current) {
+      try {
+        transformControlsRef.current.detach();
+        if (world?.scene) {
+          const gizmo = transformControlsRef.current.getHelper?.() as unknown as THREE.Object3D | undefined;
+          if (gizmo) {
+            (world.scene.three as THREE.Scene).remove(gizmo);
+          }
+        }
+        transformControlsRef.current.dispose();
+      } catch {
+        /* ignore */
+      }
+      transformControlsRef.current = null;
+    }
+    attachedModelRef.current = null;
+    setTransformActive(false);
+  }, [world]);
+
+  const enableTransform = useCallback(() => {
+    if (!world?.scene || !world.renderer || !components) {
+      console.warn('Cannot enable model transform: world not ready');
+      return;
+    }
+
+    disableTransform();
+
+    const fragmentsManager = components.get(OBC.FragmentsManager);
+    if (!fragmentsManager || fragmentsManager.groups.size === 0) {
+      console.warn('No models available for transform');
+      return;
+    }
+
+    let targetModel: any = null;
+    for (const [, group] of fragmentsManager.groups) {
+      if (group) {
+        targetModel = group;
+        break;
+      }
+    }
+
+    if (!targetModel) {
+      console.warn('No model found to attach transform controls');
+      return;
+    }
+
+    const renderer = (world.renderer as any).three as THREE.WebGLRenderer;
+    const camera = (world.camera as any)?.three as THREE.Camera | undefined;
+    const scene = world.scene.three as THREE.Scene;
+
+    if (!camera) {
+      console.warn('Cannot enable model transform: camera not ready');
+      return;
+    }
+
+    const controls = new TransformControls(camera, renderer.domElement);
+    controls.attach(targetModel);
+    (controls as any).setMode?.('translate');
+
+    const gizmo = controls.getHelper?.() as unknown as THREE.Object3D | undefined;
+    if (gizmo && !scene.children.includes(gizmo)) {
+      scene.add(gizmo);
+    }
+
+    controls.addEventListener('change', () => {
+      (world.renderer as any).update?.();
+    });
+
+    controls.addEventListener('dragging-changed', (e: any) => {
+      const orbit = (world.camera as any)?.controls;
+      if (orbit) {
+        orbit.enabled = !e.value;
+      }
+    });
+
+    transformControlsRef.current = controls;
+    attachedModelRef.current = targetModel;
+    setTransformActive(true);
+  }, [world, components, disableTransform]);
+
+  const resetTransform = useCallback(() => {
+    const model = attachedModelRef.current;
+    if (!model) {return;}
+    model.position.set(0, 0, 0);
+    model.rotation.set(0, 0, 0);
+    model.scale.set(1, 1, 1);
+    model.updateMatrix();
+    model.updateMatrixWorld(true);
+    (world?.renderer as any)?.update?.();
+  }, [world]);
+
+  // Cleanup clipping / transform on world change and unmount
+  useEffect(() => {
+    disableClipping();
+    disableTransform();
+  }, [world, disableClipping, disableTransform]);
+
+  useEffect(() => {
+    return () => {
+      disableClipping();
+      disableTransform();
+    };
+  }, [disableClipping, disableTransform]);
+
   // Tools: Show All (Reset Visibility)
   const handleShowAll = useCallback(() => {
     if (!components) return;
@@ -568,6 +853,15 @@ export const Layout: React.FC = () => {
       ],
     },
     {
+      label: 'Camera',
+      items: [
+        {
+          type: 'custom',
+          render: () => <CameraToolbarMenu />,
+        },
+      ],
+    },
+    {
       label: 'Hider',
       items: [
         { label: 'Predefined', type: 'submenu', icon: <LayersIcon />, items: [
@@ -582,12 +876,20 @@ export const Layout: React.FC = () => {
     {
       label: 'Tools',
       items: [
-        { label: 'Measure', type: 'submenu', icon: <RulerIcon />, items: [
-          { label: 'Length', disabled: true },
-          { label: 'Volume', disabled: true },
+        { label: 'Clipping', type: 'submenu', icon: <ScissorsIcon />, items: [
+          { label: clippingActive ? `Disable Clipping (${clippingAxis})` : `Enable Clipping (${clippingAxis})`, onClick: () => clippingActive ? disableClipping() : enableClipping(clippingAxis), disabled: !world },
+          { label: 'Enable X Clipping', onClick: () => enableClipping('X'), disabled: !world },
+          { label: 'Enable Y Clipping', onClick: () => enableClipping('Y'), disabled: !world },
+          { label: 'Enable Z Clipping', onClick: () => enableClipping('Z'), disabled: !world },
         ]},
-        { label: 'Section', type: 'submenu', icon: <ScissorsIcon />, items: [
-          { label: 'Clipping Plane', disabled: true },
+        { label: transformActive ? 'Disable Model Transform' : 'Enable Model Transform', icon: <CubeIcon />, onClick: () => transformActive ? disableTransform() : enableTransform(), disabled: !world },
+        { label: 'Reset Model Transform', icon: <BoxIcon />, onClick: resetTransform, disabled: !transformActive },
+        { type: 'divider' },
+        { label: 'Performance', type: 'submenu', icon: <TerminalIcon />, items: [
+          { label: statsVisible ? 'Hide Stats Overlay' : 'Show Stats Overlay', onClick: toggleStatsOverlay, disabled: !world },
+          { label: 'Show FPS', onClick: () => selectStatsPanel(0), disabled: !world },
+          { label: 'Show MS', onClick: () => selectStatsPanel(1), disabled: !world },
+          { label: 'Show MB', onClick: () => selectStatsPanel(2), disabled: !world },
         ]},
         { type: 'divider' },
         { label: 'Show All', icon: <EyeIcon />, onClick: handleShowAll },
@@ -620,19 +922,22 @@ export const Layout: React.FC = () => {
     floorMenuItems,
     categoryMenuItems,
     selectionHiderMenuItems,
+    clippingActive,
+    clippingAxis,
+    disableClipping,
+    enableClipping,
+    world,
+    transformActive,
+    disableTransform,
+    enableTransform,
+    resetTransform,
+    statsVisible,
+    toggleStatsOverlay,
+    selectStatsPanel,
   ]);
 
   // Toolbar right content
-  const toolbarRightContent = useMemo(() => (
-    <>
-      <button className="toolbar-action" title="Capture Screenshot" onClick={handleScreenshot}>
-        <CameraIcon />
-      </button>
-      <button className="toolbar-action" title="Settings" onClick={() => setRightPanelCollapsed(c => !c)}>
-        <SettingsIcon />
-      </button>
-    </>
-  ), [handleScreenshot]);
+  const toolbarRightContent = useMemo(() => null, []);
 
   if (isLoading) {
     return (
@@ -739,17 +1044,17 @@ export const Layout: React.FC = () => {
         {/* Right Panel (Properties) */}
         <Panel
           position="right"
-          title="Properties"
-          icon={<BoxIcon />}
+          title="Model Tree"
+          icon={<LayersIcon />}
           collapsed={isRightPanelCollapsed}
           onCollapsedChange={setRightPanelCollapsed}
-          defaultSize={300}
-          minSize={240}
-          maxSize={500}
+          defaultSize={320}
+          minSize={260}
+          maxSize={520}
           resizable={true}
         >
           <div className="properties-panel-content">
-            <p className="properties-placeholder">Select an element to view its properties.</p>
+            <ModelTreePanel />
           </div>
         </Panel>
       </div>
