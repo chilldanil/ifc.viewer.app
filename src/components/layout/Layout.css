@@ -205,9 +205,9 @@
 
 .ifc-viewer-library-container .relations-tree-container bim-table-row {
   cursor: pointer;
-  transition: background-color var(--ifc-transition-fast) var(--ifc-ease-default),
-              border-color var(--ifc-transition-fast) var(--ifc-ease-default);
   border-radius: var(--ifc-radius-lg);
+  min-height: 2.65rem !important;
+  transition: background-color 140ms ease, box-shadow 140ms ease !important;
 }
 
 .ifc-viewer-library-container .relations-tree-container bim-table-row:hover {

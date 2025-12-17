@@ -4,7 +4,7 @@ import type { Table } from '@thatopen/ui';
 import * as OBC from '@thatopen/components';
 import { Card, Input, Stack } from '../../ui';
 import { useBIM } from '../../context/BIMContext';
-import { setupRelationsTreeSelection } from '../../utils/relationsTreeSelection';
+import { setupRelationsTreeEnhancements } from '../../utils/relationsTreeEnhancements';
 
 export const ModelTreePanel: React.FC = () => {
   const { components } = useBIM();
@@ -26,7 +26,7 @@ export const ModelTreePanel: React.FC = () => {
     treeContainerRef.current.innerHTML = '';
     treeContainerRef.current.appendChild(tree);
 
-    const cleanupSelectionSync = setupRelationsTreeSelection(tree as unknown as HTMLElement, components);
+    const cleanupEnhancements = setupRelationsTreeEnhancements(tree as unknown as HTMLElement, components);
 
     const refreshModels = () => update({ models: fragmentsManager.groups.values() });
 
@@ -36,7 +36,7 @@ export const ModelTreePanel: React.FC = () => {
 
     return () => {
       fragmentsManager.onFragmentsLoaded.remove(handleLoaded);
-      cleanupSelectionSync?.();
+      cleanupEnhancements?.();
       treeRef.current = null;
       if (treeContainerRef.current) {
         treeContainerRef.current.innerHTML = '';
