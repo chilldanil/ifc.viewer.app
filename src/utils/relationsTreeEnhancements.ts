@@ -11,6 +11,11 @@ type RelationsTreeRowData = {
   [key: string]: unknown;
 };
 
+type TableGroupNode = {
+  data: unknown;
+  children?: TableGroupNode[];
+};
+
 const DEFAULT_SELECT_HIGHLIGHTER = 'select';
 const DEFAULT_HOVER_HIGHLIGHTER = 'hover';
 
@@ -125,6 +130,28 @@ const getRowFragmentMap = (components: OBC.Components, rowData: RelationsTreeRow
 
   const relations = safeParseRelations(rowData.relations);
   return group.getFragmentMap([expressId, ...relations]);
+};
+
+const findNodeByDataRef = (nodes: TableGroupNode[], targetData: unknown): TableGroupNode | null => {
+  for (const node of nodes) {
+    if (node.data === targetData) {
+      return node;
+    }
+    if (node.children?.length) {
+      const found = findNodeByDataRef(node.children, targetData);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return null;
+};
+
+const canExpandRow = (table: Table<Record<string, any>>, rowData: unknown) => {
+  const nodes = (table.data as unknown as TableGroupNode[]) ?? [];
+  const node = findNodeByDataRef(nodes, rowData);
+  return Boolean(node?.children?.length);
 };
 
 const computeEntityAccent = (entity: string) => {
@@ -352,6 +379,14 @@ export const setupRelationsTreeEnhancements = (
 
     rowElement.toggleAttribute('data-selected', currentKeys.has(key));
     applyRowVisualState(rowElement);
+
+    const expandable = canExpandRow(table, rowData);
+    rowElement.toggleAttribute('data-expandable', expandable);
+    if (!expandable) {
+      queueMicrotask(() => {
+        rowElement.querySelector('.caret')?.remove();
+      });
+    }
 
     const fragMap = getRowFragmentMap(components, rowData);
     if (!hasFragmentEntries(fragMap)) {
