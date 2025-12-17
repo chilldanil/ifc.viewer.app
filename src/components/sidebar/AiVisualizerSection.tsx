@@ -3,6 +3,12 @@ import { createPortal } from 'react-dom';
 import { useBIM } from '../../context/BIMContext';
 import { downloadBase64Image } from '../../utils/captureScreenshot';
 import {
+  AI_RENDER_PRESETS,
+  generateAiImage,
+  loadReplicateApiKey,
+  saveReplicateApiKey,
+} from '../../utils/aiVisualizer';
+import {
   Button,
   Card,
   Input,
@@ -15,76 +21,16 @@ import {
 } from '../../ui';
 import './AiVisualizerSection.css';
 
-// Photorealistic architectural rendering presets
-const RENDER_PRESETS = [
-  {
-    label: 'Photorealistic',
-    prompt: 'photorealistic architectural visualization, professional rendering, high quality, detailed textures, natural lighting, 8k, architectural photography'
-  },
-  {
-    label: 'Modern Interior',
-    prompt: 'modern interior design, photorealistic, luxury materials, ambient lighting, contemporary architecture, professional render'
-  },
-  {
-    label: 'Exterior View',
-    prompt: 'photorealistic exterior building view, professional architectural photography, blue sky, natural daylight, high detail, 8k quality'
-  },
-  {
-    label: 'Night Scene',
-    prompt: 'photorealistic night architectural scene, dramatic lighting, city lights, ambient glow, professional photography, cinematic'
-  }
-];
-
-// AI Image Generation API function using Nano Banana
-async function generateImage(prompt: string, imageBase64: string, apiKey: string): Promise<string> {
-  const response = await fetch('/api/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, imageBase64, apiKey }),
-  });
-
-  if (!response.ok) {
-    let errorMessage = `HTTP error! status: ${response.status}`;
-    try {
-      const errorData = await response.json();
-      if (errorData.error) {
-        errorMessage += ` - ${errorData.error}`;
-      }
-    } catch {
-      const errorText = await response.text();
-      if (errorText) {
-        errorMessage += ` - ${errorText}`;
-      }
-    }
-    throw new Error(errorMessage);
-  }
-
-  const data = await response.json();
-
-  // Handle different response formats from HuggingFace
-  if (typeof data === 'object' && data.url) {
-    return data.url;
-  }
-  if (Array.isArray(data) && data[0]?.image) {
-    return `data:image/png;base64,${data[0].image}`;
-  }
-  if (data.image) {
-    return `data:image/png;base64,${data.image}`;
-  }
-
-  throw new Error('No image in response');
-}
-
 export const AiVisualizerSection: React.FC = () => {
   const { captureScreenshot } = useBIM();
-  const [prompt, setPrompt] = useState(RENDER_PRESETS[0].prompt);
+  const [prompt, setPrompt] = useState(AI_RENDER_PRESETS[0].prompt);
   const [loading, setLoading] = useState(false);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>(() => {
     // Load API key from localStorage if available
-    return localStorage.getItem('replicate_api_key') || '';
+    return loadReplicateApiKey();
   });
   const [viewerMode, setViewerMode] = useState<'none' | 'original' | 'result' | 'compare'>('none');
   const [compareSplit, setCompareSplit] = useState(50);
@@ -98,7 +44,8 @@ export const AiVisualizerSection: React.FC = () => {
     const portalNode = document.createElement('div');
     portalNode.className = 'ai-visualizer-portal-root';
     portalContainerRef.current = portalNode;
-    document.body.appendChild(portalNode);
+    const host = document.querySelector('.ifc-viewer-library-container') ?? document.body;
+    host.appendChild(portalNode);
     return () => {
       if (portalNode.parentElement) {
         portalNode.parentElement.removeChild(portalNode);
@@ -106,7 +53,7 @@ export const AiVisualizerSection: React.FC = () => {
     };
   }, []);
 
-  const handlePresetSelect = (preset: typeof RENDER_PRESETS[0]) => {
+  const handlePresetSelect = (preset: (typeof AI_RENDER_PRESETS)[number]) => {
     setPrompt(preset.prompt);
   };
 
@@ -125,10 +72,10 @@ export const AiVisualizerSection: React.FC = () => {
     try {
       const imageBase64 = await captureScreenshot();
       setOriginalImage(imageBase64); // Store original for comparison
-      const result = await generateImage(prompt, imageBase64, apiKey);
+      const result = await generateAiImage({ prompt, imageBase64, apiKey });
       setResultImage(result);
       // Save API key to localStorage on successful generation
-      localStorage.setItem('replicate_api_key', apiKey);
+      saveReplicateApiKey(apiKey);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate image. Please try again.';
       setError(errorMessage);
@@ -153,7 +100,7 @@ export const AiVisualizerSection: React.FC = () => {
   };
 
   const handleClear = () => {
-    setPrompt(RENDER_PRESETS[0].prompt);
+    setPrompt(AI_RENDER_PRESETS[0].prompt);
     setOriginalImage(null);
     setResultImage(null);
     setError(null);
@@ -239,7 +186,7 @@ export const AiVisualizerSection: React.FC = () => {
         <Stack gap="sm">
           <Text variant="label" as="div">Render Style</Text>
           <div className="ai-visualizer__preset-grid">
-            {RENDER_PRESETS.map((preset) => {
+            {AI_RENDER_PRESETS.map((preset) => {
               const isActive = prompt === preset.prompt;
               return (
                 <Button

@@ -31,6 +31,8 @@
     "preview": "vite preview",
     "electron:dev": "tsc --project tsconfig.electron.json && vite --config vite.electron.config.ts",
     "electron:build": "tsc --project tsconfig.electron.json && vite build --config vite.electron.config.ts && electron-builder",
+    "electron:build:mac": "npm run electron:build -- --mac --universal",
+    "electron:build:win": "npm run electron:build -- --win --x64",
     "electron:preview": "tsc --project tsconfig.electron.json && vite build --config vite.electron.config.ts && electron .",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext ts,tsx --fix",

@@ -45,9 +45,17 @@ npm run preview
 # Development with Electron
 npm run electron:dev
 
-# Build Electron app
-npm run electron:build
+# Build standalone apps (artifacts go to ./release)
+# macOS (universal dmg + zip)
+npm run electron:build:mac
+
+# Windows (x64 NSIS installer + portable exe)
+npm run electron:build:win
 ```
+
+Notes:
+- Building macOS artifacts requires macOS. Windows artifacts can be built on Windows or cross-built from macOS/Linux via `electron-builder` (it will download required tooling).
+- Unsigned builds will run locally, but for distribution you’ll want code-signing (macOS notarization / Windows Authenticode).
 
 ## Project Structure
 

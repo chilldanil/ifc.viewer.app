@@ -408,15 +408,20 @@ const ViewportComponent: React.FC = () => {
         // Wait additional time for world to fully stabilize before other components access it
         await new Promise(resolve => setTimeout(resolve, 200));
 
-        // Handle viewport resize
+        // Keep camera aspect in sync with the renderer size.
+        // SimpleRenderer already resizes itself via ResizeObserver, so we only
+        // need to react to its resize events here.
         const handleResize = () => {
-          if (!isUnmountedRef.current) {
-            rendererComponent.resize();
-            cameraComponent.updateAspect();
+          if (isUnmountedRef.current) {
+            return;
           }
+          cameraComponent.updateAspect();
+          rendererComponent.update();
         };
         resizeHandlerRef.current = handleResize;
-        viewerElementRef.current.addEventListener("resize", handleResize);
+        rendererComponent.onResize.add(handleResize);
+        // Ensure initial aspect is correct after the first layout pass.
+        handleResize();
 
         // Add grid to the scene (skip if already created)
         const viewerGrids = components.get(OBC.Grids) as any;
@@ -593,9 +598,14 @@ const ViewportComponent: React.FC = () => {
     return () => {
       isUnmountedRef.current = true;
       
-      // Clean up resize event listener
-      if (resizeHandlerRef.current && viewerElementRef.current) {
-        viewerElementRef.current.removeEventListener("resize", resizeHandlerRef.current);
+      // Clean up resize handler
+      if (resizeHandlerRef.current) {
+        try {
+          const currentRenderer = (worldRef.current?.renderer as any)?.onResize;
+          currentRenderer?.remove?.(resizeHandlerRef.current);
+        } catch {
+          // ignore cleanup errors
+        }
         resizeHandlerRef.current = null;
       }
       

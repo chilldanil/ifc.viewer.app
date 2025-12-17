@@ -11,6 +11,7 @@ import { WorldToolbarMenu } from './WorldToolbarMenu';
 import { CameraToolbarMenu } from './CameraToolbarMenu';
 import { ModelTreePanel } from './ModelTreePanel';
 import { LeftPropertiesPanel } from './LeftPropertiesPanel';
+import { AiVisualizerBottomPanel } from './AiVisualizerBottomPanel';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import { setupIfcLoader } from '../../core/services/ifcLoaderService';
 import { fitSceneToView, setStandardView, type StandardViewDirection } from '../../utils/cameraUtils';
@@ -74,6 +75,12 @@ const TerminalIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <polyline points="4 17 10 11 4 5" />
     <line x1="12" y1="19" x2="20" y2="19" />
+  </svg>
+);
+
+const SparklesIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
   </svg>
 );
 
@@ -167,7 +174,7 @@ export const Layout: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Panel visibility states
-  const [isLeftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [isLeftPanelCollapsed, setLeftPanelCollapsed] = useState(true);
   const [isRightPanelCollapsed, setRightPanelCollapsed] = useState(true);
   const [isBottomPanelCollapsed, setBottomPanelCollapsed] = useState(true);
   const [floorOptions, setFloorOptions] = useState<string[]>([]);
@@ -1067,8 +1074,8 @@ export const Layout: React.FC = () => {
           {/* Bottom Panel */}
           <Panel
             position="bottom"
-            title="Output"
-            icon={<TerminalIcon />}
+            title="AI Visualizer"
+            icon={<SparklesIcon />}
             collapsed={isBottomPanelCollapsed}
             onCollapsedChange={setBottomPanelCollapsed}
             defaultSize={200}
@@ -1076,9 +1083,7 @@ export const Layout: React.FC = () => {
             maxSize={400}
             resizable={true}
           >
-            <div className="output-panel-content">
-              <p className="output-placeholder">Console output and logs will appear here.</p>
-            </div>
+            <AiVisualizerBottomPanel />
           </Panel>
         </div>
 

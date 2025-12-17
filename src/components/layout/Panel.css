@@ -8,13 +8,12 @@
    ============================================================================ */
 
 .panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--ifc-color-surface);
   border: 1px solid var(--ifc-color-border);
   overflow: hidden;
-  transition: width var(--ifc-transition-slow) var(--ifc-ease-default),
-              height var(--ifc-transition-slow) var(--ifc-ease-default);
 }
 
 .panel--resizing {
@@ -329,18 +328,6 @@
 @media (max-width: 900px) {
   .panel--left,
   .panel--right {
-    width: min(var(--panel-size, 280px), 40vw);
-  }
-
-  .panel--left.panel--collapsed,
-  .panel--right.panel--collapsed {
-    width: 36px;
-  }
-}
-
-@media (max-width: 640px) {
-  .panel--left,
-  .panel--right {
     position: fixed;
     top: var(--ifc-toolbar-height, 40px);
     bottom: 0;
@@ -359,7 +346,7 @@
 
   .panel--left.panel--collapsed,
   .panel--right.panel--collapsed {
-    width: 32px;
+    width: 36px;
   }
 
   .panel--bottom {
@@ -368,5 +355,12 @@
 
   .panel--bottom.panel--collapsed {
     height: 32px;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel--left.panel--collapsed,
+  .panel--right.panel--collapsed {
+    width: 32px;
   }
 }
