@@ -10,7 +10,7 @@
   right: var(--ifc-stats-right, 20px);
   bottom: var(--ifc-stats-bottom, 20px);
   z-index: var(--ifc-z-stats-overlay, 1400);
-  display: none;
+  display: none !important;
   border-radius: var(--ifc-stats-radius, 8px);
   overflow: hidden;
   box-shadow: var(--ifc-shadow-stats-overlay, 0 14px 32px rgba(0, 0, 0, 0.35));
@@ -18,5 +18,5 @@
 }
 
 .ifc-viewer-library-container .stats-overlay--visible {
-  display: block;
+  display: block !important;
 }

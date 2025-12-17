@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as BUIC from '@thatopen/ui-obc';
 import type { Table } from '@thatopen/ui';
+import * as OBC from '@thatopen/components';
 import { Card, Input, Stack } from '../../ui';
 import { useBIM } from '../../context/BIMContext';
 import { setupRelationsTreeSelection } from '../../utils/relationsTreeSelection';
@@ -14,9 +15,11 @@ export const ModelTreePanel: React.FC = () => {
   useEffect(() => {
     if (!components || !treeContainerRef.current) {return;}
 
-    const [tree] = BUIC.tables.relationsTree({
+    const fragmentsManager = components.get(OBC.FragmentsManager);
+
+    const [tree, update] = BUIC.tables.relationsTree({
       components,
-      models: [],
+      models: fragmentsManager.groups.values(),
     });
 
     treeRef.current = tree;
@@ -25,7 +28,14 @@ export const ModelTreePanel: React.FC = () => {
 
     const cleanupSelectionSync = setupRelationsTreeSelection(tree as unknown as HTMLElement, components);
 
+    const refreshModels = () => update({ models: fragmentsManager.groups.values() });
+
+    const handleLoaded = () => refreshModels();
+    fragmentsManager.onFragmentsLoaded.add(handleLoaded);
+    refreshModels();
+
     return () => {
+      fragmentsManager.onFragmentsLoaded.remove(handleLoaded);
       cleanupSelectionSync?.();
       treeRef.current = null;
       if (treeContainerRef.current) {

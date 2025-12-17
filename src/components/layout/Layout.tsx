@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import Stats from 'stats.js';
 import { Viewport } from '../bim/Viewport';
 import { SecondaryViewport } from '../bim/SecondaryViewport';
-import { Sidebar } from './Sidebar';
 import { Toolbar, type MenuConfig, type MenuItem } from './Toolbar';
 import { Panel } from './Panel';
 import { CategoryHiderModal } from './CategoryHiderModal';
@@ -11,12 +10,14 @@ import { useBIM, type MultiViewPreset } from '../../context/BIMContext';
 import { WorldToolbarMenu } from './WorldToolbarMenu';
 import { CameraToolbarMenu } from './CameraToolbarMenu';
 import { ModelTreePanel } from './ModelTreePanel';
+import { LeftPropertiesPanel } from './LeftPropertiesPanel';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import { setupIfcLoader } from '../../core/services/ifcLoaderService';
 import { fitSceneToView, setStandardView, type StandardViewDirection } from '../../utils/cameraUtils';
 import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import '../sidebar/PerformanceSection.css';
 import './Layout.css';
 
 // ============================================================================
@@ -212,6 +213,7 @@ export const Layout: React.FC = () => {
       const stats = new Stats();
       stats.showPanel(2);
       stats.dom.classList.add('stats-overlay');
+      stats.dom.style.display = 'none';
       statsRef.current = stats;
     }
     attachStatsOverlay();
@@ -237,8 +239,10 @@ export const Layout: React.FC = () => {
     if (!statsRef.current?.dom) {return;}
     if (statsVisible) {
       statsRef.current.dom.classList.add('stats-overlay--visible');
+      statsRef.current.dom.style.display = 'block';
     } else {
       statsRef.current.dom.classList.remove('stats-overlay--visible');
+      statsRef.current.dom.style.display = 'none';
     }
   }, [statsVisible]);
 
@@ -1032,8 +1036,8 @@ export const Layout: React.FC = () => {
         {/* Left Panel (Existing Sidebar) */}
         <Panel
           position="left"
-          title="Outliner"
-          icon={<LayersIcon />}
+          title="Properties"
+          icon={<BoxIcon />}
           collapsed={isLeftPanelCollapsed}
           onCollapsedChange={setLeftPanelCollapsed}
           defaultSize={defaultWidth}
@@ -1041,7 +1045,7 @@ export const Layout: React.FC = () => {
           maxSize={maxWidth}
           resizable={true}
         >
-          <Sidebar />
+          <LeftPropertiesPanel />
         </Panel>
 
         {/* Center Area (Viewport + Bottom Panel) */}
