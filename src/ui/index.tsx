@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useEffect } from 'react';
 import './ui.css';
 
 /* ============================================
@@ -470,6 +470,24 @@ export const Modal: React.FC<ModalProps> = ({
   size = 'sm',
   children,
 }) => {
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (

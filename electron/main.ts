@@ -1,11 +1,13 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import Replicate from 'replicate';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
+const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -39,6 +41,12 @@ function createWindow() {
     // Production mode
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+
+  // Open external links in the user's default browser.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    void shell.openExternal(url);
+    return { action: 'deny' };
+  });
 
   // Handle window close
   mainWindow.on('closed', () => {
@@ -194,6 +202,102 @@ ipcMain.handle('dialog:saveFile', async (_event, defaultPath?: string) => {
     return result.filePath;
   }
   return null;
+});
+
+ipcMain.handle('ai:generate', async (_event, args: unknown) => {
+  if (!args || typeof args !== 'object') {
+    throw new Error('Invalid request payload');
+  }
+
+  const { prompt, imageBase64, apiKey } = args as Record<string, unknown>;
+
+  if (typeof prompt !== 'string' || typeof imageBase64 !== 'string') {
+    throw new Error('Invalid request payload');
+  }
+
+  const token = (typeof apiKey === 'string' && apiKey.trim()) ? apiKey.trim() : REPLICATE_API_TOKEN;
+
+  if (!token) {
+    throw new Error(
+      'Replicate API token not provided. Please enter your API token in the AI Visualizer panel.'
+    );
+  }
+
+  const replicate = new Replicate({ auth: token });
+
+  const dataUrl = imageBase64.startsWith('data:')
+    ? imageBase64
+    : `data:image/png;base64,${imageBase64}`;
+
+  const enhancedPrompt = `Edit this image: ${prompt}. Keep the exact same building structure, camera angle, and composition. Only change the materials, textures, and lighting to make it look photorealistic.`;
+
+  const output = await replicate.run(
+    'google/nano-banana:2c8a3b5b81554aa195bde461e2caa6afacd69a66c48a64fb0e650c9789f8b8a0',
+    {
+      input: {
+        prompt: enhancedPrompt,
+        image_input: [dataUrl],
+        aspect_ratio: 'match_input_image',
+        output_format: 'jpg',
+      },
+    }
+  );
+
+  const extractUrl = (value: unknown): string | null => {
+    if (!value) {
+      return null;
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      const firstItem = value[0] as unknown;
+      if (typeof firstItem === 'string') {
+        return firstItem;
+      }
+      if (firstItem && typeof firstItem === 'object' && 'url' in (firstItem as any)) {
+        const urlValue = (firstItem as any).url as unknown;
+        if (typeof urlValue === 'function') {
+          return urlValue();
+        }
+        if (typeof urlValue === 'string') {
+          return urlValue;
+        }
+      }
+      return null;
+    }
+    if (typeof value === 'object') {
+      const obj = value as any;
+      if (obj.output) {
+        return extractUrl(obj.output);
+      }
+      if (obj.url) {
+        return extractUrl(obj.url);
+      }
+      if (obj.urls) {
+        return extractUrl(obj.urls);
+      }
+    }
+    return null;
+  };
+
+  const urlString = extractUrl(output);
+  if (!urlString) {
+    throw new Error(`No image URL in response from Replicate (output type: ${typeof output})`);
+  }
+
+  const imageResponse = await fetch(urlString);
+
+  if (!imageResponse.ok) {
+    throw new Error(
+      `Failed to fetch generated image: ${imageResponse.status} ${imageResponse.statusText}`
+    );
+  }
+
+  const arrayBuffer = await imageResponse.arrayBuffer();
+  const base64Image = Buffer.from(arrayBuffer).toString('base64');
+
+  return { image: base64Image };
 });
 
 // App lifecycle

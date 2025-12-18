@@ -1,37 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Row, Stack, Status, Text, Textarea } from '../../ui';
+import { generateAiImage, loadReplicateApiKey } from '../../utils/aiVisualizer';
 import './AiVisualizerOverlay.css';
 
 type Props = {
     onClose: () => void;
     captureScreenshot: () => Promise<string>;
 };
-
-// AI image generation API call
-async function generateImage(prompt: string, imageBase64: string): Promise<string> {
-    const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, imageBase64 }),
-    });
-    if (!response.ok) {
-        throw new Error('Failed to generate image');
-    }
-    const data = await response.json();
-    // If HuggingFace returned a link to the image
-    if (typeof data === 'object' && data.url) {
-        return data.url;
-    }
-    // If HuggingFace returned an array with an image
-    if (Array.isArray(data) && data[0]?.image) {
-        return `data:image/png;base64,${data[0].image}`;
-    }
-    // If HuggingFace returned just base64
-    if (data.image) {
-        return `data:image/png;base64,${data.image}`;
-    }
-    throw new Error('No image in response');
-}
 
 export const AiVisualizerOverlay = ({ onClose, captureScreenshot }: Props) => {
     const overlayRef = useRef<HTMLDivElement>(null);
@@ -53,11 +28,16 @@ export const AiVisualizerOverlay = ({ onClose, captureScreenshot }: Props) => {
         setError(null);
         setResultImage(null);
         try {
+            const apiKey = loadReplicateApiKey();
+            if (!apiKey.trim()) {
+                throw new Error('Replicate API token not set');
+            }
             const imageBase64 = await captureScreenshot();
-            const result = await generateImage(prompt, imageBase64);
+            const result = await generateAiImage({ prompt, imageBase64, apiKey });
             setResultImage(result);
         } catch (err) {
-            setError('Failed to generate image.');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to generate image.';
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }

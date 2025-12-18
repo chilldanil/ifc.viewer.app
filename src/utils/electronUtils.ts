@@ -4,6 +4,9 @@
 
 // Type guard to check if we're running in Electron
 export function isElectron(): boolean {
+  if (typeof navigator !== 'undefined' && navigator.userAgent.includes('Electron')) {
+    return true;
+  }
   return !!(window as any).electronAPI;
 }
 

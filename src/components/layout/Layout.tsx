@@ -21,6 +21,8 @@ import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
+import { Modal, Stack, Text } from '../../ui';
+import { useElectronFileOpen } from '../../hooks/useElectronFileOpen';
 import '../sidebar/PerformanceSection.css';
 import './Layout.css';
 
@@ -39,13 +41,6 @@ const CameraIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
     <circle cx="12" cy="13" r="4" />
-  </svg>
-);
-
-const SettingsIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
   </svg>
 );
 
@@ -301,6 +296,7 @@ export const Layout: React.FC = () => {
     eventBus,
     minimapConfig,
     setMinimapConfig,
+    propertyEditingService,
   } = useBIM();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -345,6 +341,9 @@ export const Layout: React.FC = () => {
   const statsRef = useRef<Stats | null>(null);
   const statsOverlayHostRef = useRef<HTMLElement | null>(null);
   const MINIMAP_LIMITS = { minZoom: 0.01, maxZoom: 0.5 };
+  const [helpModal, setHelpModal] = useState<'docs' | 'shortcuts' | 'about' | null>(null);
+
+  useElectronFileOpen(components, propertyEditingService);
 
   const findViewerContainer = useCallback(() => {
     return document.querySelector<HTMLElement>('.ifc-viewer-library-container .viewer-container');
@@ -704,6 +703,49 @@ export const Layout: React.FC = () => {
       await fitSceneToView(world, { paddingRatio: 1.2 });
     }
   }, [world]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = Boolean(
+        target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            (target as HTMLElement).isContentEditable)
+      );
+      if (isTyping) {
+        return;
+      }
+
+      const hasCmdOrCtrl = event.ctrlKey || event.metaKey;
+
+      if (hasCmdOrCtrl && (event.key === 'o' || event.key === 'O')) {
+        // In Electron, Cmd/Ctrl+O is handled by the native app menu accelerator.
+        if ((window as any).electronAPI) {
+          return;
+        }
+        event.preventDefault();
+        handleOpenIfcClick();
+        return;
+      }
+
+      if (hasCmdOrCtrl && event.code === 'Slash') {
+        event.preventDefault();
+        setHelpModal('shortcuts');
+        return;
+      }
+
+      if (!hasCmdOrCtrl && !event.altKey && (event.key === 'f' || event.key === 'F')) {
+        event.preventDefault();
+        void handleFitToModel();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleFitToModel, handleOpenIfcClick]);
 
   // View: Standard orthographic views
   const handleSetViewDirection = useCallback(async (direction: StandardViewDirection) => {
@@ -1450,14 +1492,9 @@ export const Layout: React.FC = () => {
     {
       label: 'File',
       items: [
-        { label: 'Open IFC...', icon: <FolderOpenIcon />, shortcut: 'Ctrl+O', onClick: handleOpenIfcClick },
-        { label: 'Recent Files', type: 'submenu', items: [
-          { label: 'No recent files', disabled: true }
-        ]},
+        { label: 'Open IFC...', icon: <FolderOpenIcon />, shortcut: 'Cmd/Ctrl+O', onClick: handleOpenIfcClick },
         { type: 'divider' },
         { label: 'Capture Screenshot', icon: <CameraIcon />, onClick: handleScreenshot },
-        { type: 'divider' },
-        { label: 'Settings', icon: <SettingsIcon />, shortcut: 'Ctrl+,', onClick: () => setRightPanelCollapsed(false) },
       ],
     },
     {
@@ -1593,10 +1630,10 @@ export const Layout: React.FC = () => {
     {
       label: 'Help',
       items: [
-        { label: 'Documentation', icon: <InfoIcon /> },
-        { label: 'Keyboard Shortcuts', shortcut: 'Ctrl+/' },
+        { label: 'Documentation', icon: <InfoIcon />, onClick: () => setHelpModal('docs') },
+        { label: 'Keyboard Shortcuts', shortcut: 'Cmd/Ctrl+/', onClick: () => setHelpModal('shortcuts') },
         { type: 'divider' },
-        { label: 'About' },
+        { label: 'About', onClick: () => setHelpModal('about') },
       ],
     },
   ], [
@@ -1646,6 +1683,7 @@ export const Layout: React.FC = () => {
     toggleMinimapVisible,
     toggleMinimapLock,
     nudgeMinimapZoom,
+    helpModal,
   ]);
 
   // Toolbar right content
@@ -1774,6 +1812,44 @@ export const Layout: React.FC = () => {
         isOpen={isCategoryHiderModalOpen}
         onClose={() => setIsCategoryHiderModalOpen(false)}
       />
+
+      <Modal isOpen={helpModal === 'docs'} onClose={() => setHelpModal(null)} title="Documentation" size="sm">
+        <Stack gap="sm">
+          <Text variant="muted" size="sm" as="div">
+            Useful links:
+          </Text>
+          <Text as="div">
+            <a href="https://github.com/go36dic/deployable-ifc-viewer" target="_blank" rel="noopener noreferrer">
+              Project repository
+            </a>
+          </Text>
+          <Text as="div">
+            <a href="https://docs.thatopen.com/" target="_blank" rel="noopener noreferrer">
+              That Open documentation
+            </a>
+          </Text>
+        </Stack>
+      </Modal>
+
+      <Modal isOpen={helpModal === 'shortcuts'} onClose={() => setHelpModal(null)} title="Keyboard Shortcuts" size="sm">
+        <Stack gap="sm">
+          <Text as="div"><strong>Cmd/Ctrl+O</strong> — Open IFC file</Text>
+          <Text as="div"><strong>F</strong> — Fit to model</Text>
+          <Text as="div"><strong>Cmd/Ctrl+/</strong> — Show this dialog</Text>
+          <Text as="div"><strong>Esc</strong> — Close dialogs/previews</Text>
+        </Stack>
+      </Modal>
+
+      <Modal isOpen={helpModal === 'about'} onClose={() => setHelpModal(null)} title="About" size="sm">
+        <Stack gap="sm">
+          <Text as="div">
+            IFC Viewer — desktop-ready IFC/BIM viewer built with React, Three.js and That Open components.
+          </Text>
+          <Text variant="muted" size="sm" as="div">
+            AI Visualizer uses your Replicate API token stored locally in this app.
+          </Text>
+        </Stack>
+      </Modal>
     </div>
   );
 };

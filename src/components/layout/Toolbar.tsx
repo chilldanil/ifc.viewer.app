@@ -115,7 +115,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ menu, isOpen, onToggle, onC
 
     if (item.type === 'submenu') {
       return (
-        <SubmenuItem key={item.label} item={item} />
+        <SubmenuItem key={item.label} item={item} onCloseAll={onClose} />
       );
     }
 
@@ -170,9 +170,10 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ menu, isOpen, onToggle, onC
 
 interface SubmenuItemProps {
   item: MenuItemSubmenu;
+  onCloseAll?: () => void;
 }
 
-const SubmenuItem: React.FC<SubmenuItemProps> = ({ item }) => {
+const SubmenuItem: React.FC<SubmenuItemProps> = ({ item, onCloseAll }) => {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -204,7 +205,7 @@ const SubmenuItem: React.FC<SubmenuItemProps> = ({ item }) => {
     }
 
     if (subItem.type === 'submenu') {
-      return <SubmenuItem key={subItem.label} item={subItem} />;
+      return <SubmenuItem key={subItem.label} item={subItem} onCloseAll={onCloseAll} />;
     }
 
     const actionItem = subItem as MenuItemAction;
@@ -212,7 +213,10 @@ const SubmenuItem: React.FC<SubmenuItemProps> = ({ item }) => {
       <button
         key={actionItem.label}
         className="toolbar-menu-item"
-        onClick={actionItem.onClick}
+        onClick={() => {
+          actionItem.onClick?.();
+          onCloseAll?.();
+        }}
         disabled={actionItem.disabled}
       >
         {typeof actionItem.checked === 'boolean' && (
