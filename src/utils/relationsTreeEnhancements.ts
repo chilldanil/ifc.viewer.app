@@ -20,6 +20,21 @@ const DEFAULT_SELECT_HIGHLIGHTER = 'select';
 const DEFAULT_HOVER_HIGHLIGHTER = 'hover';
 
 const fragmentKey = (modelId: string | number, expressId: number) => `${modelId}:${expressId}`;
+type FragmentIdMap = Record<string, Set<number>>;
+
+const EYE_ICON = `
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+    <circle cx="12" cy="12" r="3"></circle>
+  </svg>
+`;
+
+const EYE_OFF_ICON = `
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+    <line x1="1" y1="1" x2="23" y2="23"></line>
+  </svg>
+`;
 
 const hasFragmentEntries = (value: unknown): boolean => {
   if (!value) {
@@ -35,6 +50,53 @@ const hasFragmentEntries = (value: unknown): boolean => {
     return Object.keys(value as Record<string, unknown>).length > 0;
   }
   return false;
+};
+
+const mergeFragmentIdMapInto = (target: FragmentIdMap, source: unknown) => {
+  if (!source) {
+    return;
+  }
+
+  if (source instanceof Map) {
+    source.forEach((value, fragmentId) => {
+      mergeFragmentIdMapInto(target, { [String(fragmentId)]: value });
+    });
+    return;
+  }
+
+  if (typeof source !== 'object') {
+    return;
+  }
+
+  Object.entries(source as Record<string, unknown>).forEach(([fragmentId, expressIds]) => {
+    if (!expressIds) {
+      return;
+    }
+
+    const targetSet = target[fragmentId] ?? new Set<number>();
+    const addId = (value: unknown) => {
+      if (typeof value === 'number') {
+        targetSet.add(value);
+      }
+    };
+
+    if (expressIds instanceof Set) {
+      expressIds.forEach((value) => addId(value));
+    } else if (Array.isArray(expressIds)) {
+      expressIds.forEach((value) => addId(value));
+    } else if (ArrayBuffer.isView(expressIds)) {
+      const arrayView = expressIds as unknown as ArrayLike<number>;
+      for (let index = 0; index < arrayView.length; index += 1) {
+        addId(arrayView[index]);
+      }
+    } else if (typeof expressIds === 'object') {
+      Object.values(expressIds as Record<string, unknown>).forEach((value) => addId(value));
+    }
+
+    if (targetSet.size > 0) {
+      target[fragmentId] = targetSet;
+    }
+  });
 };
 
 const collectFragmentKeys = (fragmentIdMap: unknown): Set<string> => {
@@ -97,6 +159,59 @@ const collectFragmentKeys = (fragmentIdMap: unknown): Set<string> => {
   return keys;
 };
 
+const buildFragmentMapForNode = (node: TableGroupNode | null, components: OBC.Components): FragmentIdMap | null => {
+  if (!node) {
+    return null;
+  }
+
+  const modelToExpressIds = new Map<string, Set<number>>();
+  const visit = (entry: TableGroupNode) => {
+    const data = entry.data as RelationsTreeRowData | undefined;
+    const modelId = data?.modelID;
+    const expressId = data?.expressID;
+    if ((typeof modelId === 'string' || typeof modelId === 'number') && typeof expressId === 'number') {
+      const modelKey = String(modelId);
+      const expressIds = modelToExpressIds.get(modelKey) ?? new Set<number>();
+      expressIds.add(expressId);
+      modelToExpressIds.set(modelKey, expressIds);
+    }
+    entry.children?.forEach((child) => visit(child));
+  };
+
+  visit(node);
+
+  if (modelToExpressIds.size === 0) {
+    return null;
+  }
+
+  let fragmentsManager: any;
+  try {
+    fragmentsManager = components.get(OBC.FragmentsManager);
+  } catch {
+    return null;
+  }
+
+  const merged: FragmentIdMap = {};
+
+  modelToExpressIds.forEach((expressIds, modelId) => {
+    if (!expressIds.size) {
+      return;
+    }
+    const group = fragmentsManager.groups.get(modelId);
+    if (!group) {
+      return;
+    }
+    try {
+      const fragmentMap = group.getFragmentMap(Array.from(expressIds));
+      mergeFragmentIdMapInto(merged, fragmentMap);
+    } catch {
+      // ignore model failures
+    }
+  });
+
+  return hasFragmentEntries(merged) ? merged : null;
+};
+
 const safeParseRelations = (value: unknown): number[] => {
   if (typeof value !== 'string' || !value.trim()) {
     return [];
@@ -146,6 +261,27 @@ const findNodeByDataRef = (nodes: TableGroupNode[], targetData: unknown): TableG
   }
 
   return null;
+};
+
+const collectSubtreeKeys = (node: TableGroupNode | null) => {
+  if (!node) {
+    return [];
+  }
+
+  const keys: string[] = [];
+
+  const visit = (entry: TableGroupNode) => {
+    const data = entry.data as RelationsTreeRowData | undefined;
+    const modelId = data?.modelID;
+    const expressId = data?.expressID;
+    if ((typeof modelId === 'string' || typeof modelId === 'number') && typeof expressId === 'number') {
+      keys.push(fragmentKey(modelId, expressId));
+    }
+    entry.children?.forEach((child) => visit(child));
+  };
+
+  visit(node);
+  return keys;
 };
 
 const canExpandRow = (table: Table<Record<string, any>>, rowData: unknown) => {
@@ -222,6 +358,11 @@ const createEntityCell = (value: unknown, rowData: RelationsTreeRowData) => {
   badge.style.letterSpacing = '0.05em';
 
   const expressId = typeof rowData.expressID === 'number' ? rowData.expressID : null;
+  const modelId = rowData.modelID;
+  const rowKey =
+    (typeof modelId === 'string' || typeof modelId === 'number') && typeof expressId === 'number'
+      ? fragmentKey(modelId, expressId)
+      : null;
 
   const title = document.createElement('span');
   title.textContent = titleText || '—';
@@ -240,6 +381,64 @@ const createEntityCell = (value: unknown, rowData: RelationsTreeRowData) => {
 
   topRow.append(badge, title);
 
+  const controls = document.createElement('div');
+  controls.style.display = 'flex';
+  controls.style.alignItems = 'center';
+  controls.style.gap = '0.45rem';
+  controls.style.flex = '0 0 auto';
+  controls.style.marginLeft = 'auto';
+
+  if (rowKey) {
+    const eyeButton = document.createElement('button');
+    eyeButton.type = 'button';
+    eyeButton.dataset.treeKey = rowKey;
+    eyeButton.dataset.action = 'toggle-visibility';
+    eyeButton.style.width = '28px';
+    eyeButton.style.height = '28px';
+    eyeButton.style.borderRadius = '9px';
+    eyeButton.style.display = 'inline-flex';
+    eyeButton.style.alignItems = 'center';
+    eyeButton.style.justifyContent = 'center';
+    eyeButton.style.background = 'rgba(255, 255, 255, 0.04)';
+    eyeButton.style.border = '1px solid rgba(255, 255, 255, 0.10)';
+    eyeButton.style.color = 'rgba(255, 255, 255, 0.78)';
+    eyeButton.style.cursor = 'pointer';
+    eyeButton.style.padding = '0';
+    eyeButton.style.lineHeight = '0';
+    eyeButton.style.transition = 'background-color 120ms ease, border-color 120ms ease, color 120ms ease';
+    eyeButton.innerHTML = EYE_ICON;
+    eyeButton.title = 'Hide';
+
+    eyeButton.addEventListener(
+      'mousedown',
+      (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      },
+      { passive: false }
+    );
+    eyeButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      eyeButton.dispatchEvent(
+        new CustomEvent('togglevisibility', { bubbles: true, composed: true, detail: { key: rowKey } })
+      );
+    });
+    eyeButton.addEventListener('mouseenter', () => {
+      eyeButton.style.background = 'rgba(255, 255, 255, 0.07)';
+      eyeButton.style.borderColor = 'rgba(255, 255, 255, 0.14)';
+      eyeButton.style.color = 'rgba(255, 255, 255, 0.92)';
+    });
+    eyeButton.addEventListener('mouseleave', () => {
+      const isHidden = eyeButton.dataset.visibility === 'hidden';
+      eyeButton.style.background = 'rgba(255, 255, 255, 0.04)';
+      eyeButton.style.borderColor = isHidden ? 'rgba(255, 255, 255, 0.10)' : 'rgba(255, 255, 255, 0.14)';
+      eyeButton.style.color = isHidden ? 'rgba(255, 255, 255, 0.60)' : 'rgba(255, 255, 255, 0.78)';
+    });
+
+    controls.append(eyeButton);
+  }
+
   if (expressId != null) {
     const idBadge = document.createElement('span');
     idBadge.textContent = `#${expressId}`;
@@ -253,7 +452,11 @@ const createEntityCell = (value: unknown, rowData: RelationsTreeRowData) => {
     idBadge.style.border = '1px solid rgba(255, 255, 255, 0.10)';
     idBadge.style.color = 'rgba(255, 255, 255, 0.66)';
     idBadge.style.marginTop = '1px';
-    topRow.append(idBadge);
+    controls.append(idBadge);
+  }
+
+  if (controls.childNodes.length) {
+    topRow.append(controls);
   }
 
   wrapper.append(topRow);
@@ -316,6 +519,10 @@ export const setupRelationsTreeEnhancements = (
   const hoverName = options?.hoverHighlighterName ?? DEFAULT_HOVER_HIGHLIGHTER;
 
   const rowRegistry = new Map<string, HTMLElement>();
+  const rowDataByKey = new Map<string, RelationsTreeRowData>();
+  const eyeRegistry = new Map<string, HTMLButtonElement>();
+  const hiddenKeys = new Set<string>();
+  const fragMapByKey = new Map<string, unknown>();
   const fragMapByRow = new WeakMap<HTMLElement, unknown>();
   let currentKeys = new Set<string>();
 
@@ -335,17 +542,94 @@ export const setupRelationsTreeEnhancements = (
     applyRowVisualState(row);
   };
 
+  const updateEyeButton = (button: HTMLButtonElement, isHidden: boolean) => {
+    button.innerHTML = isHidden ? EYE_OFF_ICON : EYE_ICON;
+    button.title = isHidden ? 'Show' : 'Hide';
+    button.dataset.visibility = isHidden ? 'hidden' : 'visible';
+    button.style.background = 'rgba(255, 255, 255, 0.04)';
+    button.style.color = isHidden ? 'rgba(255, 255, 255, 0.60)' : 'rgba(255, 255, 255, 0.78)';
+    button.style.borderColor = isHidden ? 'rgba(255, 255, 255, 0.10)' : 'rgba(255, 255, 255, 0.14)';
+  };
+
+  const applyHiddenVisual = (row: HTMLElement, isHidden: boolean) => {
+    row.toggleAttribute('data-hidden', isHidden);
+    row.style.opacity = isHidden ? '0.55' : '1';
+    row.style.filter = isHidden ? 'saturate(0.85)' : '';
+  };
+
+  const setHiddenForKeys = (keys: string[], isHidden: boolean) => {
+    const staleKeys: string[] = [];
+
+    keys.forEach((key) => {
+      if (isHidden) {
+        hiddenKeys.add(key);
+      } else {
+        hiddenKeys.delete(key);
+      }
+
+      const row = rowRegistry.get(key);
+      if (row) {
+        if (!row.isConnected) {
+          staleKeys.push(key);
+        } else {
+          applyHiddenVisual(row, isHidden);
+        }
+      }
+
+      const eye = eyeRegistry.get(key);
+      if (eye) {
+        if (!eye.isConnected) {
+          eyeRegistry.delete(key);
+        } else {
+          updateEyeButton(eye, isHidden);
+        }
+      }
+    });
+
+    staleKeys.forEach((key) => rowRegistry.delete(key));
+    staleKeys.forEach((key) => rowDataByKey.delete(key));
+  };
+
   const applySelection = (keys: Set<string>) => {
     const staleKeys: string[] = [];
     rowRegistry.forEach((row, key) => {
       if (!row.isConnected) {
         staleKeys.push(key);
+        rowDataByKey.delete(key);
         return;
       }
       markRow(row, keys.has(key));
     });
     staleKeys.forEach((key) => rowRegistry.delete(key));
     currentKeys = keys;
+  };
+
+  const handleToggleVisibility = (key: string, rowData: RelationsTreeRowData) => {
+    const currentlyHidden = hiddenKeys.has(key);
+    const nextVisible = currentlyHidden;
+
+    const nodes = (table.data as unknown as TableGroupNode[]) ?? [];
+    const node = findNodeByDataRef(nodes, rowData);
+    const subtreeKeys = node ? collectSubtreeKeys(node) : [key];
+
+    const fragmentMap =
+      buildFragmentMapForNode(node, components)
+      ?? (fragMapByKey.get(key) as FragmentIdMap | undefined)
+      ?? (getRowFragmentMap(components, rowData) as FragmentIdMap | null);
+
+    try {
+      if (!hasFragmentEntries(fragmentMap)) {
+        return;
+      }
+
+      const hider = components.get(OBC.Hider);
+      hider.set(nextVisible, fragmentMap as any);
+    } catch (error) {
+      console.warn('Failed to toggle visibility for', key, error);
+      return;
+    }
+
+    setHiddenForKeys(subtreeKeys, !nextVisible);
   };
 
   const registerRow = (row: TableRow<Record<string, any>>) => {
@@ -363,6 +647,7 @@ export const setupRelationsTreeEnhancements = (
 
     const key = fragmentKey(modelId, expressId);
     rowElement.dataset.fragmentKey = key;
+    rowDataByKey.set(key, rowData);
     const getRowIndentation = (table as any)?.getRowIndentation;
     if (typeof getRowIndentation === 'function') {
       const indentation = getRowIndentation.call(table, rowData);
@@ -378,13 +663,15 @@ export const setupRelationsTreeEnhancements = (
     rowElement.style.margin = '2px 0';
 
     rowElement.toggleAttribute('data-selected', currentKeys.has(key));
+    applyHiddenVisual(rowElement, hiddenKeys.has(key));
     applyRowVisualState(rowElement);
 
     const expandable = canExpandRow(table, rowData);
     rowElement.toggleAttribute('data-expandable', expandable);
     if (!expandable) {
       queueMicrotask(() => {
-        rowElement.querySelector('.caret')?.remove();
+        const root = rowElement.shadowRoot ?? rowElement;
+        root.querySelector('.caret')?.remove();
       });
     }
 
@@ -393,6 +680,7 @@ export const setupRelationsTreeEnhancements = (
       return;
     }
     fragMapByRow.set(rowElement, fragMap);
+    fragMapByKey.set(key, fragMap);
 
     rowElement.addEventListener(
       'mousedown',
@@ -466,6 +754,14 @@ export const setupRelationsTreeEnhancements = (
         return cached;
       }
       const cell = createEntityCell(value, data as RelationsTreeRowData);
+      cell.querySelectorAll<HTMLButtonElement>('button[data-action="toggle-visibility"]').forEach((button) => {
+        const key = button.dataset.treeKey;
+        if (!key) {
+          return;
+        }
+        eyeRegistry.set(key, button);
+        updateEyeButton(button, hiddenKeys.has(key));
+      });
       entityCellCache.set(key, cell);
       return cell;
     },
@@ -488,6 +784,23 @@ export const setupRelationsTreeEnhancements = (
   tree.style.setProperty('--bim-ui_bg-contrast-60', 'rgba(255, 255, 255, 0.72)');
   tree.style.setProperty('--bim-ui_bg-contrast-20', 'rgba(255, 255, 255, 0.06)');
 
+  const onToggleVisibility = (event: Event) => {
+    const custom = event as CustomEvent<{ key?: string }>;
+    const key = custom.detail?.key;
+    if (!key) {
+      return;
+    }
+
+    const rowData = rowDataByKey.get(key);
+    if (!rowData) {
+      return;
+    }
+
+    handleToggleVisibility(key, rowData as RelationsTreeRowData);
+  };
+
+  tree.addEventListener('togglevisibility', onToggleVisibility as EventListener);
+
   const handleHighlight = (fragmentIdMap: unknown) => {
     applySelection(collectFragmentKeys(fragmentIdMap));
   };
@@ -508,10 +821,14 @@ export const setupRelationsTreeEnhancements = (
 
   return () => {
     tree.removeEventListener('rowcreated', onRowCreatedCapture, true);
+    tree.removeEventListener('togglevisibility', onToggleVisibility as EventListener);
     if (selectEvents?.onHighlight && selectEvents?.onClear) {
       selectEvents.onHighlight.remove(handleHighlight);
       selectEvents.onClear.remove(handleClear);
     }
     rowRegistry.clear();
+    rowDataByKey.clear();
+    eyeRegistry.clear();
+    fragMapByKey.clear();
   };
 };
