@@ -380,8 +380,8 @@ const ViewportComponent: React.FC = () => {
         sceneComponent.setup();
         world.scene = sceneComponent;
 
-        // Set up renderer
-        const rendererComponent = new OBC.SimpleRenderer(components, viewerElementRef.current);
+        // Set up renderer (PostproductionRenderer adds AO/edges/outlines pipeline)
+        const rendererComponent = new OBCF.PostproductionRenderer(components, viewerElementRef.current);
         world.renderer = rendererComponent;
 
         // Set up OrthoPerspective camera
@@ -407,6 +407,14 @@ const ViewportComponent: React.FC = () => {
 
         // Wait additional time for world to fully stabilize before other components access it
         await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Enable postproduction defaults (gamma + custom effects + AO)
+        try {
+          rendererComponent.postproduction.enabled = true;
+          rendererComponent.postproduction.setPasses({ gamma: true, custom: true, ao: true });
+        } catch (error) {
+          console.warn('Failed to initialize postproduction:', error);
+        }
 
         // Keep camera aspect in sync with the renderer size.
         // SimpleRenderer already resizes itself via ResizeObserver, so we only

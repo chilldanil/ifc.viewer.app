@@ -8,6 +8,7 @@ import { Panel } from './Panel';
 import { CategoryHiderModal } from './CategoryHiderModal';
 import { useBIM, type MultiViewPreset } from '../../context/BIMContext';
 import { WorldToolbarMenu } from './WorldToolbarMenu';
+import { PostproductionToolbarMenu } from './PostproductionToolbarMenu';
 import { CameraToolbarMenu } from './CameraToolbarMenu';
 import { ModelTreePanel } from './ModelTreePanel';
 import { LeftPropertiesPanel } from './LeftPropertiesPanel';
@@ -884,6 +885,15 @@ export const Layout: React.FC = () => {
         {
           type: 'custom',
           render: () => <WorldToolbarMenu />,
+        },
+      ],
+    },
+    {
+      label: 'Post',
+      items: [
+        {
+          type: 'custom',
+          render: () => <PostproductionToolbarMenu />,
         },
       ],
     },

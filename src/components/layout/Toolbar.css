@@ -270,6 +270,12 @@
   gap: var(--ifc-space-sm);
 }
 
+.toolbar-post-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ifc-space-sm);
+}
+
 .toolbar-camera-menu {
   display: flex;
   flex-direction: column;
@@ -277,6 +283,14 @@
 }
 
 .toolbar-world-section {
+  background: var(--ifc-color-surface);
+  border: 1px solid var(--ifc-color-border);
+  border-radius: var(--ifc-radius-md);
+  padding: var(--ifc-space-sm);
+  box-shadow: var(--ifc-shadow-sm);
+}
+
+.toolbar-post-section {
   background: var(--ifc-color-surface);
   border: 1px solid var(--ifc-color-border);
   border-radius: var(--ifc-radius-md);
@@ -293,6 +307,10 @@
 }
 
 .toolbar-world-section .ui-text {
+  margin: 0;
+}
+
+.toolbar-post-section .ui-text {
   margin: 0;
 }
 
