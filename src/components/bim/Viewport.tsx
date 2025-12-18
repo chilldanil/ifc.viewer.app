@@ -408,9 +408,9 @@ const ViewportComponent: React.FC = () => {
         // Wait additional time for world to fully stabilize before other components access it
         await new Promise(resolve => setTimeout(resolve, 200));
 
-        // Enable postproduction defaults (gamma + custom effects + AO)
+        // Configure postproduction defaults (gamma + custom effects + AO), but keep it disabled by default.
         try {
-          rendererComponent.postproduction.enabled = true;
+          rendererComponent.postproduction.enabled = false;
           rendererComponent.postproduction.setPasses({ gamma: true, custom: true, ao: true });
         } catch (error) {
           console.warn('Failed to initialize postproduction:', error);

@@ -79,6 +79,7 @@ const SecondaryViewportComponent: React.FC<SecondaryViewportProps> = ({ orientat
     renderer.outputColorSpace = world.renderer?.three.outputColorSpace ?? THREE.SRGBColorSpace;
     renderer.toneMapping = world.renderer?.three.toneMapping ?? THREE.ACESFilmicToneMapping;
     renderer.setClearColor('#0d131c');
+    renderer.localClippingEnabled = true;
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 

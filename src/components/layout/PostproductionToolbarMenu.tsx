@@ -94,7 +94,7 @@ export const PostproductionToolbarMenu: React.FC = () => {
   const [style, setStyle] = useState<PostStyle>('custom');
 
   const [passes, setPasses] = useState<PassState>({
-    enabled: true,
+    enabled: false,
     gamma: true,
     custom: true,
     ao: true,

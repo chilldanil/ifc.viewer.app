@@ -10,6 +10,7 @@ import { useBIM, type MultiViewPreset } from '../../context/BIMContext';
 import { WorldToolbarMenu } from './WorldToolbarMenu';
 import { PostproductionToolbarMenu } from './PostproductionToolbarMenu';
 import { CameraToolbarMenu } from './CameraToolbarMenu';
+import { ClippingToolbarMenu } from './ClippingToolbarMenu';
 import { ModelTreePanel } from './ModelTreePanel';
 import { LeftPropertiesPanel } from './LeftPropertiesPanel';
 import { AiVisualizerBottomPanel } from './AiVisualizerBottomPanel';
@@ -19,6 +20,7 @@ import { fitSceneToView, setStandardView, type StandardViewDirection } from '../
 import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import '../sidebar/PerformanceSection.css';
 import './Layout.css';
 
@@ -130,6 +132,136 @@ const CubeIcon = () => (
 );
 
 const HIGHLIGHTER_SELECTION_KEY = 'select';
+const IFV_PLANE_CONTROLS_HELPER_KEY = '__ifvPlaneControlsHelper';
+
+const patchThatOpenClipperPlanes = () => {
+  const EdgesPlane = (OBCF as any)?.EdgesPlane;
+  if (!EdgesPlane?.prototype) {
+    return;
+  }
+
+  const planeProto = EdgesPlane.prototype as any;
+  if (planeProto.__ifvPatched) {
+    return;
+  }
+
+  planeProto.__ifvPatched = true;
+
+  planeProto.newTransformControls = function () {
+    if (!this.world?.renderer) {
+      throw new Error('No renderer found for clipping plane!');
+    }
+
+    const camera = this.world.camera.three;
+    const domElement = this.world.renderer.three.domElement;
+    const controls = new TransformControls(camera, domElement);
+
+    this.initializeControls(controls);
+
+    const helper = controls.getHelper?.();
+    if (helper && this.world?.scene?.three) {
+      this.world.scene.three.add(helper);
+    }
+
+    this[IFV_PLANE_CONTROLS_HELPER_KEY] = helper;
+    return controls;
+  };
+
+  planeProto.initializeControls = function (controls: any) {
+    controls.attach(this._helper);
+    controls.showX = false;
+    controls.showY = false;
+    controls.setSpace?.('local');
+
+    try {
+      this.createArrowBoundingBox?.();
+    } catch {
+      /* ignore */
+    }
+
+    const arrowBoundBox = this._arrowBoundBox;
+    if (!arrowBoundBox) {
+      return;
+    }
+
+    const helper = controls.getHelper?.();
+    if (!helper) {
+      try {
+        this._helper.add(arrowBoundBox);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
+    let target: any = null;
+    helper.traverse?.((obj: any) => {
+      if (target) {
+        return;
+      }
+      if (obj?.name === 'Z') {
+        target = obj;
+      }
+    });
+
+    try {
+      (target ?? helper).add(arrowBoundBox);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const originalDispose = planeProto.dispose;
+  if (typeof originalDispose === 'function') {
+    planeProto.dispose = function (...args: any[]) {
+      try {
+        const helper = this[IFV_PLANE_CONTROLS_HELPER_KEY] ?? this._controls?.getHelper?.();
+        helper?.removeFromParent?.();
+      } catch {
+        /* ignore */
+      }
+      return originalDispose.apply(this, args);
+    };
+  }
+
+  // Make the visibility toggle affect the TransformControls helper too.
+  const findDescriptor = (proto: any, key: string): PropertyDescriptor | null => {
+    let current = proto;
+    while (current) {
+      const desc = Object.getOwnPropertyDescriptor(current, key);
+      if (desc) {
+        return desc;
+      }
+      current = Object.getPrototypeOf(current);
+    }
+    return null;
+  };
+
+  const visibleDescriptor = findDescriptor(planeProto, 'visible');
+  if (visibleDescriptor?.get && visibleDescriptor?.set) {
+    const originalGet = visibleDescriptor.get;
+    const originalSet = visibleDescriptor.set;
+
+    Object.defineProperty(planeProto, 'visible', {
+      configurable: true,
+      enumerable: visibleDescriptor.enumerable ?? false,
+      get() {
+        return originalGet.call(this);
+      },
+      set(state: boolean) {
+        originalSet.call(this, state);
+        try {
+          const helper = this[IFV_PLANE_CONTROLS_HELPER_KEY] ?? this._controls?.getHelper?.();
+          if (helper) {
+            helper.visible = state;
+          }
+        } catch {
+          /* ignore */
+        }
+      },
+    });
+  }
+};
 
 const hasFragmentEntries = (value: unknown): boolean => {
   if (!value) {
@@ -184,17 +316,28 @@ export const Layout: React.FC = () => {
   const [categoryVisibility, setCategoryVisibility] = useState<Record<string, boolean>>({});
   const [hasSelection, setHasSelection] = useState(false);
   const [isCategoryHiderModalOpen, setIsCategoryHiderModalOpen] = useState(false);
-  const [clippingActive, setClippingActive] = useState(false);
-  const [clippingAxis, setClippingAxis] = useState<'X' | 'Y' | 'Z'>('Z');
-  const clippingRefs = useRef<{
-    plane: THREE.Plane | null;
-    helper: THREE.PlaneHelper | null;
-    controls: TransformControls | null;
-  }>({
-    plane: null,
-    helper: null,
-    controls: null,
-  });
+  // Clipping (ThatOpen Clipper + EdgesPlane + ClipEdges)
+  const [clippingEnabled, setClippingEnabled] = useState(false);
+  const [clippingGizmosVisible, setClippingGizmosVisible] = useState(true);
+  const [clippingToolMode, setClippingToolMode] = useState<'off' | 'create' | 'delete'>('off');
+  const [clipPlaneOpacity, setClipPlaneOpacity] = useState(0.2);
+  const [clipPlaneSize, setClipPlaneSize] = useState(5);
+  const [clipEdgesVisible, setClipEdgesVisible] = useState(true);
+  const [clipEdgeColor, setClipEdgeColor] = useState('#e6e6e6');
+  const [clipEdgeWidth, setClipEdgeWidth] = useState(1);
+  const [clipFillColor, setClipFillColor] = useState('#0d131c');
+  const [clipFillOpacity, setClipFillOpacity] = useState(0.15);
+  const [clipOrthoY, setClipOrthoY] = useState(true);
+  const [sectionBoxActive, setSectionBoxActive] = useState(false);
+  const [clipPlaneCount, setClipPlaneCount] = useState(0);
+  const sectionBoxPlanesRef = useRef<any[]>([]);
+  const clipperSetupRef = useRef(false);
+  const clipStyleRef = useRef<{
+    name: string;
+    lineMaterial: LineMaterial;
+    fillMaterial: THREE.MeshBasicMaterial;
+    outlineMaterial: THREE.MeshBasicMaterial;
+  } | null>(null);
   const [transformActive, setTransformActive] = useState(false);
   const transformControlsRef = useRef<TransformControls | null>(null);
   const attachedModelRef = useRef<any>(null);
@@ -586,91 +729,560 @@ export const Layout: React.FC = () => {
     setMultiViewPreset(preset);
   }, [setMultiViewPreset]);
 
-  // Tools: Clipping (toolbar shortcut)
-  const disableClipping = useCallback(() => {
-    const renderer = (world?.renderer as any)?.three as THREE.WebGLRenderer | undefined;
-    if (renderer) {
-      renderer.clippingPlanes = [];
-      renderer.localClippingEnabled = false;
+  // Tools: Clipping (ThatOpen Clipper)
+  const getClipper = useCallback(() => {
+    if (!components) {
+      return null;
     }
-    if (world?.scene && clippingRefs.current.helper) {
-      (world.scene.three as THREE.Scene).remove(clippingRefs.current.helper);
+    try {
+      const clipper = components.get(OBC.Clipper) as any;
+      if (!clipperSetupRef.current) {
+        patchThatOpenClipperPlanes();
+        clipper.Type = (OBCF as any).EdgesPlane;
+        clipperSetupRef.current = true;
+      }
+      return clipper;
+    } catch (error) {
+      console.warn('Failed to access clipper component', error);
+      return null;
     }
-    if (clippingRefs.current.controls) {
-      try {
-        const gizmo = clippingRefs.current.controls.getHelper?.() as unknown as THREE.Object3D | undefined;
-        if (gizmo && world?.scene) {
-          (world.scene.three as THREE.Scene).remove(gizmo);
+  }, [components]);
+
+  const getClipEdges = useCallback(() => {
+    if (!components) {
+      return null;
+    }
+    try {
+      return components.get(OBCF.ClipEdges) as any;
+    } catch (error) {
+      console.warn('Failed to access clip edges component', error);
+      return null;
+    }
+  }, [components]);
+
+  const computeModelsBoundingBox = useCallback((): THREE.Box3 | null => {
+    if (!components || !world) {
+      return null;
+    }
+
+    try {
+      const bbox = new THREE.Box3();
+      const fragmentsManager = components.get(OBC.FragmentsManager) as any;
+      let hasModels = false;
+
+      fragmentsManager?.groups?.forEach?.((group: any) => {
+        if (!group) {
+          return;
         }
-        clippingRefs.current.controls.dispose();
+        try {
+          bbox.union(new THREE.Box3().setFromObject(group));
+          hasModels = true;
+        } catch {
+          /* ignore */
+        }
+      });
+
+      if (!hasModels && world.scene?.three) {
+        bbox.copy(new THREE.Box3().setFromObject(world.scene.three));
+        hasModels = true;
+      }
+
+      if (!hasModels || bbox.isEmpty()) {
+        return null;
+      }
+      return bbox;
+    } catch (error) {
+      console.warn('Failed to compute models bounding box', error);
+      return null;
+    }
+  }, [components, world]);
+
+  const rebuildClipEdgesStyle = useCallback(async () => {
+    if (!world) {
+      return;
+    }
+    const clipEdges = getClipEdges();
+    if (!clipEdges) {
+      return;
+    }
+
+    const styleName = 'default';
+
+    try {
+      const meshes = new Set<any>();
+      const worldMeshes = Array.from((world as any).meshes ?? []);
+      for (const entry of worldMeshes) {
+        const mesh = entry as any;
+        if (!mesh || !mesh.geometry) {
+          continue;
+        }
+        if (mesh.isMesh || mesh.isInstancedMesh) {
+          meshes.add(mesh);
+        }
+      }
+
+      if (meshes.size === 0) {
+        return;
+      }
+
+      try {
+        if (clipEdges.styles?.list?.[styleName]) {
+          clipEdges.styles.deleteStyle(styleName, true);
+        }
+      } catch {
+        /* ignore */
+      }
+
+      const lineMaterial = new LineMaterial({
+        color: new THREE.Color(clipEdgeColor),
+        linewidth: Math.max(0.0005, 0.001 * clipEdgeWidth),
+        transparent: true,
+        opacity: 1,
+      } as any);
+      lineMaterial.resolution.set(window.innerWidth, window.innerHeight);
+
+      const fillMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(clipFillColor),
+        transparent: true,
+        opacity: clipFillOpacity,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+
+      const outlineMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(clipEdgeColor),
+        transparent: true,
+        opacity: 0.9,
+      });
+
+      clipEdges.styles.create(styleName, meshes, world, lineMaterial as any, fillMaterial, outlineMaterial);
+      clipStyleRef.current = { name: styleName, lineMaterial, fillMaterial, outlineMaterial };
+      await clipEdges.update(true);
+    } catch (error) {
+      console.warn('Failed to setup clip edge style', error);
+    }
+  }, [world, getClipEdges]);
+
+  const syncClipperConfig = useCallback(() => {
+    const clipper = getClipper();
+    if (!clipper) {
+      return;
+    }
+
+    try {
+      clipper.enabled = clippingEnabled;
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      clipper.visible = clippingGizmosVisible;
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      clipper.orthogonalY = clipOrthoY;
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      if (clipper.config) {
+        clipper.config.opacity = clipPlaneOpacity;
+        clipper.config.size = clipPlaneSize;
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [
+    getClipper,
+    clippingEnabled,
+    clippingGizmosVisible,
+    clipOrthoY,
+    clipPlaneOpacity,
+    clipPlaneSize,
+  ]);
+
+  useEffect(() => {
+    syncClipperConfig();
+  }, [syncClipperConfig]);
+
+  useEffect(() => {
+    void rebuildClipEdgesStyle();
+  }, [rebuildClipEdgesStyle]);
+
+  useEffect(() => {
+    const off = eventBus.on('modelLoaded', () => {
+      void rebuildClipEdgesStyle();
+    });
+    return () => off();
+  }, [eventBus, rebuildClipEdgesStyle]);
+
+  const syncClipEdgesPresentation = useCallback(() => {
+    const clipEdges = getClipEdges();
+    if (!clipEdges) {
+      return;
+    }
+
+    try {
+      clipEdges.visible = clipEdgesVisible;
+    } catch {
+      /* ignore */
+    }
+
+    const style = clipStyleRef.current;
+    if (style) {
+      try {
+        style.lineMaterial.color = new THREE.Color(clipEdgeColor) as any;
+      } catch {
+        /* ignore */
+      }
+
+      try {
+        style.lineMaterial.linewidth = Math.max(0.0005, 0.001 * clipEdgeWidth) as any;
+        style.lineMaterial.resolution.set(window.innerWidth, window.innerHeight);
+        style.lineMaterial.needsUpdate = true;
+      } catch {
+        /* ignore */
+      }
+
+      try {
+        style.fillMaterial.color.set(clipFillColor);
+        style.fillMaterial.opacity = clipFillOpacity;
+        style.fillMaterial.needsUpdate = true;
+      } catch {
+        /* ignore */
+      }
+
+      try {
+        style.outlineMaterial.color.set(clipEdgeColor);
+        style.outlineMaterial.needsUpdate = true;
       } catch {
         /* ignore */
       }
     }
-    clippingRefs.current = { plane: null, helper: null, controls: null };
-    setClippingActive(false);
-  }, [world]);
 
-  const enableClipping = useCallback((axis: 'X' | 'Y' | 'Z') => {
-    if (!world?.scene || !world.renderer) {
-      console.warn('Cannot enable clipping: world not ready');
+    try {
+      clipEdges.fillsNeedUpdate = true;
+      void clipEdges.update(true);
+    } catch {
+      /* ignore */
+    }
+  }, [getClipEdges, clipEdgesVisible, clipEdgeColor, clipEdgeWidth, clipFillColor, clipFillOpacity]);
+
+  useEffect(() => {
+    syncClipEdgesPresentation();
+  }, [syncClipEdgesPresentation]);
+
+  useEffect(() => {
+    const clipper = getClipper();
+    const clipEdges = getClipEdges();
+    if (!clipper || !clipEdges) {
       return;
     }
 
-    disableClipping();
+    const handleAfterCreate = () => {
+      try {
+        setClipPlaneCount(clipper.list?.length ?? 0);
+      } catch {
+        /* ignore */
+      }
+      clipEdges.fillsNeedUpdate = true;
+      void clipEdges.update(true);
+    };
 
-    const scene = world.scene.three as THREE.Scene;
-    const renderer = (world.renderer as any).three as THREE.WebGLRenderer;
-    const bbox = new THREE.Box3().setFromObject(scene);
+    const handleAfterDelete = (plane: any) => {
+      sectionBoxPlanesRef.current = sectionBoxPlanesRef.current.filter((item) => item !== plane);
+      if (sectionBoxPlanesRef.current.length === 0) {
+        setSectionBoxActive(false);
+      }
+      try {
+        setClipPlaneCount(clipper.list?.length ?? 0);
+      } catch {
+        /* ignore */
+      }
+      clipEdges.fillsNeedUpdate = true;
+      void clipEdges.update(true);
+    };
 
-    let min = 0; let max = 0; let normal = new THREE.Vector3();
-    switch (axis) {
-      case 'X':
-        min = bbox.min.x; max = bbox.max.x; normal = new THREE.Vector3(-1, 0, 0); break;
-      case 'Y':
-        min = bbox.min.y; max = bbox.max.y; normal = new THREE.Vector3(0, -1, 0); break;
-      case 'Z':
-      default:
-        min = bbox.min.z; max = bbox.max.z; normal = new THREE.Vector3(0, 0, -1); break;
+    clipper.onAfterCreate.add(handleAfterCreate);
+    clipper.onAfterDelete.add(handleAfterDelete);
+
+    return () => {
+      clipper.onAfterCreate.remove(handleAfterCreate);
+      clipper.onAfterDelete.remove(handleAfterDelete);
+    };
+  }, [getClipper, getClipEdges]);
+
+  useEffect(() => {
+    if (!world || !components) {
+      return;
     }
-    const initial = (min + max) / 2;
 
-    const plane = new THREE.Plane(normal, initial);
-    renderer.clippingPlanes = [plane];
-    renderer.localClippingEnabled = true;
+    if (clippingToolMode === 'off') {
+      return;
+    }
 
-    const helper = new THREE.PlaneHelper(plane, bbox.getSize(new THREE.Vector3()).length(), 0xff6b6b);
-    scene.add(helper);
+    const viewer = findViewerContainer();
+    if (!viewer) {
+      return;
+    }
 
-    const camera = (world.camera as any)?.three as THREE.Camera | undefined;
-    if (camera) {
-    const controls = new TransformControls(camera, renderer.domElement);
-    controls.attach(helper);
-      const gizmo = controls.getHelper?.() as unknown as THREE.Object3D | undefined;
-      if (gizmo && !scene.children.includes(gizmo)) {
-        scene.add(gizmo);
+    const clipper = getClipper();
+    const clipEdges = getClipEdges();
+    if (!clipper || !clipEdges) {
+      return;
+    }
+
+    const raycasters = components.get(OBC.Raycasters);
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) {
+        return;
       }
 
-      controls.addEventListener('objectChange', () => {
-        const newConstant = -plane.normal.dot(helper.position);
-        plane.constant = newConstant;
-      });
+      event.preventDefault();
+      event.stopPropagation();
 
-      controls.addEventListener('dragging-changed', (e: any) => {
-        const orbit = (world.camera as any)?.controls;
-        if (orbit) {
-          orbit.enabled = !e.value;
+      try {
+        const dom = (world.renderer as any)?.three?.domElement as HTMLElement | undefined;
+        if (!dom) {
+          return;
         }
-      });
 
-      clippingRefs.current.controls = controls;
+        const bounds = dom.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) {
+          return;
+        }
+
+        const position = new THREE.Vector2(
+          ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+          -((event.clientY - bounds.top) / bounds.height) * 2 + 1
+        );
+
+        const caster = raycasters.get(world);
+
+        if (clippingToolMode === 'create') {
+          const intersects = caster.castRay(Array.from((world as any).meshes ?? []), position);
+          const faceNormal = intersects?.face?.normal?.clone();
+          if (!intersects || !faceNormal) {
+            return;
+          }
+
+          const object = intersects.object as any;
+          let transform = object?.matrixWorld?.clone?.() as THREE.Matrix4 | undefined;
+          if (!transform) {
+            return;
+          }
+
+          if (object?.isInstancedMesh && intersects.instanceId !== undefined) {
+            const instanceMatrix = new THREE.Matrix4();
+            object.getMatrixAt(intersects.instanceId, instanceMatrix);
+            transform = instanceMatrix.multiply(transform);
+          }
+
+          const normalMatrix = new THREE.Matrix3().getNormalMatrix(transform);
+          const worldNormal = faceNormal.applyMatrix3(normalMatrix).normalize();
+
+          if (clipOrthoY) {
+            const tolerance = 0.7;
+            if (worldNormal.y > tolerance) {
+              worldNormal.set(0, 1, 0);
+            } else if (worldNormal.y < -tolerance) {
+              worldNormal.set(0, -1, 0);
+            }
+          }
+
+          setClippingEnabled(true);
+          clipper.enabled = true;
+          clipper.createFromNormalAndCoplanarPoint(world, worldNormal.negate(), intersects.point);
+        } else if (clippingToolMode === 'delete') {
+          const planeMeshes = clipper.list.flatMap((plane: any) => plane?.meshes ?? []);
+          if (!planeMeshes.length) {
+            return;
+          }
+
+          const hit = caster.castRay(planeMeshes, position);
+          if (!hit) {
+            return;
+          }
+
+          const plane = clipper.list.find((candidate: any) => candidate?.meshes?.includes?.(hit.object));
+          if (!plane) {
+            return;
+          }
+
+          clipper.delete(world, plane);
+        }
+      } catch (error) {
+        console.warn('Clipping interaction failed', error);
+      } finally {
+        clipEdges.fillsNeedUpdate = true;
+        void clipEdges.update(true);
+        setClippingToolMode('off');
+      }
+    };
+
+    viewer.addEventListener('pointerdown', handlePointerDown, true);
+    return () => {
+      viewer.removeEventListener('pointerdown', handlePointerDown, true);
+    };
+  }, [world, components, clippingToolMode, findViewerContainer, getClipper, getClipEdges, clipOrthoY]);
+
+  useEffect(() => {
+    if (clippingToolMode === 'off') {
+      return;
     }
 
-    clippingRefs.current.plane = plane;
-    clippingRefs.current.helper = helper;
-    setClippingAxis(axis);
-    setClippingActive(true);
-  }, [world, disableClipping]);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setClippingToolMode('off');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [clippingToolMode]);
+
+  useEffect(() => {
+    const viewer = findViewerContainer();
+    if (!viewer) {
+      return;
+    }
+
+    const previousCursor = viewer.style.cursor;
+    if (clippingToolMode === 'create') {
+      viewer.style.cursor = 'crosshair';
+    } else if (clippingToolMode === 'delete') {
+      viewer.style.cursor = 'not-allowed';
+    } else {
+      viewer.style.cursor = '';
+    }
+
+    return () => {
+      viewer.style.cursor = previousCursor;
+    };
+  }, [clippingToolMode, findViewerContainer]);
+
+  const createAxisClippingPlane = useCallback((axis: 'X' | 'Y' | 'Z') => {
+    if (!world) {
+      return;
+    }
+
+    const clipper = getClipper();
+    if (!clipper) {
+      return;
+    }
+
+    const bbox = computeModelsBoundingBox();
+    const center = bbox?.getCenter(new THREE.Vector3()) ?? new THREE.Vector3();
+
+    const normal = axis === 'X'
+      ? new THREE.Vector3(-1, 0, 0)
+      : axis === 'Y'
+        ? new THREE.Vector3(0, -1, 0)
+        : new THREE.Vector3(0, 0, -1);
+
+    setClippingEnabled(true);
+    clipper.enabled = true;
+    clipper.createFromNormalAndCoplanarPoint(world, normal, center);
+  }, [world, getClipper, computeModelsBoundingBox]);
+
+  const clearSectionBox = useCallback(() => {
+    if (!world) {
+      return;
+    }
+    const clipper = getClipper();
+    if (!clipper) {
+      return;
+    }
+
+    const planes = [...sectionBoxPlanesRef.current];
+    sectionBoxPlanesRef.current = [];
+    setSectionBoxActive(false);
+
+    for (const plane of planes) {
+      try {
+        clipper.delete(world, plane);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [world, getClipper]);
+
+  const createSectionBox = useCallback(() => {
+    if (!world) {
+      return;
+    }
+
+    const clipper = getClipper();
+    if (!clipper) {
+      return;
+    }
+
+    const bbox = computeModelsBoundingBox();
+    if (!bbox) {
+      return;
+    }
+
+    const previous = [...sectionBoxPlanesRef.current];
+    sectionBoxPlanesRef.current = [];
+
+    for (const plane of previous) {
+      try {
+        clipper.delete(world, plane);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const center = bbox.getCenter(new THREE.Vector3());
+    const planes: any[] = [];
+
+    const createPlane = (normal: THREE.Vector3, point: THREE.Vector3) => {
+      const plane = clipper.createFromNormalAndCoplanarPoint(world, normal, point);
+      try {
+        plane.enabled = true;
+      } catch {
+        /* ignore */
+      }
+      planes.push(plane);
+    };
+
+    // Three.js keeps the positive half-space (distance > 0), so normals must point inward to keep the box volume.
+    createPlane(new THREE.Vector3(1, 0, 0), new THREE.Vector3(bbox.min.x, center.y, center.z));
+    createPlane(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(bbox.max.x, center.y, center.z));
+    createPlane(new THREE.Vector3(0, 1, 0), new THREE.Vector3(center.x, bbox.min.y, center.z));
+    createPlane(new THREE.Vector3(0, -1, 0), new THREE.Vector3(center.x, bbox.max.y, center.z));
+    createPlane(new THREE.Vector3(0, 0, 1), new THREE.Vector3(center.x, center.y, bbox.min.z));
+    createPlane(new THREE.Vector3(0, 0, -1), new THREE.Vector3(center.x, center.y, bbox.max.z));
+
+    sectionBoxPlanesRef.current = planes;
+    setSectionBoxActive(true);
+    setClippingEnabled(true);
+    clipper.enabled = true;
+  }, [world, getClipper, computeModelsBoundingBox]);
+
+  const clearAllClipping = useCallback(() => {
+    const clipper = getClipper();
+    if (!clipper) {
+      return;
+    }
+
+    try {
+      clipper.deleteAll();
+      sectionBoxPlanesRef.current = [];
+      setSectionBoxActive(false);
+      setClippingEnabled(false);
+      clipper.enabled = false;
+      setClipPlaneCount(0);
+    } catch (error) {
+      console.warn('Failed to clear clipping planes', error);
+    }
+  }, [getClipper]);
 
   // Tools: Model transform (toolbar shortcut)
   const disableTransform = useCallback(() => {
@@ -767,16 +1379,14 @@ export const Layout: React.FC = () => {
 
   // Cleanup clipping / transform on world change and unmount
   useEffect(() => {
-    disableClipping();
     disableTransform();
-  }, [world, disableClipping, disableTransform]);
+  }, [world, disableTransform]);
 
   useEffect(() => {
     return () => {
-      disableClipping();
       disableTransform();
     };
-  }, [disableClipping, disableTransform]);
+  }, [disableTransform]);
 
   // Tools: Show All (Reset Visibility)
   const handleShowAll = useCallback(() => {
@@ -922,10 +1532,41 @@ export const Layout: React.FC = () => {
       label: 'Tools',
       items: [
         { label: 'Clipping', type: 'submenu', icon: <ScissorsIcon />, items: [
-          { label: clippingActive ? `Disable Clipping (${clippingAxis})` : `Enable Clipping (${clippingAxis})`, onClick: () => clippingActive ? disableClipping() : enableClipping(clippingAxis), disabled: !world },
-          { label: 'Enable X Clipping', onClick: () => enableClipping('X'), disabled: !world },
-          { label: 'Enable Y Clipping', onClick: () => enableClipping('Y'), disabled: !world },
-          { label: 'Enable Z Clipping', onClick: () => enableClipping('Z'), disabled: !world },
+          {
+            type: 'custom',
+            render: () => (
+              <ClippingToolbarMenu
+                enabled={clippingEnabled}
+                onEnabledChange={setClippingEnabled}
+                gizmosVisible={clippingGizmosVisible}
+                onGizmosVisibleChange={setClippingGizmosVisible}
+                edgesVisible={clipEdgesVisible}
+                onEdgesVisibleChange={setClipEdgesVisible}
+                orthoY={clipOrthoY}
+                onOrthoYChange={setClipOrthoY}
+                planeOpacity={clipPlaneOpacity}
+                onPlaneOpacityChange={setClipPlaneOpacity}
+                planeSize={clipPlaneSize}
+                onPlaneSizeChange={setClipPlaneSize}
+                edgeColor={clipEdgeColor}
+                onEdgeColorChange={setClipEdgeColor}
+                edgeWidth={clipEdgeWidth}
+                onEdgeWidthChange={setClipEdgeWidth}
+                fillColor={clipFillColor}
+                onFillColorChange={setClipFillColor}
+                fillOpacity={clipFillOpacity}
+                onFillOpacityChange={setClipFillOpacity}
+                toolMode={clippingToolMode}
+                onToolModeChange={setClippingToolMode}
+                sectionBoxActive={sectionBoxActive}
+                onCreateSectionBox={createSectionBox}
+                onClearSectionBox={clearSectionBox}
+                onClearAll={clearAllClipping}
+                onCreateAxisPlane={createAxisClippingPlane}
+                planeCount={clipPlaneCount}
+              />
+            ),
+          },
         ]},
         { label: transformActive ? 'Disable Model Transform' : 'Enable Model Transform', icon: <CubeIcon />, onClick: () => transformActive ? disableTransform() : enableTransform(), disabled: !world },
         { label: 'Reset Model Transform', icon: <BoxIcon />, onClick: resetTransform, disabled: !transformActive },
@@ -975,10 +1616,23 @@ export const Layout: React.FC = () => {
     floorMenuItems,
     categoryMenuItems,
     selectionHiderMenuItems,
-    clippingActive,
-    clippingAxis,
-    disableClipping,
-    enableClipping,
+    clippingEnabled,
+    clippingGizmosVisible,
+    clipEdgesVisible,
+    clipOrthoY,
+    sectionBoxActive,
+    clippingToolMode,
+    clipPlaneOpacity,
+    clipPlaneSize,
+    clipEdgeColor,
+    clipEdgeWidth,
+    clipFillColor,
+    clipFillOpacity,
+    clipPlaneCount,
+    createAxisClippingPlane,
+    createSectionBox,
+    clearSectionBox,
+    clearAllClipping,
     world,
     transformActive,
     disableTransform,
