@@ -159,6 +159,37 @@ const collectFragmentKeys = (fragmentIdMap: unknown): Set<string> => {
   return keys;
 };
 
+const collectModelKeysFromSelection = (components: OBC.Components, fragmentIdMap: unknown): Set<string> => {
+  try {
+    const fragmentsManager = components.get(OBC.FragmentsManager) as any;
+    if (typeof fragmentsManager?.getModelIdMap !== 'function') {
+      return collectFragmentKeys(fragmentIdMap);
+    }
+
+    const modelIdMap = fragmentsManager.getModelIdMap(fragmentIdMap as any) as Record<string, Set<number>> | undefined;
+    if (!modelIdMap) {
+      return new Set();
+    }
+
+    const keys = new Set<string>();
+    Object.entries(modelIdMap).forEach(([modelId, expressIds]) => {
+      if (!(expressIds instanceof Set)) {
+        return;
+      }
+
+      expressIds.forEach((expressId) => {
+        if (typeof expressId === 'number') {
+          keys.add(fragmentKey(modelId, expressId));
+        }
+      });
+    });
+
+    return keys.size ? keys : collectFragmentKeys(fragmentIdMap);
+  } catch {
+    return collectFragmentKeys(fragmentIdMap);
+  }
+};
+
 const buildFragmentMapForNode = (node: TableGroupNode | null, components: OBC.Components): FragmentIdMap | null => {
   if (!node) {
     return null;
@@ -525,6 +556,7 @@ export const setupRelationsTreeEnhancements = (
   const fragMapByKey = new Map<string, unknown>();
   const fragMapByRow = new WeakMap<HTMLElement, unknown>();
   let currentKeys = new Set<string>();
+  let revealRequestId = 0;
 
   const highlighter = (() => {
     try {
@@ -632,6 +664,196 @@ export const setupRelationsTreeEnhancements = (
     setHiddenForKeys(subtreeKeys, !nextVisible);
   };
 
+  const parseKey = (key: string) => {
+    const separatorIndex = key.lastIndexOf(':');
+    if (separatorIndex <= 0) {
+      return null;
+    }
+    const modelId = key.slice(0, separatorIndex);
+    const expressId = Number(key.slice(separatorIndex + 1));
+    if (!modelId || !Number.isFinite(expressId)) {
+      return null;
+    }
+    return { modelId, expressId };
+  };
+
+  const findPathToRow = (
+    nodes: TableGroupNode[],
+    modelId: string,
+    expressId: number,
+    ancestors: TableGroupNode[] = [],
+  ): TableGroupNode[] | null => {
+    for (const node of nodes) {
+      const data = node.data as RelationsTreeRowData | undefined;
+      const nodeModelId = data?.modelID;
+      const nodeExpressId = data?.expressID;
+      const matches =
+        (typeof nodeModelId === 'string' || typeof nodeModelId === 'number')
+        && String(nodeModelId) === modelId
+        && typeof nodeExpressId === 'number'
+        && nodeExpressId === expressId;
+      const nextAncestors = [...ancestors, node];
+
+      if (matches) {
+        return nextAncestors;
+      }
+
+      if (node.children?.length) {
+        const found = findPathToRow(node.children, modelId, expressId, nextAncestors);
+        if (found) {
+          return found;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const getTableShadowRoot = async () => {
+    if ((tree as any).shadowRoot) {
+      return (tree as any).shadowRoot as ShadowRoot;
+    }
+    const update = (tree as any).updateComplete;
+    if (update instanceof Promise) {
+      try {
+        await update;
+      } catch {
+        // ignore
+      }
+    }
+    return (tree as any).shadowRoot as ShadowRoot | null;
+  };
+
+  const findGroupElement = (root: ShadowRoot, node: TableGroupNode) => {
+    const groups = root.querySelectorAll('bim-table-group');
+    for (const group of groups) {
+      const groupNode = (group as any).data;
+      if (groupNode === node) {
+        return group as HTMLElement;
+      }
+    }
+    return null;
+  };
+
+  const waitForUpdateComplete = async (element: unknown) => {
+    const update = (element as any)?.updateComplete;
+    if (update instanceof Promise) {
+      try {
+        await update;
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const waitForShadowRoot = async (element: unknown, timeoutMs = 500) => {
+    const shadowRoot = (element as any)?.shadowRoot as ShadowRoot | undefined;
+    if (shadowRoot) {
+      return shadowRoot;
+    }
+
+    await waitForUpdateComplete(element);
+    if ((element as any)?.shadowRoot) {
+      return (element as any).shadowRoot as ShadowRoot;
+    }
+
+    await waitFor(() => Boolean((element as any)?.shadowRoot), timeoutMs);
+    return ((element as any)?.shadowRoot as ShadowRoot) ?? null;
+  };
+
+  const waitFor = async (predicate: () => boolean, timeoutMs = 500) => {
+    const start = performance.now();
+    while (performance.now() - start < timeoutMs) {
+      if (predicate()) {
+        return true;
+      }
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+    return predicate();
+  };
+
+  const revealKeyInTree = async (key: string) => {
+    const requestId = ++revealRequestId;
+    const parsed = parseKey(key);
+    if (!parsed) {
+      return;
+    }
+
+    const existingRow = rowRegistry.get(key);
+    if (existingRow?.isConnected) {
+      existingRow.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      return;
+    }
+
+    const root = await getTableShadowRoot();
+    if (!root || requestId !== revealRequestId) {
+      return;
+    }
+
+    const topChildrenHost = root.querySelector('bim-table-children');
+    if (!topChildrenHost) {
+      return;
+    }
+
+    const topGroupsRoot = await waitForShadowRoot(topChildrenHost, 700);
+    if (!topGroupsRoot || requestId !== revealRequestId) {
+      return;
+    }
+
+    const nodes = (table.value as unknown as TableGroupNode[]) ?? [];
+    const path = findPathToRow(nodes, parsed.modelId, parsed.expressId);
+    if (!path || requestId !== revealRequestId) {
+      return;
+    }
+
+    let groupsRoot: ShadowRoot | null = topGroupsRoot;
+    for (let index = 0; index < path.length - 1; index += 1) {
+      const node = path[index];
+      const nextNode = path[index + 1];
+      if (!groupsRoot) {
+        break;
+      }
+
+      const group = findGroupElement(groupsRoot, node);
+      if (!group) {
+        break;
+      }
+
+      const groupAny = group as any;
+      if (typeof groupAny.toggleChildren === 'function' && groupAny.childrenHidden) {
+        groupAny.toggleChildren(true);
+        await waitForUpdateComplete(group);
+      }
+
+      const groupShadow = await waitForShadowRoot(group, 500);
+      if (!groupShadow) {
+        break;
+      }
+
+      const nextChildrenHost = groupShadow.querySelector('bim-table-children');
+      if (!nextChildrenHost) {
+        break;
+      }
+
+      groupsRoot = await waitForShadowRoot(nextChildrenHost, 700);
+
+      await waitFor(() => Boolean(groupsRoot && findGroupElement(groupsRoot, nextNode)), 700);
+      if (requestId !== revealRequestId) {
+        return;
+      }
+    }
+
+    await waitFor(() => Boolean(rowRegistry.get(key)?.isConnected), 600);
+    if (requestId !== revealRequestId) {
+      return;
+    }
+
+    const row = rowRegistry.get(key);
+    if (row?.isConnected) {
+      row.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  };
+
   const registerRow = (row: TableRow<Record<string, any>>) => {
     const rowElement = row as unknown as HTMLElement;
     const rowData = (row as any).data as RelationsTreeRowData | undefined;
@@ -670,8 +892,7 @@ export const setupRelationsTreeEnhancements = (
     rowElement.toggleAttribute('data-expandable', expandable);
     if (!expandable) {
       queueMicrotask(() => {
-        const root = rowElement.shadowRoot ?? rowElement;
-        root.querySelector('.caret')?.remove();
+        rowElement.querySelector('.caret')?.remove();
       });
     }
 
@@ -802,7 +1023,12 @@ export const setupRelationsTreeEnhancements = (
   tree.addEventListener('togglevisibility', onToggleVisibility as EventListener);
 
   const handleHighlight = (fragmentIdMap: unknown) => {
-    applySelection(collectFragmentKeys(fragmentIdMap));
+    const keys = collectModelKeysFromSelection(components, fragmentIdMap);
+    applySelection(keys);
+    const firstKey = keys.values().next().value;
+    if (typeof firstKey === 'string') {
+      void revealKeyInTree(firstKey);
+    }
   };
 
   const handleClear = () => {

@@ -184,7 +184,33 @@ export const setupRelationsTreeSelection = (
   }
 
   const handleHighlight = (fragmentIdMap: unknown) => {
-    applySelection(collectFragmentKeys(fragmentIdMap));
+    let keys = collectFragmentKeys(fragmentIdMap);
+    try {
+      const fragmentsManager = components.get(OBC.FragmentsManager) as any;
+      if (typeof fragmentsManager?.getModelIdMap === 'function') {
+        const modelIdMap = fragmentsManager.getModelIdMap(fragmentIdMap as any) as Record<string, Set<number>> | undefined;
+        if (modelIdMap) {
+          const mapped = new Set<string>();
+          Object.entries(modelIdMap).forEach(([modelId, expressIds]) => {
+            if (!(expressIds instanceof Set)) {
+              return;
+            }
+            expressIds.forEach((expressId) => {
+              if (typeof expressId === 'number') {
+                mapped.add(fragmentKey(modelId, expressId));
+              }
+            });
+          });
+          if (mapped.size) {
+            keys = mapped;
+          }
+        }
+      }
+    } catch {
+      // ignore mapping failures
+    }
+
+    applySelection(keys);
   };
 
   const handleClear = () => {
@@ -206,4 +232,3 @@ export const setupRelationsTreeSelection = (
     rowRegistry.clear();
   };
 };
-
