@@ -1,5 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs/promises';
+import * as os from 'os';
 import { fileURLToPath } from 'url';
 import Replicate from 'replicate';
 
@@ -19,8 +21,9 @@ function createWindow() {
     title: 'IFC Viewer',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
+      // Enable renderer to require Node modules as a fallback for file browsing
+      contextIsolation: false,
+      nodeIntegration: true,
       sandbox: false,
       webSecurity: true,
     },
@@ -202,6 +205,38 @@ ipcMain.handle('dialog:saveFile', async (_event, defaultPath?: string) => {
     return result.filePath;
   }
   return null;
+});
+
+ipcMain.handle('fs:listDir', async (_event, dirPath?: string) => {
+  try {
+    const target = dirPath ? path.resolve(dirPath) : os.homedir();
+    const entries = await fs.readdir(target, { withFileTypes: true });
+    const filtered = entries
+      .filter((entry) => entry.isDirectory() || entry.name.toLowerCase().endsWith('.ifc'))
+      .map((entry) => ({
+        name: entry.name,
+        path: path.join(target, entry.name),
+        isDirectory: entry.isDirectory(),
+        isIfc: entry.isFile() && entry.name.toLowerCase().endsWith('.ifc'),
+      }))
+      .sort((a, b) => {
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name);
+      });
+    return {
+      path: target,
+      parent: path.dirname(target),
+      entries: filtered,
+    };
+  } catch (error: any) {
+    return {
+      error: error?.message ?? 'Failed to read directory',
+      path: dirPath ?? '',
+      parent: '',
+      entries: [],
+    };
+  }
 });
 
 ipcMain.handle('ai:generate', async (_event, args: unknown) => {

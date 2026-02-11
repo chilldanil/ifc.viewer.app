@@ -14,6 +14,7 @@ import { ClippingToolbarMenu } from './ClippingToolbarMenu';
 import { ModelTreePanel } from './ModelTreePanel';
 import { LeftPropertiesPanel } from './LeftPropertiesPanel';
 import { AiVisualizerBottomPanel } from './AiVisualizerBottomPanel';
+import { StartPage } from './StartPage';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import { setupIfcLoader } from '../../core/services/ifcLoaderService';
 import { fitSceneToView, setStandardView, type StandardViewDirection } from '../../utils/cameraUtils';
@@ -23,8 +24,11 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { Modal, Stack, Text } from '../../ui';
 import { useElectronFileOpen } from '../../hooks/useElectronFileOpen';
+import { getElectronAPI } from '../../utils/electronUtils';
 import '../sidebar/PerformanceSection.css';
 import './Layout.css';
+
+const SKIP_START_PAGE_KEY = 'ifcViewer.skipStartPage';
 
 // ============================================================================
 // Icons for Toolbar Menus
@@ -292,6 +296,7 @@ export const Layout: React.FC = () => {
     captureScreenshot,
     viewCubeEnabled,
     setViewCubeEnabled,
+    isModelLoading,
     setIsModelLoading,
     eventBus,
     minimapConfig,
@@ -301,6 +306,17 @@ export const Layout: React.FC = () => {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const readSkipStartPagePref = () => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    try {
+      return localStorage.getItem(SKIP_START_PAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  };
+  const initialSkipStartPage = readSkipStartPagePref();
 
   // Panel visibility states
   const [isLeftPanelCollapsed, setLeftPanelCollapsed] = useState(true);
@@ -342,8 +358,34 @@ export const Layout: React.FC = () => {
   const statsOverlayHostRef = useRef<HTMLElement | null>(null);
   const MINIMAP_LIMITS = { minZoom: 0.01, maxZoom: 0.5 };
   const [helpModal, setHelpModal] = useState<'docs' | 'shortcuts' | 'about' | null>(null);
+  const [hasModelLoaded, setHasModelLoaded] = useState(false);
+  const [skipStartPage, setSkipStartPage] = useState(initialSkipStartPage);
+  const [startPageVisible, setStartPageVisible] = useState(!initialSkipStartPage);
+  const [startPageBusy, setStartPageBusy] = useState(false);
+  const [lastLoadedPath, setLastLoadedPath] = useState<string | null>(null);
 
   useElectronFileOpen(components, propertyEditingService);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SKIP_START_PAGE_KEY, skipStartPage ? 'true' : 'false');
+    } catch {
+      /* ignore */
+    }
+    if (skipStartPage) {
+      setStartPageVisible(false);
+    }
+  }, [skipStartPage]);
+
+  useEffect(() => {
+    if (!components) {return;}
+    try {
+      const fragmentsManager = components.get(OBC.FragmentsManager);
+      setHasModelLoaded((fragmentsManager?.groups?.size ?? 0) > 0);
+    } catch {
+      /* ignore */
+    }
+  }, [components]);
 
   const findViewerContainer = useCallback(() => {
     return document.querySelector<HTMLElement>('.ifc-viewer-library-container .viewer-container');
@@ -563,10 +605,116 @@ export const Layout: React.FC = () => {
     return () => off();
   }, [eventBus, refreshSelectionState]);
 
+  const computeModelsBoundingBox = useCallback((): THREE.Box3 | null => {
+    if (!components || !world) {
+      return null;
+    }
+
+    try {
+      const bbox = new THREE.Box3();
+      const fragmentsManager = components.get(OBC.FragmentsManager) as any;
+      let hasModels = false;
+
+      fragmentsManager?.groups?.forEach?.((group: any) => {
+        if (!group) {
+          return;
+        }
+        try {
+          bbox.union(new THREE.Box3().setFromObject(group));
+          hasModels = true;
+        } catch {
+          /* ignore */
+        }
+      });
+
+      if (!hasModels && world.scene?.three) {
+        bbox.copy(new THREE.Box3().setFromObject(world.scene.three));
+        hasModels = true;
+      }
+
+      if (!hasModels || bbox.isEmpty()) {
+        return null;
+      }
+      return bbox;
+    } catch (error) {
+      console.warn('Failed to compute models bounding box', error);
+      return null;
+    }
+  }, [components, world]);
+
+  const focusOnModels = useCallback(async () => {
+    if (!world) {return;}
+    const bbox = computeModelsBoundingBox();
+    if (!bbox) {return;}
+
+    const center = bbox.getCenter(new THREE.Vector3());
+    const size = bbox.getSize(new THREE.Vector3());
+    const radius = Math.max(size.length() * 0.6, 5);
+
+    const controls = (world.camera as any)?.controls;
+    if (controls?.setLookAt) {
+      try {
+        await controls.setLookAt(
+          center.x + radius,
+          center.y + radius,
+          center.z + radius,
+          center.x,
+          center.y,
+          center.z,
+          true
+        );
+      } catch {
+        /* ignore */
+      }
+    }
+
+    await fitSceneToView(world, { paddingRatio: 1.2 });
+  }, [computeModelsBoundingBox, world]);
+
+  useEffect(() => {
+    const off = eventBus.on('modelLoaded', () => setHasModelLoaded(true));
+    return () => off();
+  }, [eventBus]);
+
 
   // ============================================================================
   // Action Handlers
   // ============================================================================
+
+  const loadIfcFromBuffer = useCallback(async (buffer: ArrayBuffer | Uint8Array) => {
+    if (!components) {
+      console.warn('Cannot load IFC: components not ready');
+      return;
+    }
+
+    setIsModelLoading(true);
+    try {
+      const loader = setupIfcLoader(components, propertyEditingService ?? undefined);
+      const uint8Array = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+
+      const modelLoaded = new Promise<void>((resolve) => {
+        try {
+          loader.onModelLoaded(() => {
+            setHasModelLoaded(true);
+            resolve();
+          });
+        } catch {
+          resolve();
+        }
+      });
+
+      await loader.loadFromBuffer(uint8Array);
+      await modelLoaded;
+
+      if (world) {
+        await focusOnModels();
+      }
+    } catch (err) {
+      console.error('Failed to load IFC file:', err);
+    } finally {
+      setIsModelLoading(false);
+    }
+  }, [components, propertyEditingService, world, setIsModelLoading, focusOnModels]);
 
   // File: Open IFC
   const handleOpenIfcClick = useCallback(() => {
@@ -577,26 +725,108 @@ export const Layout: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file || !components) return;
 
-    setIsModelLoading(true);
+    setStartPageBusy(true);
     try {
-      const loader = setupIfcLoader(components);
+      clearExistingModels();
       const buffer = await file.arrayBuffer();
-      await loader.loadFromBuffer(new Uint8Array(buffer));
-
-      // Fit to model after loading
+      await loadIfcFromBuffer(buffer);
       if (world) {
-        await fitSceneToView(world, { paddingRatio: 1.2 });
+        await focusOnModels();
       }
     } catch (err) {
       console.error('Failed to load IFC file:', err);
     } finally {
-      setIsModelLoading(false);
+      setStartPageBusy(false);
       // Reset input so same file can be loaded again
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
-  }, [components, world, setIsModelLoading]);
+  }, [components, loadIfcFromBuffer]);
+
+  const clearExistingModels = useCallback(() => {
+    if (!components) {return;}
+    try {
+      const fragmentsManager = components.get(OBC.FragmentsManager) as any;
+      fragmentsManager?.groups?.forEach((group: any) => {
+        try {
+          world?.scene?.three?.remove(group.object);
+        } catch {
+          /* ignore */
+        }
+        try {
+          group.dispose?.();
+        } catch {
+          /* ignore */
+        }
+      });
+      try {
+        fragmentsManager.groups?.clear?.();
+      } catch {
+        /* ignore */
+      }
+      try {
+        fragmentsManager.entities?.clear?.();
+      } catch {
+        /* ignore */
+      }
+      try {
+        fragmentsManager.list?.clear?.();
+      } catch {
+        /* ignore */
+      }
+      // Avoid disposing the manager itself; just clear existing data.
+    } catch (error) {
+      console.warn('Failed to clear existing models', error);
+    }
+  }, [components, world]);
+
+  const readFileFromPath = useCallback(async (path: string): Promise<ArrayBuffer | null> => {
+    try {
+      const api = getElectronAPI();
+      if (api?.readFile) {
+        return await api.readFile(path);
+      }
+    } catch (error) {
+      console.warn('Failed reading via electronAPI, trying Node fallback', error);
+    }
+
+    try {
+      // Fallback when nodeIntegration is enabled
+      const req = (window as any).require as any;
+      if (!req) {
+        console.warn('No require available for file read fallback');
+        return null;
+      }
+      const fs = req('fs');
+      const buffer = await fs.promises.readFile(path);
+      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    } catch (error) {
+      console.error('Failed to read file via Node fallback:', error);
+      return null;
+    }
+  }, []);
+
+  const handleOpenIfcFromPath = useCallback(async (path: string) => {
+    setStartPageBusy(true);
+    try {
+      clearExistingModels();
+      const buffer = await readFileFromPath(path);
+      if (!buffer) {
+        throw new Error('Unable to read IFC file');
+      }
+      await loadIfcFromBuffer(buffer);
+      setLastLoadedPath(path);
+      // Ensure final focus after everything settled
+      if (world) {
+        await focusOnModels();
+      }
+    } catch (error) {
+      console.error('Failed to load IFC from path:', error);
+    } finally {
+      setStartPageBusy(false);
+    }
+  }, [clearExistingModels, loadIfcFromBuffer, readFileFromPath, focusOnModels, world]);
 
   const handleToggleFloorVisibility = useCallback(async (floorName: string) => {
     if (!components) {return;}
@@ -801,43 +1031,6 @@ export const Layout: React.FC = () => {
       return null;
     }
   }, [components]);
-
-  const computeModelsBoundingBox = useCallback((): THREE.Box3 | null => {
-    if (!components || !world) {
-      return null;
-    }
-
-    try {
-      const bbox = new THREE.Box3();
-      const fragmentsManager = components.get(OBC.FragmentsManager) as any;
-      let hasModels = false;
-
-      fragmentsManager?.groups?.forEach?.((group: any) => {
-        if (!group) {
-          return;
-        }
-        try {
-          bbox.union(new THREE.Box3().setFromObject(group));
-          hasModels = true;
-        } catch {
-          /* ignore */
-        }
-      });
-
-      if (!hasModels && world.scene?.three) {
-        bbox.copy(new THREE.Box3().setFromObject(world.scene.three));
-        hasModels = true;
-      }
-
-      if (!hasModels || bbox.isEmpty()) {
-        return null;
-      }
-      return bbox;
-    } catch (error) {
-      console.warn('Failed to compute models bounding box', error);
-      return null;
-    }
-  }, [components, world]);
 
   const rebuildClipEdgesStyle = useCallback(async () => {
     if (!world) {
@@ -1688,6 +1881,7 @@ export const Layout: React.FC = () => {
 
   // Toolbar right content
   const toolbarRightContent = useMemo(() => null, []);
+  const showStartPage = startPageVisible;
 
   if (isLoading) {
     return (
@@ -1787,6 +1981,19 @@ export const Layout: React.FC = () => {
           >
             <AiVisualizerBottomPanel />
           </Panel>
+
+          {showStartPage && (
+            <StartPage
+              onOpenIfcPath={handleOpenIfcFromPath}
+              onEnterViewer={() => setStartPageVisible(false)}
+              canEnter={hasModelLoaded}
+              skipStartPage={skipStartPage}
+              onSkipStartPageChange={setSkipStartPage}
+              previewPreset={presetKey}
+              loadedModelName={lastLoadedPath ? lastLoadedPath.split(/[/\\]/).pop() ?? lastLoadedPath : null}
+              isBusy={isModelLoading || startPageBusy}
+            />
+          )}
         </div>
 
         {/* Right Panel (Properties) */}

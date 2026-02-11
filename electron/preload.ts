@@ -45,6 +45,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     };
   },
 
+  // File system browsing
+  listDir: (dirPath?: string) => ipcRenderer.invoke('fs:listDir', dirPath),
+
   // AI Visualizer (Replicate) - executed in main process via IPC
   generateAiImage: (args: { prompt: string; imageBase64: string; apiKey: string }) =>
     ipcRenderer.invoke('ai:generate', args),
@@ -61,6 +64,14 @@ export interface ElectronAPI {
   readFile: (filePath: string) => Promise<ArrayBuffer>;
   writeFile: (filePath: string, data: ArrayBuffer) => Promise<void>;
   onFileOpened: (callback: (filePath: string) => void) => () => void;
+  listDir: (
+    dirPath?: string
+  ) => Promise<{
+    path: string;
+    parent: string;
+    entries: Array<{ name: string; path: string; isDirectory: boolean; isIfc: boolean }>;
+    error?: string;
+  }>;
   generateAiImage: (args: { prompt: string; imageBase64: string; apiKey: string }) => Promise<{ image: string }>;
   platform: NodeJS.Platform;
   isElectron: boolean;
