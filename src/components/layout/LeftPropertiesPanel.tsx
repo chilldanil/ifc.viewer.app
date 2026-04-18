@@ -11,6 +11,10 @@ const ExportModifiedIfc = React.lazy(() =>
   import('../sidebar/ExportModifiedIfc').then((m) => ({ default: m.ExportModifiedIfc }))
 );
 
+const ClashDetectionSection = React.lazy(() =>
+  import('../sidebar/ClashDetectionSection').then((m) => ({ default: m.ClashDetectionSection }))
+);
+
 export const LeftPropertiesPanel: React.FC = () => {
   const { components, world } = useBIM();
   const { selectedModel, selectedExpressID } = useElementSelection(components, world);
@@ -34,6 +38,17 @@ export const LeftPropertiesPanel: React.FC = () => {
           <div className="left-properties-export">
             <React.Suspense fallback={<div />}>
               <ExportModifiedIfc />
+            </React.Suspense>
+          </div>
+        </Stack>
+      </Card>
+
+      <Card className="relations-card left-properties-card left-properties-card--clash">
+        <Stack gap="sm" className="left-properties-card-stack">
+          <Text variant="label" as="div">Clash Detection</Text>
+          <div className="left-properties-clash">
+            <React.Suspense fallback={<div />}>
+              <ClashDetectionSection />
             </React.Suspense>
           </div>
         </Stack>

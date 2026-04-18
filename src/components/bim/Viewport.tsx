@@ -551,7 +551,7 @@ const ViewportComponent: React.FC = () => {
 
             if (model.hasProperties && !alreadyProcessed) {
               await indexer.process(model);
-              
+              classifier.byModel(model.uuid, model);
               classifier.byEntity(model);
               await classifier.bySpatialStructure(model, {
                 isolate: new Set([WEBIFC.IFCBUILDINGSTOREY]),

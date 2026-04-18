@@ -37,6 +37,7 @@ const ExportModifiedIfc = React.lazy(() => import('../sidebar/ExportModifiedIfc'
 const MinimapSection = React.lazy(() => import('../sidebar/MinimapSection').then(m => ({ default: m.MinimapSection })));
 const CameraSection = React.lazy(() => import('../sidebar/CameraSection').then(m => ({ default: m.CameraSection })));
 const MeasurementSection = React.lazy(() => import('../sidebar/MeasurementSection').then(m => ({ default: m.MeasurementSection })));
+const ClashDetectionSection = React.lazy(() => import('../sidebar/ClashDetectionSection').then(m => ({ default: m.ClashDetectionSection })));
 const FloorPlanSection = React.lazy(() => import('../sidebar/FloorPlanSection').then(m => ({ default: m.FloorPlanSection })));
 const AiVisualizerSection = React.lazy(() => import('../sidebar/AiVisualizerSection').then(m => ({ default: m.AiVisualizerSection })));
 const RenderModeSection = React.lazy(() => import('../sidebar/RenderModeSection').then(m => ({ default: m.RenderModeSection })));
@@ -874,6 +875,13 @@ const SidebarComponent: React.FC = () => {
         <bim-panel-section label="Measurement Tools" collapsed>
           <React.Suspense fallback={<div />}> 
             <MeasurementSection />
+          </React.Suspense>
+        </bim-panel-section>
+
+        {/* Clash Detection */}
+        <bim-panel-section label="Clash Detection" collapsed>
+          <React.Suspense fallback={<div />}>
+            <ClashDetectionSection />
           </React.Suspense>
         </bim-panel-section>
 

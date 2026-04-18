@@ -53,27 +53,23 @@ export const useElementSelection = (
 
           try {
             const fragmentsManager = components.get(OBC.FragmentsManager);
+            if (typeof (fragmentsManager as any)?.getModelIdMap === 'function') {
+              const modelIdMap = (fragmentsManager as any).getModelIdMap(fragmentIdMap) as Record<string, Set<number>> | undefined;
 
-            // Find the first selected element
-            for (const [, expressIds] of Object.entries(fragmentIdMap)) {
-              const expressIdSet = expressIds as Set<number>;
+              if (modelIdMap) {
+                for (const [modelId, expressIds] of Object.entries(modelIdMap)) {
+                  if (!(expressIds instanceof Set) || expressIds.size === 0) {
+                    continue;
+                  }
 
-              if (expressIdSet && expressIdSet.size > 0) {
-                const firstExpressId = Array.from(expressIdSet)[0];
-                console.log('🎯 First selected expressID:', firstExpressId);
+                  const group = fragmentsManager.groups.get(modelId);
+                  const firstExpressId = Array.from(expressIds)[0];
 
-                // Find the model containing this fragment
-                for (const [, group] of fragmentsManager.groups) {
-                  try {
-                    const fragmentMap = group.getFragmentMap([firstExpressId]);
-                    if (fragmentMap && Object.keys(fragmentMap).length > 0) {
-                      console.log('✅ Found model for selection:', group.uuid);
-                      setSelectedModel(group);
-                      setSelectedExpressID(firstExpressId);
-                      return;
-                    }
-                  } catch (err) {
-                    // Continue to next group
+                  if (group && typeof firstExpressId === 'number') {
+                    console.log('✅ Found model for selection:', group.uuid);
+                    setSelectedModel(group);
+                    setSelectedExpressID(firstExpressId);
+                    return;
                   }
                 }
               }
