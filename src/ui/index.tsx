@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect } from 'react';
+import React, { forwardRef, useEffect, useId, useRef } from 'react';
 import './ui.css';
 
 /* ============================================
@@ -14,7 +14,17 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'default', size = 'md', selected, block, icon, className = '', children, ...props }, ref) => {
+  ({
+    variant = 'default',
+    size = 'md',
+    selected,
+    block,
+    icon,
+    className = '',
+    children,
+    type = 'button',
+    ...props
+  }, ref) => {
     const classes = [
       'ui-btn',
       variant !== 'default' && `ui-btn--${variant}`,
@@ -28,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       .join(' ');
 
     return (
-      <button ref={ref} className={classes} {...props}>
+      <button ref={ref} type={type} className={classes} {...props}>
         {children}
       </button>
     );
@@ -79,7 +89,8 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, className = '', id, ...props }, ref) => {
-    const inputId = id || (label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
+    const generatedId = useId().replace(/:/g, '');
+    const inputId = id || (label ? `input-${generatedId}` : undefined);
 
     if (label) {
       return (
@@ -108,7 +119,8 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ label, className = '', id, ...props }, ref) => {
-    const textareaId = id || (label ? `textarea-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
+    const generatedId = useId().replace(/:/g, '');
+    const textareaId = id || (label ? `textarea-${generatedId}` : undefined);
 
     if (label) {
       return (
@@ -138,7 +150,8 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, options, className = '', id, children, ...props }, ref) => {
-    const selectId = id || (label ? `select-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
+    const generatedId = useId().replace(/:/g, '');
+    const selectId = id || (label ? `select-${generatedId}` : undefined);
 
     const selectElement = (
       <select ref={ref} id={selectId} className={`ui-select ${className}`} {...props}>
@@ -180,7 +193,13 @@ export interface SliderProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
 }
 
 export const Slider = forwardRef<HTMLInputElement, SliderProps>(
-  ({ label, showValue = true, formatValue, className = '', value, ...props }, ref) => {
+  ({ label, showValue = true, formatValue, className = '', value, id, ...props }, ref) => {
+    const generatedId = useId().replace(/:/g, '');
+    const valueId = useId().replace(/:/g, '');
+    const sliderId = id || `slider-${generatedId}`;
+    const describedBy = [showValue ? valueId : null, props['aria-describedby']]
+      .filter(Boolean)
+      .join(' ') || undefined;
     const displayValue = formatValue
       ? formatValue(Number(value))
       : String(value);
@@ -190,15 +209,25 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         <div className="ui-slider-wrapper">
           {(label || showValue) && (
             <div className="ui-slider-header">
-              {label && <span className="ui-slider-label">{label}</span>}
-              {showValue && <span className="ui-slider-value">{displayValue}</span>}
+              {label && (
+                <label className="ui-slider-label" htmlFor={sliderId}>
+                  {label}
+                </label>
+              )}
+              {showValue && (
+                <span id={valueId} className="ui-slider-value">
+                  {displayValue}
+                </span>
+              )}
             </div>
           )}
           <input
             ref={ref}
+            id={sliderId}
             type="range"
             className={`ui-slider ${className}`}
             value={value}
+            aria-describedby={describedBy}
             {...props}
           />
         </div>
@@ -206,7 +235,14 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     }
 
     return (
-      <input ref={ref} type="range" className={`ui-slider ${className}`} value={value} {...props} />
+      <input
+        ref={ref}
+        id={sliderId}
+        type="range"
+        className={`ui-slider ${className}`}
+        value={value}
+        {...props}
+      />
     );
   }
 );
@@ -217,35 +253,47 @@ Slider.displayName = 'Slider';
    Toggle
    ============================================ */
 
-export interface ToggleProps {
+export interface ToggleProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
   checked?: boolean;
   onChange?: (checked: boolean) => void;
   label?: string;
-  disabled?: boolean;
-  className?: string;
 }
 
 export const Toggle: React.FC<ToggleProps> = ({
   checked = false,
   onChange,
+  onClick,
   label,
   disabled,
   className = '',
+  type = 'button',
+  ...props
 }) => {
-  const handleClick = () => {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    onClick?.(event);
+
+    if (event.defaultPrevented) {
+      return;
+    }
+
     if (!disabled && onChange) {
       onChange(!checked);
     }
   };
 
   return (
-    <div
+    <button
+      type={type}
       className={`ui-toggle-wrapper ${disabled ? 'ui-toggle-wrapper--disabled' : ''} ${className}`}
       onClick={handleClick}
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      {...props}
     >
-      <div className={`ui-toggle ${checked ? 'ui-toggle--checked' : ''}`} />
+      <span className={`ui-toggle ${checked ? 'ui-toggle--checked' : ''}`} aria-hidden="true" />
       {label && <span className="ui-toggle-label">{label}</span>}
-    </div>
+    </button>
   );
 };
 
@@ -263,8 +311,12 @@ export const Status: React.FC<StatusProps> = ({
   children,
   ...props
 }) => {
+  const liveProps = variant === 'error'
+    ? { role: 'alert' as const }
+    : { role: 'status' as const, 'aria-live': 'polite' as const };
+
   return (
-    <div className={`ui-status ui-status--${variant} ${className}`} {...props}>
+    <div className={`ui-status ui-status--${variant} ${className}`} {...liveProps} {...props}>
       {children}
     </div>
   );
@@ -470,21 +522,82 @@ export const Modal: React.FC<ModalProps> = ({
   size = 'sm',
   children,
 }) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId().replace(/:/g, '');
+
   useEffect(() => {
     if (!isOpen) {
       return;
     }
 
+    const previousActiveElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const previousOverflow = document.body.style.overflow;
+
+    const focusDialog = () => {
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+
+      const focusable = dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+
+      if (focusable.length > 0) {
+        focusable[0].focus();
+      } else {
+        dialog.focus();
+      }
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !dialogRef.current) {
+        return;
+      }
+
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialogRef.current.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
       }
     };
 
+    document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', handleKeyDown);
+
+    const animationFrame = window.requestAnimationFrame(focusDialog);
+
     return () => {
+      window.cancelAnimationFrame(animationFrame);
       document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousActiveElement?.focus?.();
     };
   }, [isOpen, onClose]);
 
@@ -493,13 +606,18 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <div className="ui-modal-overlay" onClick={onClose}>
       <div
+        ref={dialogRef}
         className={`ui-modal ui-modal--${size}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
           <div className="ui-modal-header">
-            <h3 className="ui-modal-title">{title}</h3>
-            <button className="ui-modal-close" onClick={onClose} aria-label="Close">
+            <h3 id={titleId} className="ui-modal-title">{title}</h3>
+            <button type="button" className="ui-modal-close" onClick={onClose} aria-label="Close">
               ×
             </button>
           </div>

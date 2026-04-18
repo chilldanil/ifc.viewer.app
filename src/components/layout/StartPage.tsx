@@ -148,6 +148,7 @@ export const StartPage: React.FC<StartPageProps> = ({
           <div className="start-page__actions">
             {isDesktop && parentPath && (
               <button
+                type="button"
                 className="start-page__button start-page__button--ghost"
                 onClick={() => loadDirectory(parentPath)}
                 disabled={loading}
@@ -157,6 +158,7 @@ export const StartPage: React.FC<StartPageProps> = ({
             )}
             {onEnterViewer && (
               <button
+                type="button"
                 className="start-page__button start-page__button--accent"
                 onClick={onEnterViewer}
                 disabled={!canEnter}
@@ -174,11 +176,12 @@ export const StartPage: React.FC<StartPageProps> = ({
                 <div className="start-page__loaded-name">{loadedModelName}</div>
               </div>
               {onEnterViewer && (
-                <button
-                  className="start-page__button start-page__button--accent"
-                  onClick={onEnterViewer}
-                  disabled={isBusy}
-                >
+              <button
+                type="button"
+                className="start-page__button start-page__button--accent"
+                onClick={onEnterViewer}
+                disabled={isBusy}
+              >
                   Use this model
                 </button>
               )}
@@ -218,6 +221,7 @@ export const StartPage: React.FC<StartPageProps> = ({
             </label>
             {onEnterViewer && (
               <button
+                type="button"
                 className="start-page__button start-page__button--ghost"
                 onClick={onEnterViewer}
                 disabled={isBusy}
@@ -235,6 +239,7 @@ export const StartPage: React.FC<StartPageProps> = ({
             )}
             {!loading && !error && entries.map((entry) => (
               <button
+                type="button"
                 key={entry.path}
                 className={`start-page__item start-page__item--tree ${entry.isIfc ? 'start-page__item--ifc' : ''} ${selected === entry.path ? 'start-page__item--active' : ''}`}
                 onClick={() => {
@@ -267,7 +272,7 @@ export const StartPage: React.FC<StartPageProps> = ({
       <div className="start-page__panel">
         <div className="start-page__header">
           <h3 className="start-page__title">Preview</h3>
-          {isBusy && <span className="start-page__meta">Loading...</span>}
+          {isBusy && <span className="start-page__meta">Loading…</span>}
         </div>
         <div className="start-page__body">
           <div className="start-page__preview-blurb">

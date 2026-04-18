@@ -54,6 +54,7 @@ export const ModelTreePanel: React.FC = () => {
       <Card className="relations-card">
         <Stack gap="md" className="properties-model-tree-stack">
           <Input
+            aria-label="Search model tree"
             placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}

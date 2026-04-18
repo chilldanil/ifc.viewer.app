@@ -81,6 +81,7 @@ export const CategoryHiderModal: React.FC<CategoryHiderModalProps> = ({ isOpen, 
     <Modal isOpen={isOpen} onClose={onClose} title="Isolate or Hide Categories" size="sm">
       <Stack gap="sm">
         <Input
+          aria-label="Search categories"
           placeholder="Search categories..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -93,6 +94,7 @@ export const CategoryHiderModal: React.FC<CategoryHiderModalProps> = ({ isOpen, 
             return (
               <button
                 key={cat}
+                type="button"
                 className={`category-item ${isSelected ? 'category-item--selected' : ''}`}
                 onClick={() => {
                   setSelected((prev) => {

@@ -110,6 +110,7 @@ export const HiderSection: React.FC = () => {
         {showPicker && (
           <Stack gap="sm">
             <Input
+              aria-label="Filter categories"
               placeholder="Filter categories..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}

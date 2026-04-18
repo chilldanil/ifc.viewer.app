@@ -87,7 +87,12 @@
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
   cursor: pointer;
-  transition: all var(--ui-transition);
+  transition:
+    background-color var(--ui-transition),
+    border-color var(--ui-transition),
+    color var(--ui-transition),
+    transform var(--ui-transition),
+    box-shadow var(--ui-transition);
   white-space: nowrap;
 }
 
@@ -104,6 +109,11 @@
 .ui-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.ui-btn:focus-visible {
+  outline: 2px solid var(--ui-border-focus);
+  outline-offset: 2px;
 }
 
 /* Primary variant */
@@ -222,7 +232,10 @@
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
   outline: none;
-  transition: all var(--ui-transition);
+  transition:
+    background-color var(--ui-transition),
+    border-color var(--ui-transition),
+    box-shadow var(--ui-transition);
 }
 
 .ui-input:hover:not(:disabled) {
@@ -232,6 +245,11 @@
 .ui-input:focus {
   border-color: var(--ui-border-focus);
   background: var(--ui-bg-hover);
+}
+
+.ui-input:focus-visible {
+  outline: 2px solid var(--ui-border-focus);
+  outline-offset: 2px;
 }
 
 .ui-input:disabled {
@@ -268,7 +286,10 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23eef2fb' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
-  transition: all var(--ui-transition);
+  transition:
+    background-color var(--ui-transition),
+    border-color var(--ui-transition),
+    box-shadow var(--ui-transition);
 }
 
 .ui-select:hover:not(:disabled) {
@@ -277,6 +298,11 @@
 
 .ui-select:focus {
   border-color: var(--ui-border-focus);
+}
+
+.ui-select:focus-visible {
+  outline: 2px solid var(--ui-border-focus);
+  outline-offset: 2px;
 }
 
 .ui-select:disabled {
@@ -332,7 +358,9 @@
   background: var(--ui-primary);
   border-radius: 50%;
   cursor: pointer;
-  transition: all var(--ui-transition);
+  transition:
+    background-color var(--ui-transition),
+    transform var(--ui-transition);
 }
 
 .ui-slider::-webkit-slider-thumb:hover {
@@ -354,6 +382,11 @@
   cursor: not-allowed;
 }
 
+.ui-slider:focus-visible {
+  outline: 2px solid var(--ui-border-focus);
+  outline-offset: 2px;
+}
+
 /* ============================================
    Toggle / Checkbox
    ============================================ */
@@ -362,6 +395,12 @@
   display: flex;
   align-items: center;
   gap: var(--ui-space-sm);
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -378,7 +417,10 @@
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-full);
   cursor: pointer;
-  transition: all var(--ui-transition);
+  transition:
+    background-color var(--ui-transition),
+    border-color var(--ui-transition),
+    box-shadow var(--ui-transition);
 }
 
 .ui-toggle::after {
@@ -390,7 +432,10 @@
   height: var(--ifc-toggle-thumb-size);
   background: var(--ui-text-muted);
   border-radius: 50%;
-  transition: all var(--ui-transition);
+  transition:
+    left var(--ui-transition),
+    transform var(--ui-transition),
+    background-color var(--ui-transition);
 }
 
 .ui-toggle--checked {
@@ -406,6 +451,11 @@
 .ui-toggle-label {
   font-size: var(--ui-font-sm);
   color: var(--ui-text);
+}
+
+.ui-toggle-wrapper:focus-visible {
+  outline: 2px solid var(--ui-border-focus);
+  outline-offset: 2px;
 }
 
 /* ============================================
@@ -634,6 +684,11 @@
   flex-direction: column;
 }
 
+.ui-modal:focus-visible {
+  outline: 2px solid var(--ui-border-focus);
+  outline-offset: 2px;
+}
+
 .ui-modal--sm {
   width: 400px;
   max-width: 90vw;
@@ -679,12 +734,20 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--ui-radius-sm);
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .ui-modal-close:hover {
   background: var(--ui-bg-hover);
   color: var(--ui-text);
+}
+
+.ui-modal-close:focus-visible {
+  outline: 2px solid var(--ui-border-focus);
+  outline-offset: 2px;
 }
 
 .ui-modal-body {

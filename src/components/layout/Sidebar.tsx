@@ -405,7 +405,7 @@ const SidebarComponent: React.FC = () => {
               <bim-button @click=${expandTable} label="Expand"></bim-button>
               <bim-button @click=${copyAsTSV} label="Copy as TSV"></bim-button>
             </div>
-            <bim-text-input @input=${onTextInput} placeholder="Search Property" debounce="250"></bim-text-input>
+            <bim-text-input @input=${onTextInput} placeholder="Search Property" aria-label="Search properties" debounce="250"></bim-text-input>
             ${propertiesTable}
           </div>
         `;
@@ -749,6 +749,7 @@ const SidebarComponent: React.FC = () => {
                   </Button>
                 </Row>
                 <Input
+                  aria-label="Search model tree"
                   placeholder="Search..."
                   value={relationsSearch}
                   onChange={(e) => setRelationsSearch(e.target.value)}
