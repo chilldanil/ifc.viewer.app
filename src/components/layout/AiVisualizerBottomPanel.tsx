@@ -20,12 +20,24 @@ export const AiVisualizerBottomPanel: React.FC = () => {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string>(() => loadReplicateApiKey());
+  const [apiKey, setApiKey] = useState<string>('');
   const [viewerMode, setViewerMode] = useState<'none' | 'original' | 'result' | 'compare'>('none');
   const [compareSplit, setCompareSplit] = useState(50);
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
 
   const hasComparison = Boolean(originalImage && resultImage);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadReplicateApiKey().then((key) => {
+      if (!cancelled) {
+        setApiKey(key);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -67,7 +79,7 @@ export const AiVisualizerBottomPanel: React.FC = () => {
       setOriginalImage(imageBase64);
       const result = await generateAiImage({ prompt, imageBase64, apiKey });
       setResultImage(result);
-      saveReplicateApiKey(apiKey);
+      await saveReplicateApiKey(apiKey);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate image. Please try again.';
       setError(errorMessage);

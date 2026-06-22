@@ -28,13 +28,22 @@ export const AiVisualizerSection: React.FC = () => {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string>(() => {
-    // Load API key from localStorage if available
-    return loadReplicateApiKey();
-  });
+  const [apiKey, setApiKey] = useState<string>('');
   const [viewerMode, setViewerMode] = useState<'none' | 'original' | 'result' | 'compare'>('none');
   const [compareSplit, setCompareSplit] = useState(50);
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadReplicateApiKey().then((key) => {
+      if (!cancelled) {
+        setApiKey(key);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -74,8 +83,8 @@ export const AiVisualizerSection: React.FC = () => {
       setOriginalImage(imageBase64); // Store original for comparison
       const result = await generateAiImage({ prompt, imageBase64, apiKey });
       setResultImage(result);
-      // Save API key to localStorage on successful generation
-      saveReplicateApiKey(apiKey);
+      // Persist the API key on successful generation
+      await saveReplicateApiKey(apiKey);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate image. Please try again.';
       setError(errorMessage);

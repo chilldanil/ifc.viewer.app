@@ -125,7 +125,9 @@ export const fitSceneToView = async (world: OBC.World, options: FitOptions = {})
   // Orthographic camera
   if (threeCamera.type === 'OrthographicCamera') {
     const orthoCamera = threeCamera as THREE.OrthographicCamera;
-    const aspect = orthoCamera.right / orthoCamera.top;
+    // A degenerate/uninitialized ortho camera can have top === 0, which
+    // would otherwise produce Infinity/NaN and silently break the fit.
+    const aspect = orthoCamera.top !== 0 ? orthoCamera.right / orthoCamera.top : 1;
     const fitSize = Math.max(maxDim / aspect, maxDim) * paddingRatio;
     orthoCamera.zoom = 2 / fitSize;
     orthoCamera.updateProjectionMatrix();

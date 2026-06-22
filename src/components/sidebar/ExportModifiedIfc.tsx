@@ -7,6 +7,11 @@ export const ExportModifiedIfc: React.FC = () => {
   const { propertyEditingService, components } = useBIM();
   const [isExporting, setIsExporting] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState<string>('');
+  const [pendingNoChangesConfirm, setPendingNoChangesConfirm] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{
+    variant: 'success' | 'error' | 'warning';
+    text: string;
+  } | null>(null);
 
   const getLoadedModels = (): Array<{ id: string; name: string }> => {
     if (!components) return [];
@@ -34,13 +39,21 @@ export const ExportModifiedIfc: React.FC = () => {
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (skipNoChangesConfirm = false) => {
     if (!propertyEditingService || !components || !selectedModelId) {
-      alert('Please select a model to export');
+      setStatusMessage({ variant: 'warning', text: 'Please select a model to export' });
       return;
     }
 
+    const hasChanges = propertyEditingService.hasChanges(selectedModelId);
+    if (!hasChanges && !skipNoChangesConfirm) {
+      setPendingNoChangesConfirm(true);
+      return;
+    }
+    setPendingNoChangesConfirm(false);
+
     setIsExporting(true);
+    setStatusMessage(null);
 
     try {
       const fragmentsManager = components.get(OBC.FragmentsManager);
@@ -50,24 +63,17 @@ export const ExportModifiedIfc: React.FC = () => {
         throw new Error('Selected model not found');
       }
 
-      const hasChanges = propertyEditingService.hasChanges(selectedModelId);
-
-      if (!hasChanges) {
-        const confirmExport = confirm('No changes detected for this model. Export anyway?');
-        if (!confirmExport) {
-          setIsExporting(false);
-          return;
-        }
-      }
-
       const modifiedIfcData = await propertyEditingService.saveToIfc(model);
       propertyEditingService.downloadModifiedIfc(model, modifiedIfcData);
       propertyEditingService.clearChanges(selectedModelId);
 
-      alert('IFC file exported successfully!');
+      setStatusMessage({ variant: 'success', text: 'IFC file exported successfully' });
     } catch (error) {
       console.error('Failed to export IFC:', error);
-      alert(`Failed to export IFC: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setStatusMessage({
+        variant: 'error',
+        text: `Failed to export IFC: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
     } finally {
       setIsExporting(false);
     }
@@ -123,13 +129,35 @@ export const ExportModifiedIfc: React.FC = () => {
             </Card>
           )}
 
-          <Button
-            variant="primary"
-            onClick={handleExport}
-            disabled={!hasService || !selectedModelId || isExporting}
-          >
-            {isExporting ? 'Exporting...' : 'Export Modified IFC'}
-          </Button>
+          {pendingNoChangesConfirm ? (
+            <Stack gap="sm">
+              <Status variant="warning">
+                No changes detected for this model. Export anyway?
+              </Status>
+              <Card>
+                <Stack gap="sm">
+                  <Button
+                    variant="primary"
+                    onClick={() => handleExport(true)}
+                    disabled={isExporting}
+                  >
+                    {isExporting ? 'Exporting...' : 'Export Anyway'}
+                  </Button>
+                  <Button onClick={() => setPendingNoChangesConfirm(false)} disabled={isExporting}>
+                    Cancel
+                  </Button>
+                </Stack>
+              </Card>
+            </Stack>
+          ) : (
+            <Button
+              variant="primary"
+              onClick={() => handleExport()}
+              disabled={!hasService || !selectedModelId || isExporting}
+            >
+              {isExporting ? 'Exporting...' : 'Export Modified IFC'}
+            </Button>
+          )}
         </>
       )}
 
@@ -137,6 +165,10 @@ export const ExportModifiedIfc: React.FC = () => {
         <Status variant="info">
           Property editing service is initializing...
         </Status>
+      )}
+
+      {statusMessage && (
+        <Status variant={statusMessage.variant}>{statusMessage.text}</Status>
       )}
     </Stack>
   );

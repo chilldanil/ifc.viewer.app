@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { ViewCubeGizmo, FaceNames, ObjectPosition } from '@mlightcad/three-viewcube';
 import * as THREE from 'three';
 import { DEFAULT_VIEWCUBE_CONFIG } from '../utils/viewCubeConfig';
@@ -196,8 +196,13 @@ export const useViewCube = ({
   const animationFrameRef = useRef<number | null>(null);
   const isUnmountedRef = useRef(false);
 
-  // Merge options with defaults from config file
-  const finalOptions = { ...DEFAULT_VIEWCUBE_CONFIG, ...options };
+  // Merge options with defaults from config file. `options` is typically a
+  // fresh object literal from the caller on every render, so we key the
+  // memo off its serialized content rather than identity — otherwise the
+  // effect below would tear down and rebuild the entire ViewCubeGizmo
+  // (textures, raycaster, RAF loop) on every parent re-render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const finalOptions = useMemo(() => ({ ...DEFAULT_VIEWCUBE_CONFIG, ...options }), [JSON.stringify(options)]);
 
   // Function to disable clipping on ViewCube materials
   const disableClippingOnViewCube = (viewCube: ViewCubeGizmo) => {

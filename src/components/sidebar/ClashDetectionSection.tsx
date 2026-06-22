@@ -273,6 +273,10 @@ export const ClashDetectionSection: React.FC = () => {
   const [isPending, startTransition] = useTransition();
   const overlayRootRef = useRef<THREE.Group | null>(null);
   const overlayWorldRef = useRef<OBC.World | null>(null);
+  // Identifies the most recently started detection run. If a newer run
+  // starts while an older one is still in flight, the older run's result
+  // must not be applied once it resolves.
+  const latestRunIdRef = useRef(0);
 
   const refreshOptions = useCallback(() => {
     if (!components) {
@@ -557,6 +561,8 @@ export const ClashDetectionSection: React.FC = () => {
       return;
     }
 
+    const runId = ++latestRunIdRef.current;
+
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -575,6 +581,12 @@ export const ClashDetectionSection: React.FC = () => {
         maxResults,
       });
 
+      // A newer run was started while this one was in flight; discard this
+      // stale result instead of clobbering the newer one.
+      if (latestRunIdRef.current !== runId) {
+        return;
+      }
+
       startTransition(() => {
         setResults(nextRun.results);
         setSummary(nextRun.summary);
@@ -590,13 +602,18 @@ export const ClashDetectionSection: React.FC = () => {
         setMessage(`Found ${nextRun.results.length} clash${nextRun.results.length === 1 ? '' : 'es'}`);
       }
     } catch (err) {
+      if (latestRunIdRef.current !== runId) {
+        return;
+      }
       const nextError = err instanceof Error ? err.message : 'Clash detection failed';
       setError(nextError);
       setSummary(null);
       setResults([]);
       setActiveResultId(null);
     } finally {
-      setLoading(false);
+      if (latestRunIdRef.current === runId) {
+        setLoading(false);
+      }
     }
   }, [availableModels, clearReviewVisuals, components]);
 
@@ -611,6 +628,7 @@ export const ClashDetectionSection: React.FC = () => {
 
     const fragmentsManager = components.get(OBC.FragmentsManager);
     const handleDisposed = () => {
+      latestRunIdRef.current += 1;
       clearReviewVisuals();
       refreshOptions();
       setResults([]);

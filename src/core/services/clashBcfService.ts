@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import * as OBC from '@thatopen/components';
 import { saveFileDialog } from '../../utils/electronUtils';
 import { ClashItemRef, ClashResult } from '../../types/clash';
+import { handleBIMError, ErrorType } from '../../utils/errorHandler';
 
 interface BcfComponent {
   ifc_guid?: string;
@@ -108,8 +109,13 @@ const extractIfcGuid = async (
     ) {
       return guidCandidate.value.trim();
     }
-  } catch {
-    // Ignore property lookup errors and fall back to the model map.
+  } catch (error) {
+    handleBIMError(
+      ErrorType.COMPONENT_ERROR,
+      'Failed to read GlobalId via getProperties, falling back to globalToExpressIDs map',
+      { error, modelId: item.modelId, expressId: item.expressId },
+      'clashBcfService.extractIfcGuid'
+    );
   }
 
   for (const [globalId, expressId] of model.globalToExpressIDs.entries()) {

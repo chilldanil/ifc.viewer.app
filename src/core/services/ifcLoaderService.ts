@@ -1,6 +1,17 @@
 import * as OBC from '@thatopen/components';
+import type * as OBF from '@thatopen/fragments';
 import { handleBIMError, ErrorType } from '../../utils/errorHandler';
 import { PropertyEditingService } from './propertyEditingService';
+
+// setupIfcLoader() is called fresh on every file-load action across several
+// call sites. Without tracking the last-registered listener per
+// FragmentsManager, each call would stack another onFragmentsLoaded
+// subscription on the shared singleton, leaking listeners for the life of
+// the session and firing onModelLoaded callbacks multiple times per load.
+const activeModelLoadedListeners = new WeakMap<
+  OBC.FragmentsManager,
+  (group: OBF.FragmentsGroup) => void
+>();
 
 export interface IfcLoaderHandle {
   loadFromBuffer: (data: Uint8Array) => Promise<void>;
@@ -52,14 +63,21 @@ export const setupIfcLoader = (
 
   const onModelLoaded = (cb: (modelId: string) => void) => {
     try {
-      fragmentsManager.onFragmentsLoaded.add((group) => {
+      const previousListener = activeModelLoadedListeners.get(fragmentsManager);
+      if (previousListener) {
+        fragmentsManager.onFragmentsLoaded.remove(previousListener);
+      }
+
+      const listener = (group: OBF.FragmentsGroup) => {
         cb(group.uuid);
         // Store the original IFC buffer if property editing service is available
         if (propertyEditingService && lastLoadedBuffer) {
           propertyEditingService.storeOriginalIfcBuffer(group.uuid, lastLoadedBuffer);
-          console.log(`Stored original IFC buffer for model ${group.uuid}`);
         }
-      });
+      };
+
+      activeModelLoadedListeners.set(fragmentsManager, listener);
+      fragmentsManager.onFragmentsLoaded.add(listener);
     } catch (error) {
       handleBIMError(
         ErrorType.MODEL_LOADING,

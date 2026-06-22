@@ -30,7 +30,18 @@ export const AI_RENDER_PRESETS: AiRenderPreset[] = [
 
 export const REPLICATE_API_KEY_STORAGE_KEY = 'replicate_api_key';
 
-export const loadReplicateApiKey = (): string => {
+// In Electron, the key is encrypted at rest via the OS keychain (safeStorage,
+// see electron/main.ts). In a plain web build there's no equivalent, so we
+// fall back to localStorage there.
+export const loadReplicateApiKey = async (): Promise<string> => {
+  const electronAPI = getElectronAPI() as any;
+  if (isElectron() && electronAPI?.secureStorage) {
+    try {
+      return await electronAPI.secureStorage.getApiKey();
+    } catch {
+      return '';
+    }
+  }
   try {
     return localStorage.getItem(REPLICATE_API_KEY_STORAGE_KEY) || '';
   } catch {
@@ -38,7 +49,16 @@ export const loadReplicateApiKey = (): string => {
   }
 };
 
-export const saveReplicateApiKey = (apiKey: string) => {
+export const saveReplicateApiKey = async (apiKey: string): Promise<void> => {
+  const electronAPI = getElectronAPI() as any;
+  if (isElectron() && electronAPI?.secureStorage) {
+    try {
+      await electronAPI.secureStorage.setApiKey(apiKey);
+    } catch {
+      // ignore storage errors
+    }
+    return;
+  }
   try {
     localStorage.setItem(REPLICATE_API_KEY_STORAGE_KEY, apiKey);
   } catch {

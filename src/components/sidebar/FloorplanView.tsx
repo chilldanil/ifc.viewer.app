@@ -73,20 +73,15 @@ export const FloorPlanSection: React.FC = () => {
     };
   }, [components, world]);
 
-  const extractFloorInformation = (model: any, classifier: OBC.Classifier) => {
+  const extractFloorInformation = (_model: any, classifier: OBC.Classifier) => {
     try {
-      console.log('Starting floor extraction...');
-      console.log('Model:', model);
-      console.log('Classifier list:', classifier.list);
       
       if (classifier.list?.spatialStructures) {
         const floors: FloorInfo[] = [];
         const structures = classifier.list.spatialStructures;
         
-        console.log('Found spatial structures:', structures);
         
                   Object.entries(structures).forEach(([name, structure]: [string, any]) => {
-            console.log(`Processing structure: ${name}`, structure);
             if (structure && typeof structure === 'object' && structure.id !== null && structure.id !== undefined) {
               // Try to extract elevation from various possible properties
               let elevation = structure.elevation;
@@ -103,34 +98,29 @@ export const FloorPlanSection: React.FC = () => {
                 id: structure.id.toString(),
                 elevation: elevation && elevation !== 0 ? elevation : undefined
               });
-              console.log(`Added floor: ${name} with ID: ${structure.id}, elevation: ${elevation}`);
             }
           });
 
         // Sort floors by elevation if available
         floors.sort((a, b) => (a.elevation || 0) - (b.elevation || 0));
         
-        console.log('Final extracted floors:', floors);
         setAvailableFloors(floors);
         
         // Update UI after floors are loaded
         updateFloorPlanUI();
       } else {
-        console.log('No spatial structures found, checking entities...');
         
         // Fallback: Look for building storey entities
         if (classifier.list?.entities) {
           const floors: FloorInfo[] = [];
           const entities = classifier.list.entities;
           
-          console.log('Available entities:', Object.keys(entities));
           
-          Object.entries(entities).forEach(([entityName, entityData]: [string, any]) => {
+          Object.entries(entities).forEach(([entityName]: [string, any]) => {
             // Look for entities that might represent floors/storeys
             if (entityName.toLowerCase().includes('storey') || 
                 entityName.toLowerCase().includes('floor') ||
                 entityName.includes('IFCBUILDINGSTOREY')) {
-              console.log(`Found potential floor entity: ${entityName}`, entityData);
               floors.push({
                 name: entityName,
                 id: entityName, // Use entity name as ID for entity-based approach
@@ -140,11 +130,8 @@ export const FloorPlanSection: React.FC = () => {
           });
           
           if (floors.length > 0) {
-            console.log('Extracted floors from entities:', floors);
             setAvailableFloors(floors);
             updateFloorPlanUI();
-          } else {
-            console.log('No floor entities found either');
           }
         }
       }
@@ -410,7 +397,6 @@ export const FloorPlanSection: React.FC = () => {
     // Reset everything
     const resetAllBtn = wrapper.querySelector('bim-button[name="resetAll"]') as any;
     resetAllBtn?.addEventListener('click', () => {
-      console.log('Reset button clicked - showing all elements');
       showAllElements();
       setSelectedFloor(null);
       
@@ -419,7 +405,6 @@ export const FloorPlanSection: React.FC = () => {
         // Force reset the hider component
         setTimeout(() => {
           hiderRef.current?.set(true);
-          console.log('Force reset hider component');
         }, 100);
       }
       
@@ -476,17 +461,8 @@ export const FloorPlanSection: React.FC = () => {
         orthoCamera.near = 0.1;
         orthoCamera.far = 2000;
         orthoCamera.updateProjectionMatrix();
-        
-        console.log('Initialized orthographic camera with bounds:', {
-          left: orthoCamera.left,
-          right: orthoCamera.right,
-          top: orthoCamera.top,
-          bottom: orthoCamera.bottom,
-          zoom: orthoCamera.zoom
-        });
       }
       
-      console.log('Entered floor plan mode');
     } catch (error) {
       console.error('Error entering floor plan mode:', error);
     }
@@ -522,7 +498,6 @@ export const FloorPlanSection: React.FC = () => {
       showAllElements();
       setSelectedFloor(null);
       
-      console.log('Exited floor plan mode');
     } catch (error) {
       console.error('Error exiting floor plan mode:', error);
     }
@@ -530,7 +505,6 @@ export const FloorPlanSection: React.FC = () => {
 
   // Try alternative floor filtering
   const tryAlternativeFloorFiltering = (floorName: string) => {
-    console.log('Trying alternative floor filtering for:', floorName);
     
     if (!classifierRef.current || !hiderRef.current) {
       console.error('Required components not available for alternative filtering');
@@ -552,7 +526,6 @@ export const FloorPlanSection: React.FC = () => {
           entityName.toLowerCase().includes('floor')
         );
         
-        console.log('Potential entity matches:', potentialMatches);
         
         if (potentialMatches.length > 0) {
           // Try to use the first match
@@ -560,7 +533,6 @@ export const FloorPlanSection: React.FC = () => {
           const found = classifier.find({ entities: [entityName] });
           
           if (found && Object.keys(found).length > 0) {
-            console.log('Found elements using entity filtering:', found);
             hider.set(false); // Hide all
             hider.set(true, found); // Show found elements
             return;
@@ -590,8 +562,6 @@ export const FloorPlanSection: React.FC = () => {
       const indexer = indexerRef.current;
       const model = currentModelRef.current;
 
-      console.log(`Attempting to show floor: ${floorName} (ID: ${floorId})`);
-      console.log('Available structures:', classifier.list?.spatialStructures);
 
       // First, show all elements to reset state
       hider.set(true);
@@ -607,12 +577,10 @@ export const FloorPlanSection: React.FC = () => {
         structure && structure.id && structure.id.toString() === floorId
       );
 
-      console.log('Found floor structure:', floorStructure);
 
               if (floorStructure && floorStructure.id !== null) {
           // Get all child elements of this floor
           const foundIDs = indexer.getEntityChildren(model, floorStructure.id);
-          console.log(`Found ${foundIDs.size} child elements for floor`);
           
           if (foundIDs.size === 0) {
             console.warn('No child elements found for this floor, trying alternative approach...');
@@ -622,7 +590,6 @@ export const FloorPlanSection: React.FC = () => {
           }
 
           const fragMap = model.getFragmentMap(foundIDs);
-          console.log('Fragment map:', fragMap);
           
           // Check if fragment map has any data
           if (!fragMap || Object.keys(fragMap).length === 0) {
@@ -637,7 +604,6 @@ export const FloorPlanSection: React.FC = () => {
           // Show only the selected floor elements
           hider.set(true, fragMap);
           
-          console.log(`Successfully showing floor: ${floorName} (${foundIDs.size} elements)`);
         } else {
           console.error(`Floor structure not found for ID: ${floorId}`);
           tryAlternativeFloorFiltering(floorName);
@@ -660,7 +626,6 @@ export const FloorPlanSection: React.FC = () => {
     try {
       // Show all elements
       hiderRef.current.set(true);
-      console.log('Successfully showing all elements');
       
       // Also ensure visibility panel shows everything if it exists
       if (classifierRef.current) {
@@ -668,7 +633,6 @@ export const FloorPlanSection: React.FC = () => {
         const allFragments = classifierRef.current.find({});
         if (allFragments && Object.keys(allFragments).length > 0) {
           hiderRef.current.set(true, allFragments);
-          console.log('Reset classifier-based visibility');
         }
       }
       
@@ -689,7 +653,6 @@ export const FloorPlanSection: React.FC = () => {
         camera.controls.setLookAt(0, 100, 0, 0, 0, 0);
       }
       
-      console.log('Set to top view');
     } catch (error) {
       console.error('Error setting top view:', error);
     }
@@ -705,7 +668,6 @@ export const FloorPlanSection: React.FC = () => {
       
       if (!world.scene?.three) {return;}
 
-      console.log('Starting fit to view...');
 
       // Use the exact same approach as the working CameraSection
       // Recursively collect all meshes in the scene
@@ -773,7 +735,6 @@ export const FloorPlanSection: React.FC = () => {
       const size = box.getSize(new THREE.Vector3());
       const maxDim = Math.max(size.x, size.y, size.z);
       
-      console.log('Model bounds:', { center, size, maxDim });
 
       // Handle fitting differently for perspective vs orthographic cameras
       if (threeCamera.type === 'PerspectiveCamera') {
@@ -830,36 +791,23 @@ export const FloorPlanSection: React.FC = () => {
              );
            }
          }
-         
-         console.log('Applied orthographic zoom:', newZoom, 'fitSize:', fitSize, 'aspect:', aspect, 'maxDim:', maxDim);
-         console.log('Camera bounds:', {
-           left: orthoCamera.left,
-           right: orthoCamera.right, 
-           top: orthoCamera.top,
-           bottom: orthoCamera.bottom
-         });
-         console.log('Model bounding box check:', { center, size, maxDim });
-        
+
         // Alternative approach if the above doesn't work - direct Three.js method
         if (newZoom < 0.001 || newZoom > 1000) {
           console.warn('Zoom value seems incorrect, trying alternative method...');
-          
+
           // Method 2: Use Three.js Box3 helper methods
           const sphere = new THREE.Sphere();
           box.getBoundingSphere(sphere);
-          
+
           const distance = sphere.radius * 2.5; // Increased multiplier for better view
           const newZoom2 = distance > 0 ? 10 / distance : 1;
-          
+
           orthoCamera.zoom = Math.max(0.1, Math.min(10, newZoom2)); // Clamp zoom
           orthoCamera.updateProjectionMatrix();
-          
-          console.log('Alternative zoom applied:', orthoCamera.zoom);
         }
       }
-      
-      console.log('Successfully fitted model to view');
-      
+
     } catch (error) {
       console.error('Error fitting to view:', error);
     }

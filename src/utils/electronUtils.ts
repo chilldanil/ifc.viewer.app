@@ -110,14 +110,3 @@ export function onFileOpened(callback: (filePath: string) => void): (() => void)
 
   return null;
 }
-
-/**
- * Get platform information
- */
-export function getPlatform(): string {
-  const electronAPI = getElectronAPI();
-  if (electronAPI) {
-    return electronAPI.platform;
-  }
-  return navigator.platform;
-}

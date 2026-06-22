@@ -32,6 +32,18 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
     value: '',
     type: 'string' as 'string' | 'number' | 'boolean',
   });
+  const [statusMessage, setStatusMessage] = useState<{
+    variant: 'success' | 'error' | 'warning';
+    text: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!statusMessage) {
+      return;
+    }
+    const timeout = setTimeout(() => setStatusMessage(null), 4000);
+    return () => clearTimeout(timeout);
+  }, [statusMessage]);
 
   useEffect(() => {
     if (!selectedModel || selectedExpressID === null || !components) {
@@ -100,7 +112,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   const handleSaveChanges = async () => {
     if (!propertyEditingService || !selectedModel || selectedExpressID === null) return;
     if (editedProperties.size === 0) {
-      alert('No changes to save');
+      setStatusMessage({ variant: 'warning', text: 'No changes to save' });
       return;
     }
 
@@ -112,10 +124,10 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
       await loadProperties();
       setEditedProperties(new Map());
       setIsEditMode(false);
-      alert('Properties updated successfully!');
+      setStatusMessage({ variant: 'success', text: 'Properties updated successfully' });
     } catch (error) {
       console.error('Failed to save properties:', error);
-      alert('Failed to save properties. Check console for details.');
+      setStatusMessage({ variant: 'error', text: 'Failed to save properties. Check console for details.' });
     } finally {
       setIsSaving(false);
     }
@@ -129,7 +141,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   const handleCreateProperty = async () => {
     if (!propertyEditingService || !selectedModel) return;
     if (!newProperty.name || !newProperty.value) {
-      alert('Please provide both name and value for the new property');
+      setStatusMessage({ variant: 'warning', text: 'Please provide both name and value for the new property' });
       return;
     }
 
@@ -138,20 +150,21 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
       if (newProperty.type === 'number') {
         value = parseFloat(newProperty.value);
         if (isNaN(value)) {
-          alert('Invalid number value');
+          setStatusMessage({ variant: 'error', text: 'Invalid number value' });
           return;
         }
       } else if (newProperty.type === 'boolean') {
         value = newProperty.value.toLowerCase() === 'true';
       }
 
+      const createdName = newProperty.name;
       await propertyEditingService.createProperty(selectedModel, newProperty.type, newProperty.name, value);
       setNewProperty({ name: '', value: '', type: 'string' });
       setShowCreateProperty(false);
-      alert(`Property "${newProperty.name}" created successfully!`);
+      setStatusMessage({ variant: 'success', text: `Property "${createdName}" created successfully` });
     } catch (error) {
       console.error('Failed to create property:', error);
-      alert('Failed to create property. Check console for details.');
+      setStatusMessage({ variant: 'error', text: 'Failed to create property. Check console for details.' });
     }
   };
 
@@ -295,6 +308,10 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
       {!hasService && (
         <Status variant="info">Property editing service is initializing...</Status>
+      )}
+
+      {statusMessage && (
+        <Status variant={statusMessage.variant}>{statusMessage.text}</Status>
       )}
     </Stack>
   );

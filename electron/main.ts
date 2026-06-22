@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, safeStorage, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
@@ -21,9 +21,11 @@ function createWindow() {
     title: 'IFC Viewer',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      // Enable renderer to require Node modules as a fallback for file browsing
-      contextIsolation: false,
-      nodeIntegration: true,
+      // Renderer never gets direct Node access; all privileged operations
+      // (fs, dialogs, AI requests) are funneled through the narrow
+      // contextBridge API defined in preload.ts.
+      contextIsolation: true,
+      nodeIntegration: false,
       sandbox: false,
       webSecurity: true,
     },
@@ -36,7 +38,7 @@ function createWindow() {
   });
 
   // Load the app
-  if (process.env.VITE_DEV_SERVER_URL) {
+  if (!app.isPackaged && process.env.VITE_DEV_SERVER_URL) {
     // Development mode
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
     mainWindow.webContents.openDevTools();
@@ -45,9 +47,18 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  // Open external links in the user's default browser.
+  // Open external links in the user's default browser. Only allow
+  // http(s) targets so renderer content can't trigger file:// or
+  // custom-protocol handoffs to the OS shell.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    try {
+      const { protocol } = new URL(url);
+      if (protocol === 'http:' || protocol === 'https:') {
+        void shell.openExternal(url);
+      }
+    } catch {
+      // ignore malformed URLs
+    }
     return { action: 'deny' };
   });
 
@@ -239,6 +250,34 @@ ipcMain.handle('fs:listDir', async (_event, dirPath?: string) => {
   }
 });
 
+// Secure storage for the user's Replicate API key, encrypted at rest via the
+// OS keychain (Keychain/DPAPI/libsecret) instead of plaintext localStorage.
+const apiKeyStorePath = path.join(app.getPath('userData'), 'replicate-key.enc');
+
+ipcMain.handle('secure-storage:get-api-key', async () => {
+  if (!safeStorage.isEncryptionAvailable()) return '';
+  try {
+    const encrypted = await fs.readFile(apiKeyStorePath);
+    return safeStorage.decryptString(encrypted);
+  } catch {
+    return '';
+  }
+});
+
+ipcMain.handle('secure-storage:set-api-key', async (_event, apiKey: unknown) => {
+  if (typeof apiKey !== 'string') {
+    throw new Error('Invalid API key payload');
+  }
+  if (!safeStorage.isEncryptionAvailable()) return false;
+  if (!apiKey) {
+    await fs.rm(apiKeyStorePath, { force: true });
+    return true;
+  }
+  const encrypted = safeStorage.encryptString(apiKey);
+  await fs.writeFile(apiKeyStorePath, encrypted);
+  return true;
+});
+
 ipcMain.handle('ai:generate', async (_event, args: unknown) => {
   if (!args || typeof args !== 'object') {
     throw new Error('Invalid request payload');
@@ -248,6 +287,12 @@ ipcMain.handle('ai:generate', async (_event, args: unknown) => {
 
   if (typeof prompt !== 'string' || typeof imageBase64 !== 'string') {
     throw new Error('Invalid request payload');
+  }
+
+  const MAX_PROMPT_LENGTH = 2000;
+  const MAX_IMAGE_BASE64_LENGTH = 20_000_000; // ~15MB decoded
+  if (prompt.length > MAX_PROMPT_LENGTH || imageBase64.length > MAX_IMAGE_BASE64_LENGTH) {
+    throw new Error('Request payload too large');
   }
 
   const token = (typeof apiKey === 'string' && apiKey.trim()) ? apiKey.trim() : REPLICATE_API_TOKEN;

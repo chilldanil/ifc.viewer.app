@@ -49,12 +49,4 @@ export const bridge = {
       }
     }
   },
-
-  /**
-   * Get the current number of active listeners
-   * Useful for debugging
-   */
-  listenerCount(): number {
-    return listeners.size;
-  },
 };

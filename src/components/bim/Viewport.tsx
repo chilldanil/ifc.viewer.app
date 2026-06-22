@@ -37,6 +37,13 @@ const ViewportComponent: React.FC = () => {
   const fragmentsHandlerRef = useRef<((model: OBF.FragmentsGroup) => Promise<void>) | null>(null);
   const fragmentsDisposedHandlerRef = useRef<(({ groupID }: { groupID: string }) => void) | null>(null);
   const resizeHandlerRef = useRef<(() => void) | null>(null);
+  const ifcStartedLoadingHandlerRef = useRef<(() => void) | null>(null);
+  const ifcLoaderRef = useRef<OBC.IfcLoader | null>(null);
+  const webglContextHandlersRef = useRef<{
+    canvas: HTMLCanvasElement;
+    onLost: (e: Event) => void;
+    onRestored: () => void;
+  } | null>(null);
   const isUnmountedRef = useRef(false);
   const worldRef = useRef<OBC.World | null>(null);
   const highlighterInitializedRef = useRef(false);
@@ -364,12 +371,6 @@ const ViewportComponent: React.FC = () => {
         };
         dblClickHandlerRef.current = dblHandler;
         canvasRef.current.addEventListener('dblclick', dblHandler);
-        window.addEventListener('length-create', () => {
-          const measurement = components.get(OBCF.LengthMeasurement);
-          if (measurement?.enabled) {
-            measurement.create();
-          }
-        });
 
         // Initialize the viewer with a unique world
         const worlds = components.get(OBC.Worlds);
@@ -387,6 +388,40 @@ const ViewportComponent: React.FC = () => {
         // Set up OrthoPerspective camera
         const cameraComponent = new OBC.OrthoPerspectiveCamera(components);
         world.camera = cameraComponent;
+
+        // A GPU driver reset / resource exhaustion can drop the WebGL
+        // context entirely, which otherwise leaves the canvas permanently
+        // black with no recovery. Listen for loss/restoration so we can
+        // surface it and re-render once the browser restores the context.
+        const glCanvas = (rendererComponent as any).three?.domElement as
+          | HTMLCanvasElement
+          | undefined;
+        if (glCanvas) {
+          const onContextLost = (e: Event) => {
+            e.preventDefault();
+            handleBIMError(
+              ErrorType.RENDER_ERROR,
+              'WebGL context lost',
+              {},
+              'Viewport'
+            );
+          };
+          const onContextRestored = () => {
+            try {
+              cameraComponent.updateAspect();
+              rendererComponent.update();
+            } catch {
+              // ignore restore errors
+            }
+          };
+          glCanvas.addEventListener('webglcontextlost', onContextLost);
+          glCanvas.addEventListener('webglcontextrestored', onContextRestored);
+          webglContextHandlersRef.current = {
+            canvas: glCanvas,
+            onLost: onContextLost,
+            onRestored: onContextRestored,
+          };
+        }
 
         // Place camera at a default position looking at origin
         try {
@@ -462,10 +497,12 @@ const ViewportComponent: React.FC = () => {
         await ifcLoader.setup();
 
         // Add loading state management to IFC loader
-        ifcLoader.onIfcStartedLoading.add(() => {
-          console.log('IFC loading started');
+        ifcLoaderRef.current = ifcLoader;
+        const handleIfcStartedLoading = () => {
           setIsModelLoading(true);
-        });
+        };
+        ifcStartedLoadingHandlerRef.current = handleIfcStartedLoading;
+        ifcLoader.onIfcStartedLoading.add(handleIfcStartedLoading);
 
         // Wait a moment for all components to stabilize before setting up highlighter
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -624,6 +661,25 @@ const ViewportComponent: React.FC = () => {
           canvas.removeEventListener('dblclick', dblClickHandlerRef.current);
           dblClickHandlerRef.current = null;
         }
+      }
+
+      // Clean up IFC loader listener
+      if (ifcLoaderRef.current && ifcStartedLoadingHandlerRef.current) {
+        try {
+          ifcLoaderRef.current.onIfcStartedLoading.remove(ifcStartedLoadingHandlerRef.current);
+        } catch {
+          // ignore cleanup errors
+        }
+        ifcStartedLoadingHandlerRef.current = null;
+        ifcLoaderRef.current = null;
+      }
+
+      // Clean up WebGL context loss/restore listeners
+      if (webglContextHandlersRef.current) {
+        const { canvas, onLost, onRestored } = webglContextHandlersRef.current;
+        canvas.removeEventListener('webglcontextlost', onLost);
+        canvas.removeEventListener('webglcontextrestored', onRestored);
+        webglContextHandlersRef.current = null;
       }
       
       // Clean up viewer element

@@ -52,6 +52,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateAiImage: (args: { prompt: string; imageBase64: string; apiKey: string }) =>
     ipcRenderer.invoke('ai:generate', args),
 
+  // Encrypted-at-rest storage for the user's Replicate API key (OS keychain
+  // via safeStorage), in place of plaintext localStorage.
+  secureStorage: {
+    getApiKey: (): Promise<string> => ipcRenderer.invoke('secure-storage:get-api-key'),
+    setApiKey: (apiKey: string): Promise<boolean> =>
+      ipcRenderer.invoke('secure-storage:set-api-key', apiKey),
+  },
+
   // Platform detection
   platform: process.platform,
   isElectron: true,
@@ -73,6 +81,10 @@ export interface ElectronAPI {
     error?: string;
   }>;
   generateAiImage: (args: { prompt: string; imageBase64: string; apiKey: string }) => Promise<{ image: string }>;
+  secureStorage: {
+    getApiKey: () => Promise<string>;
+    setApiKey: (apiKey: string) => Promise<boolean>;
+  };
   platform: NodeJS.Platform;
   isElectron: boolean;
 }
