@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:3000 >/dev/null; do sleep 1; done')",
+      "Bash(node test.mjs)",
+      "Bash(sips -c 360 360 --cropOffset 520 270 03-top-camera.png --out 03-crop.png)",
+      "Bash(sips -c 360 360 --cropOffset 520 270 06-left-hider.png --out 06-crop.png)",
+      "Bash(sips -c 320 320 03-top-camera.png --out 03-crop2.png)",
+      "Bash(sips -c 320 320 06-left-hider.png --out 06-crop2.png)",
+      "Bash(git stash *)",
+      "Bash(cp -r /tmp/pw-quickmenu-test/node_modules /tmp/pw-quickmenu-test2/node_modules)",
+      "Read(//Users/daniilchilochi/Library/Caches/ms-playwright/**)"
+    ]
+  }
+}

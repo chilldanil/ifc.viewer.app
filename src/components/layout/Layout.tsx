@@ -13,6 +13,7 @@ import { CameraToolbarMenu } from './CameraToolbarMenu';
 import { ClippingToolbarMenu } from './ClippingToolbarMenu';
 import { ModelTreePanel } from './ModelTreePanel';
 import { LeftPropertiesPanel } from './LeftPropertiesPanel';
+import { SpacebarQuickMenu, type QuickMenuTopSegment, type QuickMenuLeaf } from './SpacebarQuickMenu';
 import { ExportModifiedIfc } from '../sidebar/ExportModifiedIfc';
 import { ClashDetectionSection } from '../sidebar/ClashDetectionSection';
 import { AiVisualizerBottomPanel } from './AiVisualizerBottomPanel';
@@ -25,6 +26,12 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { Modal, Stack, Text } from '../../ui';
 import { useElectronFileOpen } from '../../hooks/useElectronFileOpen';
+import { useElementSelection } from '../../hooks/useElementSelection';
+import { useCameraControls } from '../../hooks/useCameraControls';
+
+const PropertyEditor = React.lazy(() =>
+  import('../sidebar/PropertyEditor').then((m) => ({ default: m.PropertyEditor }))
+);
 import '../sidebar/PerformanceSection.css';
 import './Layout.css';
 
@@ -143,6 +150,57 @@ const AlertTriangleIcon = () => (
     <line x1="12" y1="17" x2="12.01" y2="17" />
   </svg>
 );
+
+const OrbitIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M3 12a9 4.5 0 1 0 18 0a9 4.5 0 1 0 -18 0" />
+  </svg>
+);
+
+const PersonIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="7" r="4" />
+    <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
+  </svg>
+);
+
+const TopDownIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+);
+
+const PerspectiveIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 3 4 9v12h16V9z" />
+    <path d="M12 3v18" />
+  </svg>
+);
+
+const OrthographicIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="4" y="4" width="16" height="16" />
+    <line x1="4" y1="12" x2="20" y2="12" />
+  </svg>
+);
+
+const ResetIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 12a9 9 0 1 0 3-6.7" />
+    <polyline points="3 4 3 9 8 9" />
+  </svg>
+);
+
+const STANDARD_VIEW_DIRECTIONS: { direction: StandardViewDirection; label: string }[] = [
+  { direction: 'top', label: 'Top' },
+  { direction: 'front', label: 'Front' },
+  { direction: 'left', label: 'Left' },
+  { direction: 'back', label: 'Back' },
+  { direction: 'right', label: 'Right' },
+  { direction: 'bottom', label: 'Bottom' },
+];
 
 const HIGHLIGHTER_SELECTION_KEY = 'select';
 const IFV_PLANE_CONTROLS_HELPER_KEY = '__ifvPlaneControlsHelper';
@@ -360,6 +418,10 @@ export const Layout: React.FC = () => {
   const statsOverlayHostRef = useRef<HTMLElement | null>(null);
   const MINIMAP_LIMITS = { minZoom: 0.01, maxZoom: 0.5 };
   const [helpModal, setHelpModal] = useState<'docs' | 'shortcuts' | 'about' | null>(null);
+  // Spacebar quick menu (radial)
+  const [isQuickInfoOpen, setIsQuickInfoOpen] = useState(false);
+  const { navMode, projection, setNavMode, setProjection, cameraAvailable } = useCameraControls(world);
+  const { selectedModel: quickInfoModel, selectedExpressID: quickInfoExpressID } = useElementSelection(components, world);
 
   useElectronFileOpen(components, propertyEditingService);
 
@@ -1707,7 +1769,15 @@ export const Layout: React.FC = () => {
       items: [
         {
           type: 'custom',
-          render: () => <CameraToolbarMenu />,
+          render: () => (
+            <CameraToolbarMenu
+              navMode={navMode}
+              projection={projection}
+              setNavMode={setNavMode}
+              setProjection={setProjection}
+              cameraAvailable={cameraAvailable}
+            />
+          ),
         },
       ],
     },
@@ -1848,10 +1918,88 @@ export const Layout: React.FC = () => {
     toggleMinimapLock,
     nudgeMinimapZoom,
     helpModal,
+    navMode,
+    projection,
+    setNavMode,
+    setProjection,
+    cameraAvailable,
   ]);
 
   // Toolbar right content
   const toolbarRightContent = useMemo(() => null, []);
+
+  // Spacebar quick menu: top=Camera, right=Views, bottom=Info, left=Hider
+  const cameraQuickMenuChildren = useMemo<QuickMenuLeaf[]>(() => [
+    {
+      type: 'leaf', id: 'cam-orbit', label: 'Orbit', hint: 'Orbit Navigation', icon: <OrbitIcon />,
+      active: navMode === 'Orbit', onActivate: () => setNavMode('Orbit'),
+    },
+    {
+      type: 'leaf', id: 'cam-first-person', label: 'First Person', hint: 'First Person Navigation', icon: <PersonIcon />,
+      active: navMode === 'FirstPerson', disabled: projection === 'Orthographic', onActivate: () => setNavMode('FirstPerson'),
+    },
+    {
+      type: 'leaf', id: 'cam-plan', label: 'Plan', hint: 'Plan Navigation', icon: <TopDownIcon />,
+      active: navMode === 'Plan', onActivate: () => setNavMode('Plan'),
+    },
+    {
+      type: 'leaf', id: 'cam-perspective', label: 'Perspective', hint: 'Perspective Projection', icon: <PerspectiveIcon />,
+      active: projection === 'Perspective', onActivate: () => setProjection('Perspective'),
+    },
+    {
+      type: 'leaf', id: 'cam-orthographic', label: 'Orthographic', hint: 'Orthographic Projection', icon: <OrthographicIcon />,
+      active: projection === 'Orthographic', disabled: navMode === 'FirstPerson', onActivate: () => setProjection('Orthographic'),
+    },
+    {
+      type: 'leaf', id: 'cam-fit', label: 'Fit to Model', hint: 'Fit to Model', icon: <MaximizeIcon />,
+      onActivate: () => { void handleFitToModel(); },
+    },
+  ], [navMode, projection, setNavMode, setProjection, handleFitToModel]);
+
+  const viewsQuickMenuChildren = useMemo<QuickMenuLeaf[]>(() => STANDARD_VIEW_DIRECTIONS.map(({ direction, label }) => ({
+    type: 'leaf' as const,
+    id: `view-${direction}`,
+    label,
+    hint: `${label} View`,
+    icon: <BoxIcon />,
+    onActivate: () => { void handleSetViewDirection(direction); },
+  })), [handleSetViewDirection]);
+
+  const hiderQuickMenuChildren = useMemo<QuickMenuLeaf[]>(() => [
+    {
+      type: 'leaf', id: 'hider-hide', label: 'Hide', hint: 'Hide Selection', icon: <EyeOffIcon />,
+      disabled: !hasSelection, onActivate: () => { void runSelectionHiderAction('hide'); },
+    },
+    {
+      type: 'leaf', id: 'hider-isolate', label: 'Isolate', hint: 'Isolate Selection', icon: <EyeIcon />,
+      disabled: !hasSelection, onActivate: () => { void runSelectionHiderAction('isolate'); },
+    },
+    {
+      type: 'leaf', id: 'hider-show-all', label: 'Show All', hint: 'Reset Visibility', icon: <ResetIcon />,
+      onActivate: handleShowAll,
+    },
+  ], [hasSelection, runSelectionHiderAction, handleShowAll]);
+
+  const quickMenuSegments = useMemo<[QuickMenuTopSegment, QuickMenuTopSegment, QuickMenuTopSegment, QuickMenuTopSegment]>(() => [
+    {
+      type: 'branch', id: 'camera', label: 'Camera', hint: 'Mode, Projection, Fit', icon: <CameraIcon />,
+      disabled: !world, children: cameraQuickMenuChildren,
+    },
+    {
+      type: 'branch', id: 'views', label: 'Views', hint: 'Standard Views', icon: <BoxIcon />,
+      disabled: !world, children: viewsQuickMenuChildren,
+    },
+    {
+      type: 'preview', id: 'info', label: 'Info', hint: 'Quick Properties', icon: <InfoIcon />,
+      disabled: !hasSelection, onActivate: () => setIsQuickInfoOpen(true),
+    },
+    {
+      type: 'branch', id: 'hider', label: 'Hider', hint: 'Hide, Isolate, Show All', icon: <EyeIcon />,
+      children: hiderQuickMenuChildren,
+    },
+  ], [world, cameraQuickMenuChildren, viewsQuickMenuChildren, hasSelection, hiderQuickMenuChildren]);
+
+  const isAnyModalOpen = helpModal !== null || isCategoryHiderModalOpen || isQuickInfoOpen;
 
   if (isLoading) {
     return (
@@ -1976,6 +2124,15 @@ export const Layout: React.FC = () => {
         isOpen={isCategoryHiderModalOpen}
         onClose={() => setIsCategoryHiderModalOpen(false)}
       />
+
+      {/* Spacebar Quick Menu */}
+      <SpacebarQuickMenu segments={quickMenuSegments} disabled={isAnyModalOpen} />
+
+      <Modal isOpen={isQuickInfoOpen} onClose={() => setIsQuickInfoOpen(false)} title="Quick Properties" size="sm">
+        <React.Suspense fallback={<div />}>
+          <PropertyEditor selectedModel={quickInfoModel} selectedExpressID={quickInfoExpressID} />
+        </React.Suspense>
+      </Modal>
 
       <Modal isOpen={helpModal === 'docs'} onClose={() => setHelpModal(null)} title="Documentation" size="sm">
         <Stack gap="sm">
