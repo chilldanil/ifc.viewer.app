@@ -43,28 +43,31 @@ function electronDev() {
 
   return {
     name: 'electron-dev',
-    closeBundle: () => {
-      if (electronProcess) {
-        electronProcess.kill();
-        electronProcess = null;
-      }
+    configureServer: (server) => {
+      server.httpServer?.once('listening', () => {
+        if (electronProcess) {
+          electronProcess.kill();
+          electronProcess = null;
+        }
 
-      if (process.env.NODE_ENV === 'development') {
-        setTimeout(() => {
-          electronProcess = spawn('electron', ['.'], {
-            stdio: 'inherit',
-            shell: true,
-            env: {
-              ...process.env,
-              VITE_DEV_SERVER_URL: 'http://localhost:5173',
-            },
-          });
+        if (process.env.NODE_ENV !== 'production') {
+          setTimeout(() => {
+            const devUrl = server.resolvedUrls?.local?.[0] || 'http://localhost:5173';
+            electronProcess = spawn('electron', ['.'], {
+              stdio: 'inherit',
+              shell: true,
+              env: {
+                ...process.env,
+                VITE_DEV_SERVER_URL: devUrl,
+              },
+            });
 
-          electronProcess.on('close', () => {
-            process.exit();
-          });
-        }, 1000);
-      }
+            electronProcess.on('close', () => {
+              process.exit();
+            });
+          }, 1000);
+        }
+      });
     },
   };
 }

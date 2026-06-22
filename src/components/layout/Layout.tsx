@@ -16,7 +16,6 @@ import { LeftPropertiesPanel } from './LeftPropertiesPanel';
 import { ExportModifiedIfc } from '../sidebar/ExportModifiedIfc';
 import { ClashDetectionSection } from '../sidebar/ClashDetectionSection';
 import { AiVisualizerBottomPanel } from './AiVisualizerBottomPanel';
-import { StartPage } from './StartPage';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import { setupIfcLoader } from '../../core/services/ifcLoaderService';
 import { fitSceneToView, setStandardView, type StandardViewDirection } from '../../utils/cameraUtils';
@@ -26,11 +25,8 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { Modal, Stack, Text } from '../../ui';
 import { useElectronFileOpen } from '../../hooks/useElectronFileOpen';
-import { getElectronAPI } from '../../utils/electronUtils';
 import '../sidebar/PerformanceSection.css';
 import './Layout.css';
-
-const SKIP_START_PAGE_KEY = 'ifcViewer.skipStartPage';
 
 // ============================================================================
 // Icons for Toolbar Menus
@@ -314,7 +310,6 @@ export const Layout: React.FC = () => {
     captureScreenshot,
     viewCubeEnabled,
     setViewCubeEnabled,
-    isModelLoading,
     setIsModelLoading,
     eventBus,
     minimapConfig,
@@ -324,17 +319,6 @@ export const Layout: React.FC = () => {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const readSkipStartPagePref = () => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-    try {
-      return localStorage.getItem(SKIP_START_PAGE_KEY) === 'true';
-    } catch {
-      return false;
-    }
-  };
-  const initialSkipStartPage = readSkipStartPagePref();
 
   // Panel visibility states
   const [isLeftPanelCollapsed, setLeftPanelCollapsed] = useState(true);
@@ -376,34 +360,8 @@ export const Layout: React.FC = () => {
   const statsOverlayHostRef = useRef<HTMLElement | null>(null);
   const MINIMAP_LIMITS = { minZoom: 0.01, maxZoom: 0.5 };
   const [helpModal, setHelpModal] = useState<'docs' | 'shortcuts' | 'about' | null>(null);
-  const [hasModelLoaded, setHasModelLoaded] = useState(false);
-  const [skipStartPage, setSkipStartPage] = useState(initialSkipStartPage);
-  const [startPageVisible, setStartPageVisible] = useState(!initialSkipStartPage);
-  const [startPageBusy, setStartPageBusy] = useState(false);
-  const [lastLoadedPath, setLastLoadedPath] = useState<string | null>(null);
 
   useElectronFileOpen(components, propertyEditingService);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(SKIP_START_PAGE_KEY, skipStartPage ? 'true' : 'false');
-    } catch {
-      /* ignore */
-    }
-    if (skipStartPage) {
-      setStartPageVisible(false);
-    }
-  }, [skipStartPage]);
-
-  useEffect(() => {
-    if (!components) {return;}
-    try {
-      const fragmentsManager = components.get(OBC.FragmentsManager);
-      setHasModelLoaded((fragmentsManager?.groups?.size ?? 0) > 0);
-    } catch {
-      /* ignore */
-    }
-  }, [components]);
 
   const findViewerContainer = useCallback(() => {
     return document.querySelector<HTMLElement>('.ifc-viewer-library-container .viewer-container');
@@ -618,10 +576,48 @@ export const Layout: React.FC = () => {
     refreshSelectionState();
   }, [refreshSelectionState]);
 
+  // Nothing in the codebase ever emits eventBus 'selectionChanged', so we
+  // subscribe directly to the highlighter's own events (same approach as
+  // useElementSelection.ts) to keep hasSelection in sync with the viewport.
   useEffect(() => {
-    const off = eventBus.on('selectionChanged', () => refreshSelectionState());
-    return () => off();
-  }, [eventBus, refreshSelectionState]);
+    if (!components) {
+      return undefined;
+    }
+
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+
+    const trySubscribe = (attempt = 0) => {
+      if (cancelled) {
+        return;
+      }
+      try {
+        const highlighter = components.get(OBCF.Highlighter) as any;
+        if (!highlighter?.events?.select?.onHighlight) {
+          if (attempt < 20) {
+            setTimeout(() => trySubscribe(attempt + 1), 100);
+          }
+          return;
+        }
+
+        highlighter.events.select.onHighlight.add(refreshSelectionState);
+        highlighter.events.select.onClear.add(refreshSelectionState);
+        cleanup = () => {
+          highlighter.events.select.onHighlight.remove(refreshSelectionState);
+          highlighter.events.select.onClear.remove(refreshSelectionState);
+        };
+      } catch (error) {
+        console.warn('Failed to subscribe to highlighter selection events:', error);
+      }
+    };
+
+    trySubscribe();
+
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, [components, refreshSelectionState]);
 
   const computeModelsBoundingBox = useCallback((): THREE.Box3 | null => {
     if (!components || !world) {
@@ -689,12 +685,6 @@ export const Layout: React.FC = () => {
     await fitSceneToView(world, { paddingRatio: 1.2 });
   }, [computeModelsBoundingBox, world]);
 
-  useEffect(() => {
-    const off = eventBus.on('modelLoaded', () => setHasModelLoaded(true));
-    return () => off();
-  }, [eventBus]);
-
-
   // ============================================================================
   // Action Handlers
   // ============================================================================
@@ -713,7 +703,6 @@ export const Layout: React.FC = () => {
       const modelLoaded = new Promise<void>((resolve) => {
         try {
           loader.onModelLoaded(() => {
-            setHasModelLoaded(true);
             resolve();
           });
         } catch {
@@ -743,7 +732,6 @@ export const Layout: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file || !components) return;
 
-    setStartPageBusy(true);
     try {
       clearExistingModels();
       const buffer = await file.arrayBuffer();
@@ -754,7 +742,6 @@ export const Layout: React.FC = () => {
     } catch (err) {
       console.error('Failed to load IFC file:', err);
     } finally {
-      setStartPageBusy(false);
       // Reset input so same file can be loaded again
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -798,53 +785,6 @@ export const Layout: React.FC = () => {
       console.warn('Failed to clear existing models', error);
     }
   }, [components, world]);
-
-  const readFileFromPath = useCallback(async (path: string): Promise<ArrayBuffer | null> => {
-    try {
-      const api = getElectronAPI();
-      if (api?.readFile) {
-        return await api.readFile(path);
-      }
-    } catch (error) {
-      console.warn('Failed reading via electronAPI, trying Node fallback', error);
-    }
-
-    try {
-      // Fallback when nodeIntegration is enabled
-      const req = (window as any).require as any;
-      if (!req) {
-        console.warn('No require available for file read fallback');
-        return null;
-      }
-      const fs = req('fs');
-      const buffer = await fs.promises.readFile(path);
-      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-    } catch (error) {
-      console.error('Failed to read file via Node fallback:', error);
-      return null;
-    }
-  }, []);
-
-  const handleOpenIfcFromPath = useCallback(async (path: string) => {
-    setStartPageBusy(true);
-    try {
-      clearExistingModels();
-      const buffer = await readFileFromPath(path);
-      if (!buffer) {
-        throw new Error('Unable to read IFC file');
-      }
-      await loadIfcFromBuffer(buffer);
-      setLastLoadedPath(path);
-      // Ensure final focus after everything settled
-      if (world) {
-        await focusOnModels();
-      }
-    } catch (error) {
-      console.error('Failed to load IFC from path:', error);
-    } finally {
-      setStartPageBusy(false);
-    }
-  }, [clearExistingModels, loadIfcFromBuffer, readFileFromPath, focusOnModels, world]);
 
   const handleToggleFloorVisibility = useCallback(async (floorName: string) => {
     if (!components) {return;}
@@ -1912,7 +1852,6 @@ export const Layout: React.FC = () => {
 
   // Toolbar right content
   const toolbarRightContent = useMemo(() => null, []);
-  const showStartPage = startPageVisible;
 
   if (isLoading) {
     return (
@@ -2012,19 +1951,6 @@ export const Layout: React.FC = () => {
           >
             <AiVisualizerBottomPanel />
           </Panel>
-
-          {showStartPage && (
-            <StartPage
-              onOpenIfcPath={handleOpenIfcFromPath}
-              onEnterViewer={() => setStartPageVisible(false)}
-              canEnter={hasModelLoaded}
-              skipStartPage={skipStartPage}
-              onSkipStartPageChange={setSkipStartPage}
-              previewPreset={presetKey}
-              loadedModelName={lastLoadedPath ? lastLoadedPath.split(/[/\\]/).pop() ?? lastLoadedPath : null}
-              isBusy={isModelLoading || startPageBusy}
-            />
-          )}
         </div>
 
         {/* Right Panel (Properties) */}

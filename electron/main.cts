@@ -2,11 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, safeStorage, shell } from 'e
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
-import { fileURLToPath } from 'url';
 import Replicate from 'replicate';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
@@ -20,7 +16,7 @@ function createWindow() {
     backgroundColor: '#1a1a1a',
     title: 'IFC Viewer',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       // Renderer never gets direct Node access; all privileged operations
       // (fs, dialogs, AI requests) are funneled through the narrow
       // contextBridge API defined in preload.ts.
@@ -182,7 +178,11 @@ async function handleOpenFile() {
   }
 }
 
-// IPC Handlers
+// IPC Handlers. Registered lazily inside app.whenReady() below — on this
+// Electron build, the 'electron' module's exports (ipcMain, app.getPath,
+// etc.) aren't fully populated yet at synchronous require-time, so calling
+// them at module top level throws "Cannot read properties of undefined".
+function registerIpcHandlers() {
 ipcMain.handle('dialog:openFile', async () => {
   if (!mainWindow) return null;
 
@@ -379,9 +379,11 @@ ipcMain.handle('ai:generate', async (_event, args: unknown) => {
 
   return { image: base64Image };
 });
+}
 
 // App lifecycle
 app.whenReady().then(() => {
+  registerIpcHandlers();
   createWindow();
 
   app.on('activate', () => {

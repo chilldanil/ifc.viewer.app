@@ -40,7 +40,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\"",
     "type-check": "tsc --noEmit"
   },
-  "main": "./dist-electron/main.js",
+  "main": "./dist-electron/main.cjs",
   "module": "./dist/ifc-viewer.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
