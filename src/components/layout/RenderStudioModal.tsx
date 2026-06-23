@@ -429,15 +429,13 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
         {/* Controls column */}
         <div className="render-studio-controls">
           <Stack gap="md">
-            {!apiKey && (
-              <Input
-                type="password"
-                label="Replicate API Token"
-                placeholder="r8_..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
-            )}
+            <Input
+              type="password"
+              label="Replicate API Token"
+              placeholder="r8_..."
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
 
             <section>
               <Text variant="label" as="div">

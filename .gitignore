@@ -36,6 +36,7 @@ coverage
 junit.xml
 
 # Build outputs
+.build-bin/
 dist
 dist-electron
 release
