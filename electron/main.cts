@@ -399,7 +399,8 @@ ipcMain.handle('ai:generate', async (_event, args: unknown) => {
     throw new Error('Invalid request payload');
   }
 
-  const { prompt, imageBase64, apiKey } = args as Record<string, unknown>;
+  const { prompt, imageBase64, apiKey, negativePrompt, seed, aspectRatio, outputFormat, intensity } =
+    args as Record<string, unknown>;
 
   if (typeof prompt !== 'string' || typeof imageBase64 !== 'string') {
     throw new Error('Invalid request payload');
@@ -447,19 +448,50 @@ ipcMain.handle('ai:generate', async (_event, args: unknown) => {
       .replace(/[^ -ÿ]/g, ''); // strip any remaining non-Latin-1 (CJK, emoji, …)
   };
 
-  const enhancedPrompt = `Edit this image: ${sanitizePromptText(prompt)}. Keep the exact same building structure, camera angle, and composition. Only change the materials, textures, and lighting to make it look photorealistic.`;
-
-  const output = await replicate.run(
-    'google/nano-banana:2c8a3b5b81554aa195bde461e2caa6afacd69a66c48a64fb0e650c9789f8b8a0',
-    {
-      input: {
-        prompt: enhancedPrompt,
-        image_input: [dataUrl],
-        aspect_ratio: 'match_input_image',
-        output_format: 'jpg',
-      },
+  // Steer the instruction by how aggressively the user wants the look changed.
+  // Kept in sync with buildEnhancedPrompt in src/utils/aiVisualizer.ts.
+  const buildEnhancedPrompt = (): string => {
+    const subject = sanitizePromptText(prompt) || 'this architectural view';
+    const negative = typeof negativePrompt === 'string' ? sanitizePromptText(negativePrompt).trim() : '';
+    let base: string;
+    if (intensity === 'subtle') {
+      base = `Subtly enhance this architectural view into a photorealistic render: ${subject}. Keep the exact same building structure, geometry, camera angle and composition; only gently refine materials, textures and lighting.`;
+    } else if (intensity === 'strong') {
+      base = `Transform this architectural view into a fully photorealistic render: ${subject}. Preserve the overall building geometry and camera composition, but completely realize materials, textures, lighting and atmosphere.`;
+    } else {
+      base = `Edit this image: ${subject}. Keep the exact same building structure, camera angle, and composition. Only change the materials, textures, and lighting to make it look photorealistic.`;
     }
-  );
+    return negative ? `${base} Avoid: ${negative}.` : base;
+  };
+
+  const baseInput: Record<string, unknown> = {
+    prompt: buildEnhancedPrompt(),
+    image_input: [dataUrl],
+    aspect_ratio: typeof aspectRatio === 'string' && aspectRatio ? aspectRatio : 'match_input_image',
+    output_format: outputFormat === 'png' ? 'png' : 'jpg',
+  };
+  if (typeof seed === 'number' && Number.isFinite(seed)) {
+    baseInput.seed = Math.floor(seed);
+  }
+
+  const runModel = async (modelInput: Record<string, unknown>) =>
+    replicate.run(
+      'google/nano-banana:2c8a3b5b81554aa195bde461e2caa6afacd69a66c48a64fb0e650c9789f8b8a0',
+      { input: modelInput }
+    );
+
+  let output: unknown;
+  try {
+    output = await runModel(baseInput);
+  } catch (err) {
+    // Some models reject unknown inputs (e.g. seed) with a 422; retry without it.
+    if ('seed' in baseInput) {
+      const { seed: _omitSeed, ...withoutSeed } = baseInput;
+      output = await runModel(withoutSeed);
+    } else {
+      throw err;
+    }
+  }
 
   // Resolve a ".url" value that may be a string, a URL instance, or a method
   // (Replicate FileOutput exposes url() as a function).

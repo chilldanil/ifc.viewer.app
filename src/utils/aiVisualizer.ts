@@ -28,6 +28,43 @@ export const AI_RENDER_PRESETS: AiRenderPreset[] = [
   },
 ];
 
+export type RenderIntensity = 'subtle' | 'balanced' | 'strong';
+
+export interface AiGenerationParams {
+  prompt: string;
+  imageBase64: string;
+  apiKey: string;
+  negativePrompt?: string;
+  seed?: number;
+  /** 'match_input_image' | '16:9' | '1:1' | '4:3' | '3:2' | '9:16' | '21:9' */
+  aspectRatio?: string;
+  outputFormat?: 'jpg' | 'png';
+  intensity?: RenderIntensity;
+}
+
+/**
+ * Build the instruction the edit model receives, steered by how aggressively
+ * the user wants the look changed. Kept in sync with the copy in
+ * electron/main.cts (the main-process path can't import this module).
+ */
+export const buildEnhancedPrompt = (
+  prompt: string,
+  intensity: RenderIntensity = 'balanced',
+  negativePrompt = ''
+): string => {
+  const subject = prompt.trim() || 'this architectural view';
+  let base: string;
+  if (intensity === 'subtle') {
+    base = `Subtly enhance this architectural view into a photorealistic render: ${subject}. Keep the exact same building structure, geometry, camera angle and composition; only gently refine materials, textures and lighting.`;
+  } else if (intensity === 'strong') {
+    base = `Transform this architectural view into a fully photorealistic render: ${subject}. Preserve the overall building geometry and camera composition, but completely realize materials, textures, lighting and atmosphere.`;
+  } else {
+    base = `Edit this image: ${subject}. Keep the exact same building structure, camera angle, and composition. Only change the materials, textures, and lighting to make it look photorealistic.`;
+  }
+  const negative = negativePrompt.trim();
+  return negative ? `${base} Avoid: ${negative}.` : base;
+};
+
 export const REPLICATE_API_KEY_STORAGE_KEY = 'replicate_api_key';
 
 // In Electron, the key is encrypted at rest via the OS keychain (safeStorage,
@@ -66,36 +103,42 @@ export const saveReplicateApiKey = async (apiKey: string): Promise<void> => {
   }
 };
 
-export async function generateAiImage(args: {
-  prompt: string;
-  imageBase64: string;
-  apiKey: string;
-}): Promise<string> {
+export async function generateAiImage(args: AiGenerationParams): Promise<string> {
   const runReplicateDirect = async () => {
     const MODEL_VERSION = '2c8a3b5b81554aa195bde461e2caa6afacd69a66c48a64fb0e650c9789f8b8a0';
     const dataUrl = args.imageBase64.startsWith('data:')
       ? args.imageBase64
       : `data:image/png;base64,${args.imageBase64}`;
-    const enhancedPrompt = `Edit this image: ${args.prompt}. Keep the exact same building structure, camera angle, and composition. Only change the materials, textures, and lighting to make it look photorealistic.`;
+    const enhancedPrompt = buildEnhancedPrompt(args.prompt, args.intensity, args.negativePrompt);
 
     const headers = {
       Authorization: `Bearer ${args.apiKey}`,
       'Content-Type': 'application/json',
     };
 
-    const initRes = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        version: MODEL_VERSION,
-        input: {
-          prompt: enhancedPrompt,
-          image_input: [dataUrl],
-          aspect_ratio: 'match_input_image',
-          output_format: 'jpg',
-        },
-      }),
-    });
+    const input: Record<string, unknown> = {
+      prompt: enhancedPrompt,
+      image_input: [dataUrl],
+      aspect_ratio: args.aspectRatio || 'match_input_image',
+      output_format: args.outputFormat || 'jpg',
+    };
+    if (typeof args.seed === 'number') {
+      input.seed = args.seed;
+    }
+
+    const postPrediction = (predictionInput: Record<string, unknown>) =>
+      fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ version: MODEL_VERSION, input: predictionInput }),
+      });
+
+    let initRes = await postPrediction(input);
+    // Some models reject unknown inputs (e.g. seed); retry once without it.
+    if (!initRes.ok && initRes.status === 422 && 'seed' in input) {
+      const { seed: _omitSeed, ...withoutSeed } = input;
+      initRes = await postPrediction(withoutSeed);
+    }
 
     if (!initRes.ok) {
       let detail = '';

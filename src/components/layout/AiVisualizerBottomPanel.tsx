@@ -250,6 +250,18 @@ export const AiVisualizerBottomPanel: React.FC = () => {
                   </Button>
                 </Row>
 
+                <Button
+                  variant="default"
+                  onClick={() => window.dispatchEvent(new CustomEvent('ifc:open-render-studio'))}
+                  disabled={loading}
+                  block
+                >
+                  ✨ Open Render Studio
+                </Button>
+                <Text variant="subtle" size="xs">
+                  Studio adds subject selection, region crop, variations and more control.
+                </Text>
+
                 {error && <Status variant="error">{error}</Status>}
 
                 {!error && (

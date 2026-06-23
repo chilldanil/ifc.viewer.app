@@ -16,6 +16,7 @@ import { ModelTreePanel } from './ModelTreePanel';
 import { LeftPropertiesPanel } from './LeftPropertiesPanel';
 import { SpacebarQuickMenu, type QuickMenuTopSegment, type QuickMenuLeaf } from './SpacebarQuickMenu';
 import { RenderGalleryModal } from './RenderGalleryModal';
+import { RenderStudioModal } from './RenderStudioModal';
 import { ExportModifiedIfc } from '../sidebar/ExportModifiedIfc';
 import { ClashDetectionSection } from '../sidebar/ClashDetectionSection';
 import { AiVisualizerBottomPanel } from './AiVisualizerBottomPanel';
@@ -459,6 +460,15 @@ export const Layout: React.FC = () => {
     replaceFromPayloads,
   } = useRenderGallery();
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+
+  // The AI bottom panel opens the Render Studio via a window event so it
+  // doesn't need a prop drilled down through the Panel.
+  useEffect(() => {
+    const handler = () => setIsStudioOpen(true);
+    window.addEventListener('ifc:open-render-studio', handler);
+    return () => window.removeEventListener('ifc:open-render-studio', handler);
+  }, []);
 
   // Project IO: bumped whenever the loaded model set changes, so save/dirty
   // tracking can react to loads and clears.
@@ -1904,6 +1914,7 @@ export const Layout: React.FC = () => {
         { label: 'Open IFC...', icon: <FolderOpenIcon />, shortcut: 'Cmd/Ctrl+O', onClick: handleOpenIfcClick },
         { type: 'divider' },
         { label: 'Capture Screenshot', icon: <CameraIcon />, onClick: handleScreenshot },
+        { label: 'Render Studio...', icon: <SparklesIcon />, onClick: () => setIsStudioOpen(true) },
         { label: renderCount > 0 ? `Render Gallery (${renderCount})...` : 'Render Gallery...', icon: <ImagesIcon />, onClick: () => setIsGalleryOpen(true) },
         { type: 'divider' },
         { label: 'Export Modified IFC', type: 'submenu', icon: <DownloadIcon />, items: [
@@ -2203,7 +2214,7 @@ export const Layout: React.FC = () => {
     },
   ], [world, cameraQuickMenuChildren, viewsQuickMenuChildren, hasSelection, hiderQuickMenuChildren]);
 
-  const isAnyModalOpen = helpModal !== null || isCategoryHiderModalOpen || isQuickInfoOpen || isGalleryOpen;
+  const isAnyModalOpen = helpModal !== null || isCategoryHiderModalOpen || isQuickInfoOpen || isGalleryOpen || isStudioOpen;
 
   if (isLoading) {
     return (
@@ -2360,6 +2371,8 @@ export const Layout: React.FC = () => {
         onRemove={removeRender}
         onClear={clearRenders}
       />
+
+      <RenderStudioModal isOpen={isStudioOpen} onClose={() => setIsStudioOpen(false)} />
 
       <Modal isOpen={helpModal === 'docs'} onClose={() => setHelpModal(null)} title="Documentation" size="sm">
         <Stack gap="sm">
