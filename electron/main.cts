@@ -218,6 +218,40 @@ ipcMain.handle('dialog:saveFile', async (_event, defaultPath?: string) => {
   return null;
 });
 
+ipcMain.handle('dialog:saveProject', async (_event, defaultName?: string) => {
+  if (!mainWindow) return null;
+
+  const result = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: defaultName || 'untitled.ifcproj',
+    filters: [
+      { name: 'IFC Viewer Project', extensions: ['ifcproj'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+
+  if (!result.canceled && result.filePath) {
+    return result.filePath;
+  }
+  return null;
+});
+
+ipcMain.handle('dialog:openProject', async () => {
+  if (!mainWindow) return null;
+
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'IFC Viewer Project', extensions: ['ifcproj'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
+  return null;
+});
+
 ipcMain.handle('fs:listDir', async (_event, dirPath?: string) => {
   try {
     const target = dirPath ? path.resolve(dirPath) : os.homedir();
@@ -278,6 +312,88 @@ ipcMain.handle('secure-storage:set-api-key', async (_event, apiKey: unknown) => 
   return true;
 });
 
+// Generic small-JSON storage under userData (recent projects, auto-resume
+// snapshots, render-gallery index, ...). Keys are sanitized to a flat filename.
+const appStorageDir = path.join(app.getPath('userData'), 'storage');
+
+const resolveStorageFile = (key: unknown): string => {
+  if (typeof key !== 'string' || !key.trim()) {
+    throw new Error('Invalid storage key');
+  }
+  const safe = key.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200);
+  return path.join(appStorageDir, `${safe}.json`);
+};
+
+ipcMain.handle('app-storage:read-json', async (_event, key: unknown) => {
+  try {
+    const raw = await fs.readFile(resolveStorageFile(key), 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('app-storage:write-json', async (_event, payload: unknown) => {
+  const { key, value } = (payload ?? {}) as { key?: unknown; value?: unknown };
+  const file = resolveStorageFile(key);
+  await fs.mkdir(appStorageDir, { recursive: true });
+  await fs.writeFile(file, JSON.stringify(value ?? null), 'utf-8');
+  return true;
+});
+
+// Binary blob storage under userData (render-gallery images, ...), namespaced
+// so different features don't collide. Keys/namespaces are sanitized.
+const blobStorageDir = path.join(app.getPath('userData'), 'blobs');
+
+const sanitizeSegment = (value: unknown): string => {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error('Invalid storage segment');
+  }
+  return value.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200);
+};
+
+const resolveBlobDir = (ns: unknown): string => path.join(blobStorageDir, sanitizeSegment(ns));
+const resolveBlobFile = (ns: unknown, key: unknown): string =>
+  path.join(resolveBlobDir(ns), `${sanitizeSegment(key)}.bin`);
+
+ipcMain.handle('app-storage:write-bytes', async (_event, payload: unknown) => {
+  const { ns, key, data } = (payload ?? {}) as { ns?: unknown; key?: unknown; data?: unknown };
+  if (!(data instanceof ArrayBuffer) && !ArrayBuffer.isView(data as any)) {
+    throw new Error('Invalid blob payload');
+  }
+  const file = resolveBlobFile(ns, key);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, Buffer.from(data as ArrayBuffer));
+  return true;
+});
+
+ipcMain.handle('app-storage:read-bytes', async (_event, payload: unknown) => {
+  const { ns, key } = (payload ?? {}) as { ns?: unknown; key?: unknown };
+  try {
+    const buffer = await fs.readFile(resolveBlobFile(ns, key));
+    return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('app-storage:delete-bytes', async (_event, payload: unknown) => {
+  const { ns, key } = (payload ?? {}) as { ns?: unknown; key?: unknown };
+  await fs.rm(resolveBlobFile(ns, key), { force: true });
+  return true;
+});
+
+ipcMain.handle('app-storage:list-bytes', async (_event, ns: unknown) => {
+  try {
+    const entries = await fs.readdir(resolveBlobDir(ns));
+    return entries
+      .filter((name) => name.endsWith('.bin'))
+      .map((name) => name.slice(0, -'.bin'.length));
+  } catch {
+    return [];
+  }
+});
+
 ipcMain.handle('ai:generate', async (_event, args: unknown) => {
   if (!args || typeof args !== 'object') {
     throw new Error('Invalid request payload');
@@ -303,13 +419,35 @@ ipcMain.handle('ai:generate', async (_event, args: unknown) => {
     );
   }
 
-  const replicate = new Replicate({ auth: token });
+  // useFileOutput:false → run() resolves to plain URL strings/arrays instead of
+  // FileOutput stream objects, which is what extractUrl expects.
+  const replicate = new Replicate({ auth: token, useFileOutput: false });
 
   const dataUrl = imageBase64.startsWith('data:')
     ? imageBase64
     : `data:image/png;base64,${imageBase64}`;
 
-  const enhancedPrompt = `Edit this image: ${prompt}. Keep the exact same building structure, camera angle, and composition. Only change the materials, textures, and lighting to make it look photorealistic.`;
+  // The Replicate client can place prompt text into request handling that
+  // requires Latin-1 (ByteString) encoding, which throws on characters > 255
+  // (e.g. a smart ellipsis "…", em dashes, curly quotes). Normalise common
+  // smart punctuation to ASCII and drop anything still outside Latin-1 so the
+  // request can always be encoded. Accented Latin (≤255) is preserved.
+  const sanitizePromptText = (text: string): string => {
+    const smartPunctuation: Record<string, string> = {
+      '…': '...', // …
+      '–': '-', '—': '-', // – —
+      '‘': "'", '’': "'", '‚': "'", '‛': "'", // ‘ ’ ‚ ‛
+      '“': '"', '”': '"', '„': '"', '‟': '"', // “ ” „ ‟
+      '•': '*', '·': '*', // • ·
+      '→': '->', '←': '<-', // → ←
+      ' ': ' ', // non-breaking space
+    };
+    return text
+      .replace(/[–—‘’‚‛“”„‟•·…→← ]/g, (c) => smartPunctuation[c] ?? c)
+      .replace(/[^ -ÿ]/g, ''); // strip any remaining non-Latin-1 (CJK, emoji, …)
+  };
+
+  const enhancedPrompt = `Edit this image: ${sanitizePromptText(prompt)}. Keep the exact same building structure, camera angle, and composition. Only change the materials, textures, and lighting to make it look photorealistic.`;
 
   const output = await replicate.run(
     'google/nano-banana:2c8a3b5b81554aa195bde461e2caa6afacd69a66c48a64fb0e650c9789f8b8a0',
@@ -323,6 +461,25 @@ ipcMain.handle('ai:generate', async (_event, args: unknown) => {
     }
   );
 
+  // Resolve a ".url" value that may be a string, a URL instance, or a method
+  // (Replicate FileOutput exposes url() as a function).
+  const resolveUrlValue = (urlValue: unknown): string | null => {
+    if (typeof urlValue === 'function') {
+      try {
+        return resolveUrlValue((urlValue as () => unknown)());
+      } catch {
+        return null;
+      }
+    }
+    if (typeof urlValue === 'string') {
+      return urlValue;
+    }
+    if (urlValue && typeof urlValue === 'object' && 'href' in (urlValue as any)) {
+      return String((urlValue as any).href); // URL instance
+    }
+    return null;
+  };
+
   const extractUrl = (value: unknown): string | null => {
     if (!value) {
       return null;
@@ -330,29 +487,32 @@ ipcMain.handle('ai:generate', async (_event, args: unknown) => {
     if (typeof value === 'string') {
       return value;
     }
+    if (typeof value === 'function') {
+      return resolveUrlValue(value);
+    }
     if (Array.isArray(value)) {
-      const firstItem = value[0] as unknown;
-      if (typeof firstItem === 'string') {
-        return firstItem;
-      }
-      if (firstItem && typeof firstItem === 'object' && 'url' in (firstItem as any)) {
-        const urlValue = (firstItem as any).url as unknown;
-        if (typeof urlValue === 'function') {
-          return urlValue();
-        }
-        if (typeof urlValue === 'string') {
-          return urlValue;
+      for (const item of value) {
+        const found = extractUrl(item);
+        if (found) {
+          return found;
         }
       }
       return null;
     }
     if (typeof value === 'object') {
       const obj = value as any;
+      // FileOutput / URL-like: a url string, url() method, or href.
+      if ('url' in obj) {
+        const found = resolveUrlValue(obj.url);
+        if (found) {
+          return found;
+        }
+      }
+      if (typeof obj.href === 'string') {
+        return obj.href;
+      }
       if (obj.output) {
         return extractUrl(obj.output);
-      }
-      if (obj.url) {
-        return extractUrl(obj.url);
       }
       if (obj.urls) {
         return extractUrl(obj.urls);

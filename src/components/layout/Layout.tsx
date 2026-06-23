@@ -7,6 +7,7 @@ import { Toolbar, type MenuConfig, type MenuItem } from './Toolbar';
 import { Panel } from './Panel';
 import { CategoryHiderModal } from './CategoryHiderModal';
 import { useBIM, type MultiViewPreset } from '../../context/BIMContext';
+import { useRenderGallery } from '../../context/RenderGalleryContext';
 import { WorldToolbarMenu } from './WorldToolbarMenu';
 import { PostproductionToolbarMenu } from './PostproductionToolbarMenu';
 import { CameraToolbarMenu } from './CameraToolbarMenu';
@@ -14,6 +15,7 @@ import { ClippingToolbarMenu } from './ClippingToolbarMenu';
 import { ModelTreePanel } from './ModelTreePanel';
 import { LeftPropertiesPanel } from './LeftPropertiesPanel';
 import { SpacebarQuickMenu, type QuickMenuTopSegment, type QuickMenuLeaf } from './SpacebarQuickMenu';
+import { RenderGalleryModal } from './RenderGalleryModal';
 import { ExportModifiedIfc } from '../sidebar/ExportModifiedIfc';
 import { ClashDetectionSection } from '../sidebar/ClashDetectionSection';
 import { AiVisualizerBottomPanel } from './AiVisualizerBottomPanel';
@@ -24,10 +26,12 @@ import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
-import { Modal, Stack, Text } from '../../ui';
+import { Modal, Stack, Text, Status } from '../../ui';
 import { useElectronFileOpen } from '../../hooks/useElectronFileOpen';
 import { useElementSelection } from '../../hooks/useElementSelection';
 import { useCameraControls } from '../../hooks/useCameraControls';
+import { useProjectIO } from '../../hooks/useProjectIO';
+import type { ProjectIOContext } from '../../core/project/projectViewerState';
 
 const PropertyEditor = React.lazy(() =>
   import('../sidebar/PropertyEditor').then((m) => ({ default: m.PropertyEditor }))
@@ -190,6 +194,29 @@ const ResetIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M3 12a9 9 0 1 0 3-6.7" />
     <polyline points="3 4 3 9 8 9" />
+  </svg>
+);
+
+const SaveIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+    <polyline points="17 21 17 13 7 13 7 21" />
+    <polyline points="7 3 7 8 15 8" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const ImagesIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <circle cx="9" cy="9" r="2" />
+    <path d="m21 15-3.5-3.5a2 2 0 0 0-2.8 0L7 19" />
   </svg>
 );
 
@@ -422,8 +449,31 @@ export const Layout: React.FC = () => {
   const [isQuickInfoOpen, setIsQuickInfoOpen] = useState(false);
   const { navMode, projection, setNavMode, setProjection, cameraAvailable } = useCameraControls(world);
   const { selectedModel: quickInfoModel, selectedExpressID: quickInfoExpressID } = useElementSelection(components, world);
+  const {
+    renders,
+    count: renderCount,
+    addRender,
+    removeRender,
+    clearRenders,
+    getRenderPayloads,
+    replaceFromPayloads,
+  } = useRenderGallery();
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+
+  // Project IO: bumped whenever the loaded model set changes, so save/dirty
+  // tracking can react to loads and clears.
+  const [modelRevision, setModelRevision] = useState(0);
+  const [hasModels, setHasModels] = useState(false);
 
   useElectronFileOpen(components, propertyEditingService);
+
+  useEffect(() => {
+    const off = eventBus.on('modelLoaded', () => {
+      setHasModels(true);
+      setModelRevision((r) => r + 1);
+    });
+    return () => off();
+  }, [eventBus]);
 
   const findViewerContainer = useCallback(() => {
     return document.querySelector<HTMLElement>('.ifc-viewer-library-container .viewer-container');
@@ -539,9 +589,9 @@ export const Layout: React.FC = () => {
 
   const containerClassName = useMemo(() => {
     const classes = ['layout', 'ifc-viewer-library-container'];
-    if (isLeftPanelCollapsed) classes.push('left-panel-collapsed');
-    if (isRightPanelCollapsed) classes.push('right-panel-collapsed');
-    if (isBottomPanelCollapsed) classes.push('bottom-panel-collapsed');
+    if (isLeftPanelCollapsed) {classes.push('left-panel-collapsed');}
+    if (isRightPanelCollapsed) {classes.push('right-panel-collapsed');}
+    if (isBottomPanelCollapsed) {classes.push('bottom-panel-collapsed');}
     return classes.join(' ');
   }, [isLeftPanelCollapsed, isRightPanelCollapsed, isBottomPanelCollapsed]);
 
@@ -792,7 +842,7 @@ export const Layout: React.FC = () => {
 
   const handleIfcFileSelected = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !components) return;
+    if (!file || !components) {return;}
 
     try {
       clearExistingModels();
@@ -846,6 +896,8 @@ export const Layout: React.FC = () => {
     } catch (error) {
       console.warn('Failed to clear existing models', error);
     }
+    setHasModels(false);
+    setModelRevision((r) => r + 1);
   }, [components, world]);
 
   const handleToggleFloorVisibility = useCallback(async (floorName: string) => {
@@ -870,7 +922,7 @@ export const Layout: React.FC = () => {
         if (!group) {return;}
         try {
           const structureId = structure.id;
-          if (structureId === null) return;
+          if (structureId === null) {return;}
           const foundIDs = indexer.getEntityChildren(group, structureId);
           const fragMap = group.getFragmentMap(foundIDs);
           updateTasks.push(Promise.resolve(hider.set(nextVisible, fragMap)));
@@ -932,7 +984,7 @@ export const Layout: React.FC = () => {
     }
   }, [components, getSelectionFragments, refreshSelectionState]);
 
-  // File: Screenshot
+  // File: Screenshot — download to disk and add to the render gallery.
   const handleScreenshot = useCallback(async () => {
     try {
       const dataUrl = await captureScreenshot();
@@ -941,11 +993,12 @@ export const Layout: React.FC = () => {
         link.download = `ifc-screenshot-${Date.now()}.png`;
         link.href = dataUrl;
         link.click();
+        addRender({ kind: 'screenshot', dataUrl });
       }
     } catch (err) {
       console.error('Failed to capture screenshot:', err);
     }
-  }, [captureScreenshot]);
+  }, [captureScreenshot, addRender]);
 
   // View: Fit to Model
   const handleFitToModel = useCallback(async () => {
@@ -976,6 +1029,16 @@ export const Layout: React.FC = () => {
         }
         event.preventDefault();
         handleOpenIfcClick();
+        return;
+      }
+
+      if (hasCmdOrCtrl && (event.key === 's' || event.key === 'S')) {
+        event.preventDefault();
+        if (event.shiftKey) {
+          void saveProjectAsRef.current();
+        } else {
+          void saveProjectRef.current();
+        }
         return;
       }
 
@@ -1645,7 +1708,7 @@ export const Layout: React.FC = () => {
 
   // Tools: Show All (Reset Visibility)
   const handleShowAll = useCallback(() => {
-    if (!components) return;
+    if (!components) {return;}
     try {
       const hider = components.get(OBC.Hider);
       hider.set(true);
@@ -1656,7 +1719,7 @@ export const Layout: React.FC = () => {
 
   // Tools: Clear Selection
   const handleClearSelection = useCallback(() => {
-    if (!components) return;
+    if (!components) {return;}
     try {
       const highlighter = components.get(OBCF.Highlighter);
       highlighter.clear('select');
@@ -1698,6 +1761,134 @@ export const Layout: React.FC = () => {
   ], [hasSelection, runSelectionHiderAction]);
 
   // ============================================================================
+  // Project IO (.ifcproj save / open)
+  // ============================================================================
+
+  // A cheap signature of all restorable state (camera pose excluded — it isn't
+  // reactive); changes here flip the unsaved-changes marker.
+  const projectDirtyKey = useMemo(() => JSON.stringify({
+    multiViewPreset,
+    viewCubeEnabled,
+    minimap: {
+      e: minimapConfig.enabled,
+      v: minimapConfig.visible,
+      l: minimapConfig.lockRotation,
+      z: minimapConfig.zoom,
+    },
+    panels: [isLeftPanelCollapsed, isRightPanelCollapsed, isBottomPanelCollapsed],
+    floors: floorVisibility,
+    categories: categoryVisibility,
+    clip: [
+      clippingEnabled, clippingGizmosVisible, clipOrthoY, clipPlaneOpacity, clipPlaneSize,
+      clipEdgesVisible, clipEdgeColor, clipEdgeWidth, clipFillColor, clipFillOpacity, sectionBoxActive,
+    ],
+    nav: [navMode, projection],
+    rev: modelRevision,
+  }), [
+    multiViewPreset, viewCubeEnabled, minimapConfig, isLeftPanelCollapsed, isRightPanelCollapsed,
+    isBottomPanelCollapsed, floorVisibility, categoryVisibility, clippingEnabled, clippingGizmosVisible,
+    clipOrthoY, clipPlaneOpacity, clipPlaneSize, clipEdgesVisible, clipEdgeColor, clipEdgeWidth,
+    clipFillColor, clipFillOpacity, sectionBoxActive, navMode, projection, modelRevision,
+  ]);
+
+  // Latest values for the lazy context factory, so save/open always read fresh
+  // state without recreating the factory (and the menu) on every render.
+  const projectBindingsRef = useRef<Record<string, any>>({});
+  projectBindingsRef.current = {
+    components, world,
+    navMode, projection, setNavMode, setProjection,
+    multiViewPreset, setMultiViewPreset, minimapConfig, setMinimapConfig, viewCubeEnabled, setViewCubeEnabled,
+    isLeftPanelCollapsed, setLeftPanelCollapsed, isRightPanelCollapsed, setRightPanelCollapsed,
+    isBottomPanelCollapsed, setBottomPanelCollapsed,
+    floorVisibility, setFloorVisibility, categoryVisibility, setCategoryVisibility,
+    clip: {
+      enabled: clippingEnabled, gizmosVisible: clippingGizmosVisible, orthoY: clipOrthoY,
+      planeOpacity: clipPlaneOpacity, planeSize: clipPlaneSize, edgesVisible: clipEdgesVisible,
+      edgeColor: clipEdgeColor, edgeWidth: clipEdgeWidth, fillColor: clipFillColor,
+      fillOpacity: clipFillOpacity, sectionBoxActive,
+    },
+    clipSetters: {
+      setEnabled: setClippingEnabled, setGizmosVisible: setClippingGizmosVisible, setOrthoY: setClipOrthoY,
+      setPlaneOpacity: setClipPlaneOpacity, setPlaneSize: setClipPlaneSize, setEdgesVisible: setClipEdgesVisible,
+      setEdgeColor: setClipEdgeColor, setEdgeWidth: setClipEdgeWidth, setFillColor: setClipFillColor,
+      setFillOpacity: setClipFillOpacity, setSectionBoxActive,
+    },
+    getClipper,
+  };
+
+  const buildProjectContext = useCallback((): ProjectIOContext | null => {
+    const b = projectBindingsRef.current;
+    if (!b.components || !b.world) {
+      return null;
+    }
+    return {
+      components: b.components,
+      world: b.world,
+      camera: {
+        navMode: b.navMode, projection: b.projection,
+        setNavMode: b.setNavMode, setProjection: b.setProjection,
+      },
+      multiViewPreset: b.multiViewPreset,
+      setMultiViewPreset: b.setMultiViewPreset,
+      minimapConfig: b.minimapConfig,
+      setMinimapConfig: b.setMinimapConfig,
+      viewCubeEnabled: b.viewCubeEnabled,
+      setViewCubeEnabled: b.setViewCubeEnabled,
+      panels: {
+        leftCollapsed: b.isLeftPanelCollapsed,
+        rightCollapsed: b.isRightPanelCollapsed,
+        bottomCollapsed: b.isBottomPanelCollapsed,
+        setLeftCollapsed: b.setLeftPanelCollapsed,
+        setRightCollapsed: b.setRightPanelCollapsed,
+        setBottomCollapsed: b.setBottomPanelCollapsed,
+      },
+      floorVisibility: b.floorVisibility,
+      categoryVisibility: b.categoryVisibility,
+      setFloorVisibility: b.setFloorVisibility,
+      setCategoryVisibility: b.setCategoryVisibility,
+      clipping: { ...b.clip, ...b.clipSetters, getClipper: b.getClipper },
+    };
+  }, []);
+
+  const {
+    isBusy: projectBusy,
+    status: projectStatus,
+    recentProjects,
+    saveProject,
+    saveProjectAs,
+    openProject,
+    openRecent,
+    dismissStatus: dismissProjectStatus,
+    canSave: canSaveProject,
+  } = useProjectIO({
+    buildContext: buildProjectContext,
+    propertyEditingService,
+    clearModels: clearExistingModels,
+    loadModel: loadIfcFromBuffer,
+    dirtyKey: projectDirtyKey,
+    hasModels,
+    getRenderPayloads,
+    applyRenders: replaceFromPayloads,
+  });
+
+  // Stable refs so the global keydown handler (registered once) always calls
+  // the latest save handlers without re-subscribing.
+  const saveProjectRef = useRef(saveProject);
+  saveProjectRef.current = saveProject;
+  const saveProjectAsRef = useRef(saveProjectAs);
+  saveProjectAsRef.current = saveProjectAs;
+
+  const recentProjectsMenuItems = useMemo<MenuItem[]>(() => {
+    if (!recentProjects.length) {
+      return [{ label: 'No recent projects', disabled: true }];
+    }
+    return recentProjects.map((entry) => ({
+      label: entry.name,
+      onClick: () => { void openRecent(entry.path); },
+    }));
+  }, [recentProjects, openRecent]);
+
+  // ============================================================================
   // Toolbar Menu Configuration
   // ============================================================================
 
@@ -1705,9 +1896,15 @@ export const Layout: React.FC = () => {
     {
       label: 'File',
       items: [
+        { label: 'Save Project', icon: <SaveIcon />, shortcut: 'Cmd/Ctrl+S', onClick: () => { void saveProject(); }, disabled: !canSaveProject || projectBusy },
+        { label: 'Save Project As...', shortcut: 'Cmd/Ctrl+Shift+S', onClick: () => { void saveProjectAs(); }, disabled: !canSaveProject || projectBusy },
+        { label: 'Open Project...', icon: <FolderOpenIcon />, onClick: () => { void openProject(); }, disabled: projectBusy },
+        { label: 'Recent Projects', type: 'submenu', icon: <ClockIcon />, items: recentProjectsMenuItems },
+        { type: 'divider' },
         { label: 'Open IFC...', icon: <FolderOpenIcon />, shortcut: 'Cmd/Ctrl+O', onClick: handleOpenIfcClick },
         { type: 'divider' },
         { label: 'Capture Screenshot', icon: <CameraIcon />, onClick: handleScreenshot },
+        { label: renderCount > 0 ? `Render Gallery (${renderCount})...` : 'Render Gallery...', icon: <ImagesIcon />, onClick: () => setIsGalleryOpen(true) },
         { type: 'divider' },
         { label: 'Export Modified IFC', type: 'submenu', icon: <DownloadIcon />, items: [
           {
@@ -1923,6 +2120,13 @@ export const Layout: React.FC = () => {
     setNavMode,
     setProjection,
     cameraAvailable,
+    saveProject,
+    saveProjectAs,
+    openProject,
+    canSaveProject,
+    projectBusy,
+    recentProjectsMenuItems,
+    renderCount,
   ]);
 
   // Toolbar right content
@@ -1999,7 +2203,7 @@ export const Layout: React.FC = () => {
     },
   ], [world, cameraQuickMenuChildren, viewsQuickMenuChildren, hasSelection, hiderQuickMenuChildren]);
 
-  const isAnyModalOpen = helpModal !== null || isCategoryHiderModalOpen || isQuickInfoOpen;
+  const isAnyModalOpen = helpModal !== null || isCategoryHiderModalOpen || isQuickInfoOpen || isGalleryOpen;
 
   if (isLoading) {
     return (
@@ -2128,11 +2332,34 @@ export const Layout: React.FC = () => {
       {/* Spacebar Quick Menu */}
       <SpacebarQuickMenu segments={quickMenuSegments} disabled={isAnyModalOpen} />
 
+      {/* Project save/open status toast */}
+      {projectStatus && (
+        <div className="project-status-toast" role="status">
+          <Status variant={projectStatus.variant}>{projectStatus.text}</Status>
+          <button
+            type="button"
+            className="project-status-toast-close"
+            onClick={dismissProjectStatus}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <Modal isOpen={isQuickInfoOpen} onClose={() => setIsQuickInfoOpen(false)} title="Quick Properties" size="sm">
         <React.Suspense fallback={<div />}>
           <PropertyEditor selectedModel={quickInfoModel} selectedExpressID={quickInfoExpressID} />
         </React.Suspense>
       </Modal>
+
+      <RenderGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        renders={renders}
+        onRemove={removeRender}
+        onClear={clearRenders}
+      />
 
       <Modal isOpen={helpModal === 'docs'} onClose={() => setHelpModal(null)} title="Documentation" size="sm">
         <Stack gap="sm">

@@ -54,6 +54,15 @@ export class PropertyEditingService {
   }
 
   /**
+   * Get the original IFC buffer for a model, if it was retained at load time.
+   * Used by the project bundler to embed the source IFC without a full
+   * re-serialize when there are no property edits to bake in.
+   */
+  getOriginalIfcBuffer(modelId: string): Uint8Array | undefined {
+    return this.state.originalIfcBuffer.get(modelId);
+  }
+
+  /**
    * Update a property value
    */
   async updateProperty(

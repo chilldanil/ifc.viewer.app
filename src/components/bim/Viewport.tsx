@@ -84,12 +84,10 @@ const ViewportComponent: React.FC = () => {
       const panelElement = visibilityPanelRef.current;
 
       if (!panelElement) {
-        handleBIMError(
-          ErrorType.COMPONENT_ERROR,
-          'Visibility controls panel not found in sidebar',
-          undefined,
-          'Viewport'
-        );
+        // The legacy in-sidebar visibility panel slot was removed in favour of
+        // the Hider toolbar menu + Category Hider modal, so its absence is
+        // expected — skip quietly rather than logging an error on every load.
+        console.debug('Skipping legacy visibility controls panel (slot not mounted)');
         return;
       }
 

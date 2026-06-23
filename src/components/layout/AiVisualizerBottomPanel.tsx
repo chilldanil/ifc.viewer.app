@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useBIM } from '../../context/BIMContext';
+import { useRenderGallery } from '../../context/RenderGalleryContext';
 import { downloadBase64Image } from '../../utils/captureScreenshot';
 import {
   AI_RENDER_PRESETS,
@@ -14,6 +15,7 @@ import './AiVisualizerBottomPanel.css';
 
 export const AiVisualizerBottomPanel: React.FC = () => {
   const { captureScreenshot } = useBIM();
+  const { addRender } = useRenderGallery();
 
   const [prompt, setPrompt] = useState(AI_RENDER_PRESETS[0].prompt);
   const [loading, setLoading] = useState(false);
@@ -79,6 +81,7 @@ export const AiVisualizerBottomPanel: React.FC = () => {
       setOriginalImage(imageBase64);
       const result = await generateAiImage({ prompt, imageBase64, apiKey });
       setResultImage(result);
+      addRender({ kind: 'ai', dataUrl: result, prompt });
       await saveReplicateApiKey(apiKey);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate image. Please try again.';

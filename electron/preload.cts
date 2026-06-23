@@ -9,6 +9,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFileDialog: (defaultPath?: string) =>
     ipcRenderer.invoke('dialog:saveFile', defaultPath),
 
+  // Project (.ifcproj) dialogs
+  saveProjectDialog: (defaultName?: string) =>
+    ipcRenderer.invoke('dialog:saveProject', defaultName),
+  openProjectDialog: () => ipcRenderer.invoke('dialog:openProject'),
+
+  // Small-JSON + binary blob app storage (recent projects, auto-resume,
+  // render-gallery index + images)
+  appStorage: {
+    readJson: (key: string) => ipcRenderer.invoke('app-storage:read-json', key),
+    writeJson: (key: string, value: unknown) =>
+      ipcRenderer.invoke('app-storage:write-json', { key, value }),
+    writeBytes: (ns: string, key: string, data: ArrayBuffer) =>
+      ipcRenderer.invoke('app-storage:write-bytes', { ns, key, data }),
+    readBytes: (ns: string, key: string) =>
+      ipcRenderer.invoke('app-storage:read-bytes', { ns, key }),
+    deleteBytes: (ns: string, key: string) =>
+      ipcRenderer.invoke('app-storage:delete-bytes', { ns, key }),
+    listBytes: (ns: string) => ipcRenderer.invoke('app-storage:list-bytes', ns),
+  },
+
   // File system operations (read-only for security)
   readFile: async (filePath: string): Promise<ArrayBuffer> => {
     try {
@@ -69,6 +89,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
 export interface ElectronAPI {
   openFileDialog: () => Promise<string | null>;
   saveFileDialog: (defaultPath?: string) => Promise<string | null>;
+  saveProjectDialog: (defaultName?: string) => Promise<string | null>;
+  openProjectDialog: () => Promise<string | null>;
+  appStorage: {
+    readJson: <T = unknown>(key: string) => Promise<T | null>;
+    writeJson: (key: string, value: unknown) => Promise<boolean>;
+    writeBytes: (ns: string, key: string, data: ArrayBuffer) => Promise<boolean>;
+    readBytes: (ns: string, key: string) => Promise<ArrayBuffer | null>;
+    deleteBytes: (ns: string, key: string) => Promise<boolean>;
+    listBytes: (ns: string) => Promise<string[]>;
+  };
   readFile: (filePath: string) => Promise<ArrayBuffer>;
   writeFile: (filePath: string, data: ArrayBuffer) => Promise<void>;
   onFileOpened: (callback: (filePath: string) => void) => () => void;

@@ -445,3 +445,51 @@
 .ifc-viewer-library-container .panel--left .sidebar {
   padding: 0;
 }
+
+/* ============================================================================
+   Project save/open status toast
+   ============================================================================ */
+
+.project-status-toast {
+  position: fixed;
+  top: calc(var(--ifc-toolbar-height, 40px) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5000;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  max-width: min(520px, 90vw);
+  box-shadow: var(--ifc-shadow-lg);
+  border-radius: var(--ifc-radius-md);
+  animation: project-status-toast-in 0.18s ease-out;
+}
+
+@keyframes project-status-toast-in {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.project-status-toast .ui-status {
+  flex: 1;
+}
+
+.project-status-toast-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  border: 1px solid var(--ifc-color-border);
+  border-radius: var(--ifc-radius-md);
+  background: var(--ifc-color-surface-elevated);
+  color: var(--ifc-color-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--ifc-transition-fast), color var(--ifc-transition-fast);
+}
+
+.project-status-toast-close:hover {
+  background: var(--ifc-color-surface-hover);
+  color: var(--ifc-color-text);
+}

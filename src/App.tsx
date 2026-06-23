@@ -2,6 +2,7 @@ import React from 'react';
 import './polyfills/three-compat';
 import { Layout } from './components/layout/Layout';
 import { BIMProvider, SelectionMap } from './context/BIMContext';
+import { RenderGalleryProvider } from './context/RenderGalleryContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PartialViewerConfig } from './config/viewerConfig';
 
@@ -21,7 +22,9 @@ const App: React.FC<AppProps> = ({ onObjectSelected, onModelLoaded, onError, con
         onError={onError}
         config={config}
       >
-        <Layout />
+        <RenderGalleryProvider>
+          <Layout />
+        </RenderGalleryProvider>
       </BIMProvider>
     </ErrorBoundary>
   );
