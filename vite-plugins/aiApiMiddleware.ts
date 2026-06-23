@@ -1,41 +1,15 @@
 import type { Plugin } from 'vite';
 import Replicate from 'replicate';
-
-const MODEL_VERSION = 'google/nano-banana:2c8a3b5b81554aa195bde461e2caa6afacd69a66c48a64fb0e650c9789f8b8a0';
-
-function extractImageUrl(output: unknown): string | null {
-  if (typeof output === 'string') {
-    return output;
-  }
-  if (Array.isArray(output) && output.length > 0) {
-    const first = output[0];
-    if (first && typeof first === 'object' && 'url' in first) {
-      const value = (first as { url: unknown }).url;
-      return typeof value === 'function' ? (value as () => string)() : (value as string);
-    }
-    if (typeof first === 'string') {
-      return first;
-    }
-    return null;
-  }
-  if (output && typeof output === 'object') {
-    const obj = output as Record<string, unknown>;
-    if (obj.output) {
-      return extractImageUrl(obj.output);
-    }
-    if (obj.url) {
-      const value = obj.url;
-      return typeof value === 'function' ? (value as () => string)() : (value as string);
-    }
-    if (Array.isArray(obj.urls) && obj.urls.length > 0) {
-      return extractImageUrl(obj.urls[0]);
-    }
-  }
-  return null;
-}
+import {
+  buildReplicateInput,
+  coerceAiRenderMode,
+  extractReplicateImageUrl,
+  getAIVisualizationMode,
+  getReplicateReferenceImageField,
+} from '../src/utils/aiVisualizationRouter';
 
 /**
- * Dev-server-only middleware that proxies AI Visualizer requests to
+ * Dev-server-only middleware that proxies AI Visualization requests to
  * Replicate. Used by both the library build (vite.config.ts) and the
  * Electron renderer dev server (vite.electron.config.ts) so this logic
  * lives in one place instead of being duplicated across both configs.
@@ -57,46 +31,143 @@ export function createAiApiMiddlewarePlugin(replicateApiToken: string | undefine
         });
 
         req.on('end', async () => {
+          let logContext = {
+            mode: 'unknown',
+            model: 'unknown',
+            hasImage: false,
+            referenceImageField: null as string | null,
+          };
+
           try {
             const parsed = JSON.parse(body);
-            const { prompt, imageBase64, apiKey } = parsed;
+            const {
+              prompt,
+              imageBase64,
+              image,
+              apiKey,
+              negativePrompt,
+              seed,
+              aspectRatio,
+              outputFormat,
+              intensity,
+            } = parsed;
+            const mode = coerceAiRenderMode(parsed?.mode);
+            const selectedMode = getAIVisualizationMode(mode);
+            const inputImage = typeof imageBase64 === 'string' ? imageBase64 : image;
+            logContext = {
+              mode,
+              model: selectedMode.model,
+              hasImage: typeof inputImage === 'string' && inputImage.trim().length > 0,
+              referenceImageField: selectedMode.referenceImageField ?? null,
+            };
 
-            const token = apiKey || replicateApiToken;
-            if (!token) {
-              res.statusCode = 500;
+            console.info('[AI Visualization] dev proxy request', {
+              ...logContext,
+              status: 'received',
+            });
+
+            if (typeof prompt !== 'string' || !prompt.trim()) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Prompt is required for AI Visualization.' }));
+              return;
+            }
+
+            if (typeof inputImage !== 'string' || !inputImage.trim()) {
+              res.statusCode = 400;
               res.end(
                 JSON.stringify({
-                  error: 'Replicate API token not provided. Please enter your API token in the sidebar.',
+                  error:
+                    'Current viewport screenshot is missing. Capture a view before generating.',
                 })
               );
               return;
             }
 
-            const replicate = new Replicate({ auth: token });
+            if (!selectedMode.supportsViewportReference) {
+              res.statusCode = 400;
+              res.end(
+                JSON.stringify({
+                  error: `${selectedMode.label} uses ${selectedMode.model}, which is not enabled for strict viewport-reference editing here. Choose a reference-image AI model to preserve the same IFC building geometry.`,
+                })
+              );
+              return;
+            }
 
-            const dataUrl = imageBase64.startsWith('data:')
-              ? imageBase64
-              : `data:image/png;base64,${imageBase64}`;
+            const requestToken =
+              typeof apiKey === 'string' && apiKey.trim() ? apiKey.trim() : undefined;
+            const token = requestToken || replicateApiToken;
+            if (!token) {
+              res.statusCode = 500;
+              res.end(
+                JSON.stringify({
+                  error:
+                    'Replicate API token not provided. Set REPLICATE_API_TOKEN or enter your token in Render Studio.',
+                })
+              );
+              return;
+            }
 
-            const enhancedPrompt = `Edit this image: ${prompt}. Keep the exact same building structure, camera angle, and composition. Only change the materials, textures, and lighting to make it look photorealistic.`;
+            const replicate = new Replicate({ auth: token, useFileOutput: false });
 
-            const output = await replicate.run(MODEL_VERSION, {
-              input: {
-                prompt: enhancedPrompt,
-                image_input: [dataUrl],
-                aspect_ratio: 'match_input_image',
-                output_format: 'jpg',
-              },
+            const modelInput = buildReplicateInput({
+              prompt,
+              image: inputImage,
+              mode,
+              negativePrompt,
+              seed,
+              aspectRatio,
+              outputFormat,
+              intensity,
+            });
+            const referenceImageField = getReplicateReferenceImageField(modelInput);
+            if (!referenceImageField) {
+              throw new Error(
+                `${selectedMode.label} did not produce a Replicate reference-image input. The viewer screenshot was not sent.`
+              );
+            }
+            logContext = {
+              ...logContext,
+              referenceImageField,
+            };
+
+            const runModel = (input: Record<string, unknown>) =>
+              replicate.run(selectedMode.model, { input });
+
+            console.info('[AI Visualization] dev proxy generation started', {
+              ...logContext,
+              inputKeys: Object.keys(modelInput),
+              status: 'running',
             });
 
-            const imageUrl = extractImageUrl(output);
+            let output: unknown;
+            try {
+              output = await runModel(modelInput);
+            } catch (err) {
+              if ('seed' in modelInput) {
+                const { seed: _omitSeed, ...withoutSeed } = modelInput;
+                console.info('[AI Visualization] dev proxy retrying without seed', {
+                  ...logContext,
+                  inputKeys: Object.keys(withoutSeed),
+                  status: 'retrying',
+                });
+                output = await runModel(withoutSeed);
+              } else {
+                throw err;
+              }
+            }
+
+            const imageUrl = extractReplicateImageUrl(output);
             if (!imageUrl) {
-              throw new Error(`No image URL in response from Replicate (output type: ${typeof output})`);
+              throw new Error(
+                `No image URL in response from Replicate (output type: ${typeof output})`
+              );
             }
 
             const imageResponse = await fetch(imageUrl);
             if (!imageResponse.ok) {
-              throw new Error(`Failed to fetch generated image: ${imageResponse.status} ${imageResponse.statusText}`);
+              throw new Error(
+                `Failed to fetch generated image: ${imageResponse.status} ${imageResponse.statusText}`
+              );
             }
 
             const arrayBuffer = await imageResponse.arrayBuffer();
@@ -104,7 +175,16 @@ export function createAiApiMiddlewarePlugin(replicateApiToken: string | undefine
 
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ image: base64Image }));
+            console.info('[AI Visualization] dev proxy generation completed', {
+              ...logContext,
+              status: 'succeeded',
+            });
           } catch (err) {
+            console.error('[AI Visualization] dev proxy generation failed', {
+              ...logContext,
+              status: 'failed',
+              error: err instanceof Error ? err.message : String(err),
+            });
             console.error('AI API middleware error:', err);
             res.statusCode = 500;
             res.end(

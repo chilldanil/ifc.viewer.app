@@ -6,8 +6,7 @@ import * as fs from 'fs/promises';
 contextBridge.exposeInMainWorld('electronAPI', {
   // File dialog APIs
   openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),
-  saveFileDialog: (defaultPath?: string) =>
-    ipcRenderer.invoke('dialog:saveFile', defaultPath),
+  saveFileDialog: (defaultPath?: string) => ipcRenderer.invoke('dialog:saveFile', defaultPath),
 
   // Project (.ifcproj) dialogs
   saveProjectDialog: (defaultName?: string) =>
@@ -33,10 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFile: async (filePath: string): Promise<ArrayBuffer> => {
     try {
       const buffer = await fs.readFile(filePath);
-      return buffer.buffer.slice(
-        buffer.byteOffset,
-        buffer.byteOffset + buffer.byteLength
-      );
+      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     } catch (error) {
       console.error('Error reading file:', error);
       throw error;
@@ -68,9 +64,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File system browsing
   listDir: (dirPath?: string) => ipcRenderer.invoke('fs:listDir', dirPath),
 
-  // AI Visualizer (Replicate) - executed in main process via IPC
-  generateAiImage: (args: { prompt: string; imageBase64: string; apiKey: string }) =>
-    ipcRenderer.invoke('ai:generate', args),
+  // AI Visualization (Replicate) - executed in main process via IPC
+  generateAiImage: (args: {
+    prompt: string;
+    imageBase64: string;
+    apiKey?: string;
+    mode?: string;
+    negativePrompt?: string;
+    seed?: number;
+    aspectRatio?: string;
+    outputFormat?: 'jpg' | 'png';
+    intensity?: 'subtle' | 'balanced' | 'strong';
+  }) => ipcRenderer.invoke('ai:generate', args),
 
   // Encrypted-at-rest storage for the user's Replicate API key (OS keychain
   // via safeStorage), in place of plaintext localStorage.
@@ -102,15 +107,23 @@ export interface ElectronAPI {
   readFile: (filePath: string) => Promise<ArrayBuffer>;
   writeFile: (filePath: string, data: ArrayBuffer) => Promise<void>;
   onFileOpened: (callback: (filePath: string) => void) => () => void;
-  listDir: (
-    dirPath?: string
-  ) => Promise<{
+  listDir: (dirPath?: string) => Promise<{
     path: string;
     parent: string;
     entries: Array<{ name: string; path: string; isDirectory: boolean; isIfc: boolean }>;
     error?: string;
   }>;
-  generateAiImage: (args: { prompt: string; imageBase64: string; apiKey: string }) => Promise<{ image: string }>;
+  generateAiImage: (args: {
+    prompt: string;
+    imageBase64: string;
+    apiKey?: string;
+    mode?: string;
+    negativePrompt?: string;
+    seed?: number;
+    aspectRatio?: string;
+    outputFormat?: 'jpg' | 'png';
+    intensity?: 'subtle' | 'balanced' | 'strong';
+  }) => Promise<{ image: string }>;
   secureStorage: {
     getApiKey: () => Promise<string>;
     setApiKey: (apiKey: string) => Promise<boolean>;

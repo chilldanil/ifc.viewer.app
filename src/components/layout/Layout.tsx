@@ -14,15 +14,22 @@ import { CameraToolbarMenu } from './CameraToolbarMenu';
 import { ClippingToolbarMenu } from './ClippingToolbarMenu';
 import { ModelTreePanel } from './ModelTreePanel';
 import { LeftPropertiesPanel } from './LeftPropertiesPanel';
-import { SpacebarQuickMenu, type QuickMenuTopSegment, type QuickMenuLeaf } from './SpacebarQuickMenu';
+import {
+  SpacebarQuickMenu,
+  type QuickMenuTopSegment,
+  type QuickMenuLeaf,
+} from './SpacebarQuickMenu';
 import { RenderGalleryModal } from './RenderGalleryModal';
 import { RenderStudioModal } from './RenderStudioModal';
 import { ExportModifiedIfc } from '../sidebar/ExportModifiedIfc';
 import { ClashDetectionSection } from '../sidebar/ClashDetectionSection';
-import { AiVisualizerBottomPanel } from './AiVisualizerBottomPanel';
 import DragAndDropOverlay from '../DragAndDropOverlay';
 import { setupIfcLoader } from '../../core/services/ifcLoaderService';
-import { fitSceneToView, setStandardView, type StandardViewDirection } from '../../utils/cameraUtils';
+import {
+  fitSceneToView,
+  setStandardView,
+  type StandardViewDirection,
+} from '../../utils/cameraUtils';
 import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
@@ -409,7 +416,6 @@ export const Layout: React.FC = () => {
   // Panel visibility states
   const [isLeftPanelCollapsed, setLeftPanelCollapsed] = useState(true);
   const [isRightPanelCollapsed, setRightPanelCollapsed] = useState(true);
-  const [isBottomPanelCollapsed, setBottomPanelCollapsed] = useState(true);
   const [floorOptions, setFloorOptions] = useState<string[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
   const [floorVisibility, setFloorVisibility] = useState<Record<string, boolean>>({});
@@ -448,8 +454,10 @@ export const Layout: React.FC = () => {
   const [helpModal, setHelpModal] = useState<'docs' | 'shortcuts' | 'about' | null>(null);
   // Spacebar quick menu (radial)
   const [isQuickInfoOpen, setIsQuickInfoOpen] = useState(false);
-  const { navMode, projection, setNavMode, setProjection, cameraAvailable } = useCameraControls(world);
-  const { selectedModel: quickInfoModel, selectedExpressID: quickInfoExpressID } = useElementSelection(components, world);
+  const { navMode, projection, setNavMode, setProjection, cameraAvailable } =
+    useCameraControls(world);
+  const { selectedModel: quickInfoModel, selectedExpressID: quickInfoExpressID } =
+    useElementSelection(components, world);
   const {
     renders,
     count: renderCount,
@@ -461,14 +469,6 @@ export const Layout: React.FC = () => {
   } = useRenderGallery();
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
-
-  // The AI bottom panel opens the Render Studio via a window event so it
-  // doesn't need a prop drilled down through the Panel.
-  useEffect(() => {
-    const handler = () => setIsStudioOpen(true);
-    window.addEventListener('ifc:open-render-studio', handler);
-    return () => window.removeEventListener('ifc:open-render-studio', handler);
-  }, []);
 
   // Project IO: bumped whenever the loaded model set changes, so save/dirty
   // tracking can react to loads and clears.
@@ -490,7 +490,9 @@ export const Layout: React.FC = () => {
   }, []);
 
   const attachStatsOverlay = useCallback(() => {
-    if (!statsRef.current) {return;}
+    if (!statsRef.current) {
+      return;
+    }
     const viewer = findViewerContainer();
     if (viewer && statsRef.current.dom.parentElement !== viewer) {
       viewer.appendChild(statsRef.current.dom);
@@ -526,7 +528,9 @@ export const Layout: React.FC = () => {
   }, [world, attachStatsOverlay]);
 
   useEffect(() => {
-    if (!statsRef.current?.dom) {return;}
+    if (!statsRef.current?.dom) {
+      return;
+    }
     if (statsVisible) {
       statsRef.current.dom.classList.add('stats-overlay--visible');
       statsRef.current.dom.style.display = 'block';
@@ -537,14 +541,20 @@ export const Layout: React.FC = () => {
   }, [statsVisible]);
 
   useEffect(() => {
-    if (!world?.renderer || !statsRef.current) {return;}
+    if (!world?.renderer || !statsRef.current) {
+      return;
+    }
 
     const beforeUpdate = () => {
-      if (statsVisible) {statsRef.current?.begin();}
+      if (statsVisible) {
+        statsRef.current?.begin();
+      }
     };
 
     const afterUpdate = () => {
-      if (statsVisible) {statsRef.current?.end();}
+      if (statsVisible) {
+        statsRef.current?.end();
+      }
     };
 
     world.renderer.onBeforeUpdate.add(beforeUpdate);
@@ -563,11 +573,14 @@ export const Layout: React.FC = () => {
     setStatsVisible((v) => !v);
   }, [ensureStats]);
 
-  const selectStatsPanel = useCallback((panel: number) => {
-    const stats = ensureStats();
-    stats?.showPanel(panel);
-    setStatsVisible(true);
-  }, [ensureStats]);
+  const selectStatsPanel = useCallback(
+    (panel: number) => {
+      const stats = ensureStats();
+      stats?.showPanel(panel);
+      setStatsVisible(true);
+    },
+    [ensureStats]
+  );
 
   // Minimap controls (toolbar shortcut)
   const toggleMinimapEnabled = useCallback(() => {
@@ -582,13 +595,16 @@ export const Layout: React.FC = () => {
     setMinimapConfig({ lockRotation: !minimapConfig.lockRotation });
   }, [minimapConfig.lockRotation, setMinimapConfig]);
 
-  const nudgeMinimapZoom = useCallback((delta: number) => {
-    const next = Math.min(
-      MINIMAP_LIMITS.maxZoom,
-      Math.max(MINIMAP_LIMITS.minZoom, (minimapConfig.zoom ?? 0.2) + delta)
-    );
-    setMinimapConfig({ zoom: next, enabled: true });
-  }, [minimapConfig.zoom, setMinimapConfig]);
+  const nudgeMinimapZoom = useCallback(
+    (delta: number) => {
+      const next = Math.min(
+        MINIMAP_LIMITS.maxZoom,
+        Math.max(MINIMAP_LIMITS.minZoom, (minimapConfig.zoom ?? 0.2) + delta)
+      );
+      setMinimapConfig({ zoom: next, enabled: true });
+    },
+    [minimapConfig.zoom, setMinimapConfig]
+  );
 
   // Get sidebar config from context - fully configurable, no hardcoded values
   const sidebarConfig = config.layout.sidebar;
@@ -599,11 +615,15 @@ export const Layout: React.FC = () => {
 
   const containerClassName = useMemo(() => {
     const classes = ['layout', 'ifc-viewer-library-container'];
-    if (isLeftPanelCollapsed) {classes.push('left-panel-collapsed');}
-    if (isRightPanelCollapsed) {classes.push('right-panel-collapsed');}
-    if (isBottomPanelCollapsed) {classes.push('bottom-panel-collapsed');}
+    if (isLeftPanelCollapsed) {
+      classes.push('left-panel-collapsed');
+    }
+    if (isRightPanelCollapsed) {
+      classes.push('right-panel-collapsed');
+    }
+    classes.push('bottom-panel-collapsed');
     return classes.join(' ');
-  }, [isLeftPanelCollapsed, isRightPanelCollapsed, isBottomPanelCollapsed]);
+  }, [isLeftPanelCollapsed, isRightPanelCollapsed]);
 
   // Calculate extra views based on multiViewPreset (must be before conditional returns)
   const presetKey = multiViewPreset ?? 'single';
@@ -634,9 +654,7 @@ export const Layout: React.FC = () => {
       const floors = classifier?.list?.spatialStructures
         ? Object.keys(classifier.list.spatialStructures)
         : [];
-      const categories = classifier?.list?.entities
-        ? Object.keys(classifier.list.entities)
-        : [];
+      const categories = classifier?.list?.entities ? Object.keys(classifier.list.entities) : [];
 
       setFloorOptions(floors);
       setCategoryOptions(categories);
@@ -779,9 +797,13 @@ export const Layout: React.FC = () => {
   }, [components, world]);
 
   const focusOnModels = useCallback(async () => {
-    if (!world) {return;}
+    if (!world) {
+      return;
+    }
     const bbox = computeModelsBoundingBox();
-    if (!bbox) {return;}
+    if (!bbox) {
+      return;
+    }
 
     const center = bbox.getCenter(new THREE.Vector3());
     const size = bbox.getSize(new THREE.Vector3());
@@ -811,68 +833,78 @@ export const Layout: React.FC = () => {
   // Action Handlers
   // ============================================================================
 
-  const loadIfcFromBuffer = useCallback(async (buffer: ArrayBuffer | Uint8Array) => {
-    if (!components) {
-      console.warn('Cannot load IFC: components not ready');
-      return;
-    }
-
-    setIsModelLoading(true);
-    try {
-      const loader = setupIfcLoader(components, propertyEditingService ?? undefined);
-      const uint8Array = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-
-      const modelLoaded = new Promise<void>((resolve) => {
-        try {
-          loader.onModelLoaded(() => {
-            resolve();
-          });
-        } catch {
-          resolve();
-        }
-      });
-
-      await loader.loadFromBuffer(uint8Array);
-      await modelLoaded;
-
-      if (world) {
-        await focusOnModels();
+  const loadIfcFromBuffer = useCallback(
+    async (buffer: ArrayBuffer | Uint8Array) => {
+      if (!components) {
+        console.warn('Cannot load IFC: components not ready');
+        return;
       }
-    } catch (err) {
-      console.error('Failed to load IFC file:', err);
-    } finally {
-      setIsModelLoading(false);
-    }
-  }, [components, propertyEditingService, world, setIsModelLoading, focusOnModels]);
+
+      setIsModelLoading(true);
+      try {
+        const loader = setupIfcLoader(components, propertyEditingService ?? undefined);
+        const uint8Array = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+
+        const modelLoaded = new Promise<void>((resolve) => {
+          try {
+            loader.onModelLoaded(() => {
+              resolve();
+            });
+          } catch {
+            resolve();
+          }
+        });
+
+        await loader.loadFromBuffer(uint8Array);
+        await modelLoaded;
+
+        if (world) {
+          await focusOnModels();
+        }
+      } catch (err) {
+        console.error('Failed to load IFC file:', err);
+      } finally {
+        setIsModelLoading(false);
+      }
+    },
+    [components, propertyEditingService, world, setIsModelLoading, focusOnModels]
+  );
 
   // File: Open IFC
   const handleOpenIfcClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  const handleIfcFileSelected = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !components) {return;}
+  const handleIfcFileSelected = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file || !components) {
+        return;
+      }
 
-    try {
-      clearExistingModels();
-      const buffer = await file.arrayBuffer();
-      await loadIfcFromBuffer(buffer);
-      if (world) {
-        await focusOnModels();
+      try {
+        clearExistingModels();
+        const buffer = await file.arrayBuffer();
+        await loadIfcFromBuffer(buffer);
+        if (world) {
+          await focusOnModels();
+        }
+      } catch (err) {
+        console.error('Failed to load IFC file:', err);
+      } finally {
+        // Reset input so same file can be loaded again
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
-    } catch (err) {
-      console.error('Failed to load IFC file:', err);
-    } finally {
-      // Reset input so same file can be loaded again
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  }, [components, loadIfcFromBuffer]);
+    },
+    [components, loadIfcFromBuffer]
+  );
 
   const clearExistingModels = useCallback(() => {
-    if (!components) {return;}
+    if (!components) {
+      return;
+    }
     try {
       const fragmentsManager = components.get(OBC.FragmentsManager) as any;
       fragmentsManager?.groups?.forEach((group: any) => {
@@ -910,89 +942,110 @@ export const Layout: React.FC = () => {
     setModelRevision((r) => r + 1);
   }, [components, world]);
 
-  const handleToggleFloorVisibility = useCallback(async (floorName: string) => {
-    if (!components) {return;}
-
-    try {
-      const classifier = components.get(OBC.Classifier);
-      const indexer = components.get(OBC.IfcRelationsIndexer);
-      const hider = components.get(OBC.Hider);
-      const fragmentsManager = components.get(OBC.FragmentsManager);
-      const structure = classifier?.list?.spatialStructures?.[floorName];
-
-      if (!structure?.id || !indexer || !hider || !fragmentsManager) {
-        console.warn('Floor visibility toggle unavailable for', floorName);
+  const handleToggleFloorVisibility = useCallback(
+    async (floorName: string) => {
+      if (!components) {
         return;
       }
 
-      const nextVisible = !(floorVisibility[floorName] ?? true);
-      const updateTasks: Promise<unknown>[] = [];
+      try {
+        const classifier = components.get(OBC.Classifier);
+        const indexer = components.get(OBC.IfcRelationsIndexer);
+        const hider = components.get(OBC.Hider);
+        const fragmentsManager = components.get(OBC.FragmentsManager);
+        const structure = classifier?.list?.spatialStructures?.[floorName];
 
-      fragmentsManager.groups.forEach((group: any) => {
-        if (!group) {return;}
-        try {
-          const structureId = structure.id;
-          if (structureId === null) {return;}
-          const foundIDs = indexer.getEntityChildren(group, structureId);
-          const fragMap = group.getFragmentMap(foundIDs);
-          updateTasks.push(Promise.resolve(hider.set(nextVisible, fragMap)));
-        } catch (groupError) {
-          console.warn(`Failed to update floor "${floorName}" for model`, groupError);
+        if (!structure?.id || !indexer || !hider || !fragmentsManager) {
+          console.warn('Floor visibility toggle unavailable for', floorName);
+          return;
         }
-      });
 
-      if (updateTasks.length) {
-        await Promise.allSettled(updateTasks);
+        const nextVisible = !(floorVisibility[floorName] ?? true);
+        const updateTasks: Promise<unknown>[] = [];
+
+        fragmentsManager.groups.forEach((group: any) => {
+          if (!group) {
+            return;
+          }
+          try {
+            const structureId = structure.id;
+            if (structureId === null) {
+              return;
+            }
+            const foundIDs = indexer.getEntityChildren(group, structureId);
+            const fragMap = group.getFragmentMap(foundIDs);
+            updateTasks.push(Promise.resolve(hider.set(nextVisible, fragMap)));
+          } catch (groupError) {
+            console.warn(`Failed to update floor "${floorName}" for model`, groupError);
+          }
+        });
+
+        if (updateTasks.length) {
+          await Promise.allSettled(updateTasks);
+        }
+
+        setFloorVisibility((prev) => ({ ...prev, [floorName]: nextVisible }));
+      } catch (error) {
+        console.error('Failed to toggle floor visibility:', error);
       }
+    },
+    [components, floorVisibility]
+  );
 
-      setFloorVisibility((prev) => ({ ...prev, [floorName]: nextVisible }));
-    } catch (error) {
-      console.error('Failed to toggle floor visibility:', error);
-    }
-  }, [components, floorVisibility]);
-
-  const handleToggleCategoryVisibility = useCallback(async (categoryName: string) => {
-    if (!components) {return;}
-
-    try {
-      const classifier = components.get(OBC.Classifier);
-      const hider = components.get(OBC.Hider);
-      if (!classifier || !hider) {
+  const handleToggleCategoryVisibility = useCallback(
+    async (categoryName: string) => {
+      if (!components) {
         return;
       }
 
-      const nextVisible = !(categoryVisibility[categoryName] ?? true);
-      const fragments = classifier.find({ entities: [categoryName] });
-      await Promise.resolve(hider.set(nextVisible, fragments));
-      setCategoryVisibility((prev) => ({ ...prev, [categoryName]: nextVisible }));
-    } catch (error) {
-      console.error('Failed to toggle category visibility:', error);
-    }
-  }, [components, categoryVisibility]);
+      try {
+        const classifier = components.get(OBC.Classifier);
+        const hider = components.get(OBC.Hider);
+        if (!classifier || !hider) {
+          return;
+        }
 
-  const runSelectionHiderAction = useCallback(async (action: 'hide' | 'show' | 'isolate') => {
-    if (!components) {return;}
-
-    const selection = getSelectionFragments();
-    if (!selection) {
-      console.warn('No selection available for hider action');
-      return;
-    }
-
-    try {
-      const hider = components.get(OBC.Hider);
-      if (!hider) {return;}
-
-      if (action === 'isolate') {
-        await Promise.resolve(hider.isolate(selection));
-      } else {
-        await Promise.resolve(hider.set(action === 'show', selection));
+        const nextVisible = !(categoryVisibility[categoryName] ?? true);
+        const fragments = classifier.find({ entities: [categoryName] });
+        await Promise.resolve(hider.set(nextVisible, fragments));
+        setCategoryVisibility((prev) => ({ ...prev, [categoryName]: nextVisible }));
+      } catch (error) {
+        console.error('Failed to toggle category visibility:', error);
       }
-      refreshSelectionState();
-    } catch (error) {
-      console.error('Failed to update selection visibility:', error);
-    }
-  }, [components, getSelectionFragments, refreshSelectionState]);
+    },
+    [components, categoryVisibility]
+  );
+
+  const runSelectionHiderAction = useCallback(
+    async (action: 'hide' | 'show' | 'isolate') => {
+      if (!components) {
+        return;
+      }
+
+      const selection = getSelectionFragments();
+      if (!selection) {
+        console.warn('No selection available for hider action');
+        return;
+      }
+
+      try {
+        const hider = components.get(OBC.Hider);
+        if (!hider) {
+          return;
+        }
+
+        if (action === 'isolate') {
+          await Promise.resolve(hider.isolate(selection));
+        } else {
+          await Promise.resolve(hider.set(action === 'show', selection));
+        }
+        refreshSelectionState();
+      } catch (error) {
+        console.error('Failed to update selection visibility:', error);
+      }
+    },
+    [components, getSelectionFragments, refreshSelectionState]
+  );
 
   // File: Screenshot — download to disk and add to the render gallery.
   const handleScreenshot = useCallback(async () => {
@@ -1071,14 +1124,19 @@ export const Layout: React.FC = () => {
   }, [handleFitToModel, handleOpenIfcClick]);
 
   // View: Standard orthographic views
-  const handleSetViewDirection = useCallback(async (direction: StandardViewDirection) => {
-    if (!world) {return;}
-    try {
-      await setStandardView(world, direction);
-    } catch (err) {
-      console.error(`Failed to set ${direction} view`, err);
-    }
-  }, [world]);
+  const handleSetViewDirection = useCallback(
+    async (direction: StandardViewDirection) => {
+      if (!world) {
+        return;
+      }
+      try {
+        await setStandardView(world, direction);
+      } catch (err) {
+        console.error(`Failed to set ${direction} view`, err);
+      }
+    },
+    [world]
+  );
 
   const handleTopView = useCallback(() => {
     void handleSetViewDirection('top');
@@ -1090,9 +1148,12 @@ export const Layout: React.FC = () => {
   }, [viewCubeEnabled, setViewCubeEnabled]);
 
   // View: Viewport layouts
-  const handleSetViewportLayout = useCallback((preset: MultiViewPreset) => {
-    setMultiViewPreset(preset);
-  }, [setMultiViewPreset]);
+  const handleSetViewportLayout = useCallback(
+    (preset: MultiViewPreset) => {
+      setMultiViewPreset(preset);
+    },
+    [setMultiViewPreset]
+  );
 
   // Tools: Clipping (ThatOpen Clipper)
   const getClipper = useCallback(() => {
@@ -1183,7 +1244,14 @@ export const Layout: React.FC = () => {
         opacity: 0.9,
       });
 
-      clipEdges.styles.create(styleName, meshes, world, lineMaterial as any, fillMaterial, outlineMaterial);
+      clipEdges.styles.create(
+        styleName,
+        meshes,
+        world,
+        lineMaterial as any,
+        fillMaterial,
+        outlineMaterial
+      );
       clipStyleRef.current = { name: styleName, lineMaterial, fillMaterial, outlineMaterial };
       await clipEdges.update(true);
     } catch (error) {
@@ -1297,7 +1365,14 @@ export const Layout: React.FC = () => {
     } catch {
       /* ignore */
     }
-  }, [getClipEdges, clipEdgesVisible, clipEdgeColor, clipEdgeWidth, clipFillColor, clipFillOpacity]);
+  }, [
+    getClipEdges,
+    clipEdgesVisible,
+    clipEdgeColor,
+    clipEdgeWidth,
+    clipFillColor,
+    clipFillOpacity,
+  ]);
 
   useEffect(() => {
     syncClipEdgesPresentation();
@@ -1436,7 +1511,9 @@ export const Layout: React.FC = () => {
             return;
           }
 
-          const plane = clipper.list.find((candidate: any) => candidate?.meshes?.includes?.(hit.object));
+          const plane = clipper.list.find((candidate: any) =>
+            candidate?.meshes?.includes?.(hit.object)
+          );
           if (!plane) {
             return;
           }
@@ -1456,7 +1533,15 @@ export const Layout: React.FC = () => {
     return () => {
       viewer.removeEventListener('pointerdown', handlePointerDown, true);
     };
-  }, [world, components, clippingToolMode, findViewerContainer, getClipper, getClipEdges, clipOrthoY]);
+  }, [
+    world,
+    components,
+    clippingToolMode,
+    findViewerContainer,
+    getClipper,
+    getClipEdges,
+    clipOrthoY,
+  ]);
 
   useEffect(() => {
     if (clippingToolMode === 'off') {
@@ -1495,29 +1580,33 @@ export const Layout: React.FC = () => {
     };
   }, [clippingToolMode, findViewerContainer]);
 
-  const createAxisClippingPlane = useCallback((axis: 'X' | 'Y' | 'Z') => {
-    if (!world) {
-      return;
-    }
+  const createAxisClippingPlane = useCallback(
+    (axis: 'X' | 'Y' | 'Z') => {
+      if (!world) {
+        return;
+      }
 
-    const clipper = getClipper();
-    if (!clipper) {
-      return;
-    }
+      const clipper = getClipper();
+      if (!clipper) {
+        return;
+      }
 
-    const bbox = computeModelsBoundingBox();
-    const center = bbox?.getCenter(new THREE.Vector3()) ?? new THREE.Vector3();
+      const bbox = computeModelsBoundingBox();
+      const center = bbox?.getCenter(new THREE.Vector3()) ?? new THREE.Vector3();
 
-    const normal = axis === 'X'
-      ? new THREE.Vector3(-1, 0, 0)
-      : axis === 'Y'
-        ? new THREE.Vector3(0, -1, 0)
-        : new THREE.Vector3(0, 0, -1);
+      const normal =
+        axis === 'X'
+          ? new THREE.Vector3(-1, 0, 0)
+          : axis === 'Y'
+            ? new THREE.Vector3(0, -1, 0)
+            : new THREE.Vector3(0, 0, -1);
 
-    setClippingEnabled(true);
-    clipper.enabled = true;
-    clipper.createFromNormalAndCoplanarPoint(world, normal, center);
-  }, [world, getClipper, computeModelsBoundingBox]);
+      setClippingEnabled(true);
+      clipper.enabled = true;
+      clipper.createFromNormalAndCoplanarPoint(world, normal, center);
+    },
+    [world, getClipper, computeModelsBoundingBox]
+  );
 
   const clearSectionBox = useCallback(() => {
     if (!world) {
@@ -1618,7 +1707,9 @@ export const Layout: React.FC = () => {
       try {
         transformControlsRef.current.detach();
         if (world?.scene) {
-          const gizmo = transformControlsRef.current.getHelper?.() as unknown as THREE.Object3D | undefined;
+          const gizmo = transformControlsRef.current.getHelper?.() as unknown as
+            | THREE.Object3D
+            | undefined;
           if (gizmo) {
             (world.scene.three as THREE.Scene).remove(gizmo);
           }
@@ -1696,7 +1787,9 @@ export const Layout: React.FC = () => {
 
   const resetTransform = useCallback(() => {
     const model = attachedModelRef.current;
-    if (!model) {return;}
+    if (!model) {
+      return;
+    }
     model.position.set(0, 0, 0);
     model.rotation.set(0, 0, 0);
     model.scale.set(1, 1, 1);
@@ -1718,7 +1811,9 @@ export const Layout: React.FC = () => {
 
   // Tools: Show All (Reset Visibility)
   const handleShowAll = useCallback(() => {
-    if (!components) {return;}
+    if (!components) {
+      return;
+    }
     try {
       const hider = components.get(OBC.Hider);
       hider.set(true);
@@ -1729,7 +1824,9 @@ export const Layout: React.FC = () => {
 
   // Tools: Clear Selection
   const handleClearSelection = useCallback(() => {
-    if (!components) {return;}
+    if (!components) {
+      return;
+    }
     try {
       const highlighter = components.get(OBCF.Highlighter);
       highlighter.clear('select');
@@ -1739,7 +1836,6 @@ export const Layout: React.FC = () => {
     }
   }, [components]);
 
-
   const floorMenuItems = useMemo<MenuItem[]>(() => {
     if (!floorOptions.length) {
       return [{ label: 'No floors available', disabled: true }];
@@ -1747,7 +1843,9 @@ export const Layout: React.FC = () => {
 
     return floorOptions.map((floor) => ({
       label: floor,
-      onClick: () => { void handleToggleFloorVisibility(floor); },
+      onClick: () => {
+        void handleToggleFloorVisibility(floor);
+      },
       checked: floorVisibility[floor] ?? true,
     }));
   }, [floorOptions, floorVisibility, handleToggleFloorVisibility]);
@@ -1759,16 +1857,39 @@ export const Layout: React.FC = () => {
 
     return categoryOptions.map((category) => ({
       label: category,
-      onClick: () => { void handleToggleCategoryVisibility(category); },
+      onClick: () => {
+        void handleToggleCategoryVisibility(category);
+      },
       checked: categoryVisibility[category] ?? true,
     }));
   }, [categoryOptions, categoryVisibility, handleToggleCategoryVisibility]);
 
-  const selectionHiderMenuItems = useMemo<MenuItem[]>(() => [
-    { label: 'Hide Selection', onClick: () => { void runSelectionHiderAction('hide'); }, disabled: !hasSelection },
-    { label: 'Isolate Selection', onClick: () => { void runSelectionHiderAction('isolate'); }, disabled: !hasSelection },
-    { label: 'Reset Selection Visibility', onClick: () => { void runSelectionHiderAction('show'); }, disabled: !hasSelection },
-  ], [hasSelection, runSelectionHiderAction]);
+  const selectionHiderMenuItems = useMemo<MenuItem[]>(
+    () => [
+      {
+        label: 'Hide Selection',
+        onClick: () => {
+          void runSelectionHiderAction('hide');
+        },
+        disabled: !hasSelection,
+      },
+      {
+        label: 'Isolate Selection',
+        onClick: () => {
+          void runSelectionHiderAction('isolate');
+        },
+        disabled: !hasSelection,
+      },
+      {
+        label: 'Reset Selection Visibility',
+        onClick: () => {
+          void runSelectionHiderAction('show');
+        },
+        disabled: !hasSelection,
+      },
+    ],
+    [hasSelection, runSelectionHiderAction]
+  );
 
   // ============================================================================
   // Project IO (.ifcproj save / open)
@@ -1776,52 +1897,110 @@ export const Layout: React.FC = () => {
 
   // A cheap signature of all restorable state (camera pose excluded — it isn't
   // reactive); changes here flip the unsaved-changes marker.
-  const projectDirtyKey = useMemo(() => JSON.stringify({
-    multiViewPreset,
-    viewCubeEnabled,
-    minimap: {
-      e: minimapConfig.enabled,
-      v: minimapConfig.visible,
-      l: minimapConfig.lockRotation,
-      z: minimapConfig.zoom,
-    },
-    panels: [isLeftPanelCollapsed, isRightPanelCollapsed, isBottomPanelCollapsed],
-    floors: floorVisibility,
-    categories: categoryVisibility,
-    clip: [
-      clippingEnabled, clippingGizmosVisible, clipOrthoY, clipPlaneOpacity, clipPlaneSize,
-      clipEdgesVisible, clipEdgeColor, clipEdgeWidth, clipFillColor, clipFillOpacity, sectionBoxActive,
-    ],
-    nav: [navMode, projection],
-    rev: modelRevision,
-  }), [
-    multiViewPreset, viewCubeEnabled, minimapConfig, isLeftPanelCollapsed, isRightPanelCollapsed,
-    isBottomPanelCollapsed, floorVisibility, categoryVisibility, clippingEnabled, clippingGizmosVisible,
-    clipOrthoY, clipPlaneOpacity, clipPlaneSize, clipEdgesVisible, clipEdgeColor, clipEdgeWidth,
-    clipFillColor, clipFillOpacity, sectionBoxActive, navMode, projection, modelRevision,
-  ]);
+  const projectDirtyKey = useMemo(
+    () =>
+      JSON.stringify({
+        multiViewPreset,
+        viewCubeEnabled,
+        minimap: {
+          e: minimapConfig.enabled,
+          v: minimapConfig.visible,
+          l: minimapConfig.lockRotation,
+          z: minimapConfig.zoom,
+        },
+        panels: [isLeftPanelCollapsed, isRightPanelCollapsed, true],
+        floors: floorVisibility,
+        categories: categoryVisibility,
+        clip: [
+          clippingEnabled,
+          clippingGizmosVisible,
+          clipOrthoY,
+          clipPlaneOpacity,
+          clipPlaneSize,
+          clipEdgesVisible,
+          clipEdgeColor,
+          clipEdgeWidth,
+          clipFillColor,
+          clipFillOpacity,
+          sectionBoxActive,
+        ],
+        nav: [navMode, projection],
+        rev: modelRevision,
+      }),
+    [
+      multiViewPreset,
+      viewCubeEnabled,
+      minimapConfig,
+      isLeftPanelCollapsed,
+      isRightPanelCollapsed,
+      floorVisibility,
+      categoryVisibility,
+      clippingEnabled,
+      clippingGizmosVisible,
+      clipOrthoY,
+      clipPlaneOpacity,
+      clipPlaneSize,
+      clipEdgesVisible,
+      clipEdgeColor,
+      clipEdgeWidth,
+      clipFillColor,
+      clipFillOpacity,
+      sectionBoxActive,
+      navMode,
+      projection,
+      modelRevision,
+    ]
+  );
 
   // Latest values for the lazy context factory, so save/open always read fresh
   // state without recreating the factory (and the menu) on every render.
   const projectBindingsRef = useRef<Record<string, any>>({});
   projectBindingsRef.current = {
-    components, world,
-    navMode, projection, setNavMode, setProjection,
-    multiViewPreset, setMultiViewPreset, minimapConfig, setMinimapConfig, viewCubeEnabled, setViewCubeEnabled,
-    isLeftPanelCollapsed, setLeftPanelCollapsed, isRightPanelCollapsed, setRightPanelCollapsed,
-    isBottomPanelCollapsed, setBottomPanelCollapsed,
-    floorVisibility, setFloorVisibility, categoryVisibility, setCategoryVisibility,
+    components,
+    world,
+    navMode,
+    projection,
+    setNavMode,
+    setProjection,
+    multiViewPreset,
+    setMultiViewPreset,
+    minimapConfig,
+    setMinimapConfig,
+    viewCubeEnabled,
+    setViewCubeEnabled,
+    isLeftPanelCollapsed,
+    setLeftPanelCollapsed,
+    isRightPanelCollapsed,
+    setRightPanelCollapsed,
+    floorVisibility,
+    setFloorVisibility,
+    categoryVisibility,
+    setCategoryVisibility,
     clip: {
-      enabled: clippingEnabled, gizmosVisible: clippingGizmosVisible, orthoY: clipOrthoY,
-      planeOpacity: clipPlaneOpacity, planeSize: clipPlaneSize, edgesVisible: clipEdgesVisible,
-      edgeColor: clipEdgeColor, edgeWidth: clipEdgeWidth, fillColor: clipFillColor,
-      fillOpacity: clipFillOpacity, sectionBoxActive,
+      enabled: clippingEnabled,
+      gizmosVisible: clippingGizmosVisible,
+      orthoY: clipOrthoY,
+      planeOpacity: clipPlaneOpacity,
+      planeSize: clipPlaneSize,
+      edgesVisible: clipEdgesVisible,
+      edgeColor: clipEdgeColor,
+      edgeWidth: clipEdgeWidth,
+      fillColor: clipFillColor,
+      fillOpacity: clipFillOpacity,
+      sectionBoxActive,
     },
     clipSetters: {
-      setEnabled: setClippingEnabled, setGizmosVisible: setClippingGizmosVisible, setOrthoY: setClipOrthoY,
-      setPlaneOpacity: setClipPlaneOpacity, setPlaneSize: setClipPlaneSize, setEdgesVisible: setClipEdgesVisible,
-      setEdgeColor: setClipEdgeColor, setEdgeWidth: setClipEdgeWidth, setFillColor: setClipFillColor,
-      setFillOpacity: setClipFillOpacity, setSectionBoxActive,
+      setEnabled: setClippingEnabled,
+      setGizmosVisible: setClippingGizmosVisible,
+      setOrthoY: setClipOrthoY,
+      setPlaneOpacity: setClipPlaneOpacity,
+      setPlaneSize: setClipPlaneSize,
+      setEdgesVisible: setClipEdgesVisible,
+      setEdgeColor: setClipEdgeColor,
+      setEdgeWidth: setClipEdgeWidth,
+      setFillColor: setClipFillColor,
+      setFillOpacity: setClipFillOpacity,
+      setSectionBoxActive,
     },
     getClipper,
   };
@@ -1835,8 +2014,10 @@ export const Layout: React.FC = () => {
       components: b.components,
       world: b.world,
       camera: {
-        navMode: b.navMode, projection: b.projection,
-        setNavMode: b.setNavMode, setProjection: b.setProjection,
+        navMode: b.navMode,
+        projection: b.projection,
+        setNavMode: b.setNavMode,
+        setProjection: b.setProjection,
       },
       multiViewPreset: b.multiViewPreset,
       setMultiViewPreset: b.setMultiViewPreset,
@@ -1847,10 +2028,10 @@ export const Layout: React.FC = () => {
       panels: {
         leftCollapsed: b.isLeftPanelCollapsed,
         rightCollapsed: b.isRightPanelCollapsed,
-        bottomCollapsed: b.isBottomPanelCollapsed,
+        bottomCollapsed: true,
         setLeftCollapsed: b.setLeftPanelCollapsed,
         setRightCollapsed: b.setRightPanelCollapsed,
-        setBottomCollapsed: b.setBottomPanelCollapsed,
+        setBottomCollapsed: () => undefined,
       },
       floorVisibility: b.floorVisibility,
       categoryVisibility: b.categoryVisibility,
@@ -1894,7 +2075,9 @@ export const Layout: React.FC = () => {
     }
     return recentProjects.map((entry) => ({
       label: entry.name,
-      onClick: () => { void openRecent(entry.path); },
+      onClick: () => {
+        void openRecent(entry.path);
+      },
     }));
   }, [recentProjects, openRecent]);
 
@@ -1902,319 +2085,557 @@ export const Layout: React.FC = () => {
   // Toolbar Menu Configuration
   // ============================================================================
 
-  const toolbarMenus: MenuConfig[] = useMemo(() => [
-    {
-      label: 'File',
-      items: [
-        { label: 'Save Project', icon: <SaveIcon />, shortcut: 'Cmd/Ctrl+S', onClick: () => { void saveProject(); }, disabled: !canSaveProject || projectBusy },
-        { label: 'Save Project As...', shortcut: 'Cmd/Ctrl+Shift+S', onClick: () => { void saveProjectAs(); }, disabled: !canSaveProject || projectBusy },
-        { label: 'Open Project...', icon: <FolderOpenIcon />, onClick: () => { void openProject(); }, disabled: projectBusy },
-        { label: 'Recent Projects', type: 'submenu', icon: <ClockIcon />, items: recentProjectsMenuItems },
-        { type: 'divider' },
-        { label: 'Open IFC...', icon: <FolderOpenIcon />, shortcut: 'Cmd/Ctrl+O', onClick: handleOpenIfcClick },
-        { type: 'divider' },
-        { label: 'Capture Screenshot', icon: <CameraIcon />, onClick: handleScreenshot },
-        { label: 'Render Studio...', icon: <SparklesIcon />, onClick: () => setIsStudioOpen(true) },
-        { label: renderCount > 0 ? `Render Gallery (${renderCount})...` : 'Render Gallery...', icon: <ImagesIcon />, onClick: () => setIsGalleryOpen(true) },
-        { type: 'divider' },
-        { label: 'Export Modified IFC', type: 'submenu', icon: <DownloadIcon />, items: [
+  const toolbarMenus: MenuConfig[] = useMemo(
+    () => [
+      {
+        label: 'File',
+        items: [
+          {
+            label: 'Save Project',
+            icon: <SaveIcon />,
+            shortcut: 'Cmd/Ctrl+S',
+            onClick: () => {
+              void saveProject();
+            },
+            disabled: !canSaveProject || projectBusy,
+          },
+          {
+            label: 'Save Project As...',
+            shortcut: 'Cmd/Ctrl+Shift+S',
+            onClick: () => {
+              void saveProjectAs();
+            },
+            disabled: !canSaveProject || projectBusy,
+          },
+          {
+            label: 'Open Project...',
+            icon: <FolderOpenIcon />,
+            onClick: () => {
+              void openProject();
+            },
+            disabled: projectBusy,
+          },
+          {
+            label: 'Recent Projects',
+            type: 'submenu',
+            icon: <ClockIcon />,
+            items: recentProjectsMenuItems,
+          },
+          { type: 'divider' },
+          {
+            label: 'Open IFC...',
+            icon: <FolderOpenIcon />,
+            shortcut: 'Cmd/Ctrl+O',
+            onClick: handleOpenIfcClick,
+          },
+          { type: 'divider' },
+          { label: 'Capture Screenshot', icon: <CameraIcon />, onClick: handleScreenshot },
+          {
+            label: 'Render Studio...',
+            icon: <SparklesIcon />,
+            onClick: () => setIsStudioOpen(true),
+          },
+          {
+            label: renderCount > 0 ? `Render Gallery (${renderCount})...` : 'Render Gallery...',
+            icon: <ImagesIcon />,
+            onClick: () => setIsGalleryOpen(true),
+          },
+          { type: 'divider' },
+          {
+            label: 'Export Modified IFC',
+            type: 'submenu',
+            icon: <DownloadIcon />,
+            items: [
+              {
+                type: 'custom',
+                render: () => <ExportModifiedIfc />,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        label: 'View',
+        items: [
+          {
+            label: 'Fit to Model',
+            icon: <MaximizeIcon />,
+            shortcut: 'F',
+            onClick: handleFitToModel,
+          },
+          {
+            label: 'Standard Views',
+            type: 'submenu',
+            icon: <BoxIcon />,
+            items: [
+              { label: 'Top', onClick: handleTopView },
+              { label: 'Bottom', onClick: () => handleSetViewDirection('bottom') },
+              { label: 'Front', onClick: () => handleSetViewDirection('front') },
+              { label: 'Back', onClick: () => handleSetViewDirection('back') },
+              { label: 'Left', onClick: () => handleSetViewDirection('left') },
+              { label: 'Right', onClick: () => handleSetViewDirection('right') },
+            ],
+          },
+          { type: 'divider' },
+          {
+            label: viewCubeEnabled ? 'Hide ViewCube' : 'Show ViewCube',
+            icon: <CubeIcon />,
+            onClick: handleToggleViewCube,
+          },
+          { type: 'divider' },
+          {
+            label: 'Panels',
+            type: 'submenu',
+            items: [
+              {
+                label: isLeftPanelCollapsed ? 'Show Left Panel' : 'Hide Left Panel',
+                onClick: () => setLeftPanelCollapsed((c) => !c),
+              },
+              {
+                label: isRightPanelCollapsed ? 'Show Right Panel' : 'Hide Right Panel',
+                onClick: () => setRightPanelCollapsed((c) => !c),
+              },
+            ],
+          },
+          { type: 'divider' },
+          {
+            label: 'Viewport Layout',
+            type: 'submenu',
+            icon: <GridIcon />,
+            items: [
+              { label: 'Single View', onClick: () => handleSetViewportLayout('single') },
+              { label: '2 Views', onClick: () => handleSetViewportLayout('dual') },
+              { label: '3 Views', onClick: () => handleSetViewportLayout('triple') },
+              { label: '4 Views (Quad)', onClick: () => handleSetViewportLayout('quad') },
+            ],
+          },
+        ],
+      },
+      {
+        label: 'World',
+        items: [
           {
             type: 'custom',
-            render: () => <ExportModifiedIfc />,
+            render: () => <WorldToolbarMenu />,
           },
-        ]},
-      ],
-    },
-    {
-      label: 'View',
-      items: [
-        { label: 'Fit to Model', icon: <MaximizeIcon />, shortcut: 'F', onClick: handleFitToModel },
-        { label: 'Standard Views', type: 'submenu', icon: <BoxIcon />, items: [
-          { label: 'Top', onClick: handleTopView },
-          { label: 'Bottom', onClick: () => handleSetViewDirection('bottom') },
-          { label: 'Front', onClick: () => handleSetViewDirection('front') },
-          { label: 'Back', onClick: () => handleSetViewDirection('back') },
-          { label: 'Left', onClick: () => handleSetViewDirection('left') },
-          { label: 'Right', onClick: () => handleSetViewDirection('right') },
-        ]},
-        { type: 'divider' },
-        { label: viewCubeEnabled ? 'Hide ViewCube' : 'Show ViewCube', icon: <CubeIcon />, onClick: handleToggleViewCube },
-        { type: 'divider' },
-        { label: 'Panels', type: 'submenu', items: [
-          { label: isLeftPanelCollapsed ? 'Show Left Panel' : 'Hide Left Panel', onClick: () => setLeftPanelCollapsed(c => !c) },
-          { label: isRightPanelCollapsed ? 'Show Right Panel' : 'Hide Right Panel', onClick: () => setRightPanelCollapsed(c => !c) },
-          { label: isBottomPanelCollapsed ? 'Show Bottom Panel' : 'Hide Bottom Panel', onClick: () => setBottomPanelCollapsed(c => !c) },
-        ]},
-        { type: 'divider' },
-        { label: 'Viewport Layout', type: 'submenu', icon: <GridIcon />, items: [
-          { label: 'Single View', onClick: () => handleSetViewportLayout('single') },
-          { label: '2 Views', onClick: () => handleSetViewportLayout('dual') },
-          { label: '3 Views', onClick: () => handleSetViewportLayout('triple') },
-          { label: '4 Views (Quad)', onClick: () => handleSetViewportLayout('quad') },
-        ]},
-      ],
-    },
-    {
-      label: 'World',
-      items: [
-        {
-          type: 'custom',
-          render: () => <WorldToolbarMenu />,
-        },
-      ],
-    },
-    {
-      label: 'Post',
-      items: [
-        {
-          type: 'custom',
-          render: () => <PostproductionToolbarMenu />,
-        },
-      ],
-    },
-    {
-      label: 'Camera',
-      items: [
-        {
-          type: 'custom',
-          render: () => (
-            <CameraToolbarMenu
-              navMode={navMode}
-              projection={projection}
-              setNavMode={setNavMode}
-              setProjection={setProjection}
-              cameraAvailable={cameraAvailable}
-            />
-          ),
-        },
-      ],
-    },
-    {
-      label: 'Hider',
-      items: [
-        { label: 'Predefined', type: 'submenu', icon: <LayersIcon />, items: [
-          { label: 'Floors', type: 'submenu', icon: <GridIcon />, items: floorMenuItems },
-          { label: 'Categories', type: 'submenu', icon: <BoxIcon />, items: categoryMenuItems },
-        ]},
-        { label: 'Selection Tools', type: 'submenu', icon: <EyeIcon />, items: selectionHiderMenuItems },
-        { type: 'divider' },
-        { label: 'Isolate or Hide...', icon: <EyeIcon />, onClick: () => setIsCategoryHiderModalOpen(true) },
-      ],
-    },
-    {
-      label: 'Tools',
-      items: [
-        { label: 'Clipping', type: 'submenu', icon: <ScissorsIcon />, items: [
+        ],
+      },
+      {
+        label: 'Post',
+        items: [
+          {
+            type: 'custom',
+            render: () => <PostproductionToolbarMenu />,
+          },
+        ],
+      },
+      {
+        label: 'Camera',
+        items: [
           {
             type: 'custom',
             render: () => (
-              <ClippingToolbarMenu
-                enabled={clippingEnabled}
-                onEnabledChange={setClippingEnabled}
-                gizmosVisible={clippingGizmosVisible}
-                onGizmosVisibleChange={setClippingGizmosVisible}
-                edgesVisible={clipEdgesVisible}
-                onEdgesVisibleChange={setClipEdgesVisible}
-                orthoY={clipOrthoY}
-                onOrthoYChange={setClipOrthoY}
-                planeOpacity={clipPlaneOpacity}
-                onPlaneOpacityChange={setClipPlaneOpacity}
-                planeSize={clipPlaneSize}
-                onPlaneSizeChange={setClipPlaneSize}
-                edgeColor={clipEdgeColor}
-                onEdgeColorChange={setClipEdgeColor}
-                edgeWidth={clipEdgeWidth}
-                onEdgeWidthChange={setClipEdgeWidth}
-                fillColor={clipFillColor}
-                onFillColorChange={setClipFillColor}
-                fillOpacity={clipFillOpacity}
-                onFillOpacityChange={setClipFillOpacity}
-                toolMode={clippingToolMode}
-                onToolModeChange={setClippingToolMode}
-                sectionBoxActive={sectionBoxActive}
-                onCreateSectionBox={createSectionBox}
-                onClearSectionBox={clearSectionBox}
-                onClearAll={clearAllClipping}
-                onCreateAxisPlane={createAxisClippingPlane}
-                planeCount={clipPlaneCount}
+              <CameraToolbarMenu
+                navMode={navMode}
+                projection={projection}
+                setNavMode={setNavMode}
+                setProjection={setProjection}
+                cameraAvailable={cameraAvailable}
               />
             ),
           },
-        ]},
-        { label: 'Clash Detection', type: 'submenu', icon: <AlertTriangleIcon />, items: [
+        ],
+      },
+      {
+        label: 'Hider',
+        items: [
           {
-            type: 'custom',
-            render: () => <ClashDetectionSection />,
+            label: 'Predefined',
+            type: 'submenu',
+            icon: <LayersIcon />,
+            items: [
+              { label: 'Floors', type: 'submenu', icon: <GridIcon />, items: floorMenuItems },
+              { label: 'Categories', type: 'submenu', icon: <BoxIcon />, items: categoryMenuItems },
+            ],
           },
-        ]},
-        { label: transformActive ? 'Disable Model Transform' : 'Enable Model Transform', icon: <CubeIcon />, onClick: () => transformActive ? disableTransform() : enableTransform(), disabled: !world },
-        { label: 'Reset Model Transform', icon: <BoxIcon />, onClick: resetTransform, disabled: !transformActive },
-        { type: 'divider' },
-        { label: 'Performance', type: 'submenu', icon: <TerminalIcon />, items: [
-          { label: statsVisible ? 'Hide Stats Overlay' : 'Show Stats Overlay', onClick: toggleStatsOverlay, disabled: !world },
-          { label: 'Show FPS', onClick: () => selectStatsPanel(0), disabled: !world },
-          { label: 'Show MS', onClick: () => selectStatsPanel(1), disabled: !world },
-          { label: 'Show MB', onClick: () => selectStatsPanel(2), disabled: !world },
-        ]},
-        { label: 'Minimap', type: 'submenu', icon: <GridIcon />, items: [
-          { label: minimapConfig.enabled ? 'Disable Minimap' : 'Enable Minimap', onClick: toggleMinimapEnabled },
-          { label: minimapConfig.visible ? 'Hide Minimap' : 'Show Minimap', onClick: toggleMinimapVisible, disabled: !minimapConfig.enabled },
-          { label: minimapConfig.lockRotation ? 'Unlock Rotation' : 'Lock Rotation', onClick: toggleMinimapLock, disabled: !minimapConfig.enabled },
+          {
+            label: 'Selection Tools',
+            type: 'submenu',
+            icon: <EyeIcon />,
+            items: selectionHiderMenuItems,
+          },
           { type: 'divider' },
-          { label: 'Zoom In', onClick: () => nudgeMinimapZoom(0.02), disabled: !minimapConfig.enabled },
-          { label: 'Zoom Out', onClick: () => nudgeMinimapZoom(-0.02), disabled: !minimapConfig.enabled },
-        ]},
-        { type: 'divider' },
-        { label: 'Show All', icon: <EyeIcon />, onClick: handleShowAll },
-        { label: 'Clear Selection', icon: <EyeOffIcon />, onClick: handleClearSelection },
-      ],
-    },
-    {
-      label: 'Help',
-      items: [
-        { label: 'Documentation', icon: <InfoIcon />, onClick: () => setHelpModal('docs') },
-        { label: 'Keyboard Shortcuts', shortcut: 'Cmd/Ctrl+/', onClick: () => setHelpModal('shortcuts') },
-        { type: 'divider' },
-        { label: 'About', onClick: () => setHelpModal('about') },
-      ],
-    },
-  ], [
-    handleOpenIfcClick,
-    handleScreenshot,
-    handleFitToModel,
-    handleTopView,
-    handleSetViewDirection,
-    handleToggleViewCube,
-    viewCubeEnabled,
-    isLeftPanelCollapsed,
-    isRightPanelCollapsed,
-    isBottomPanelCollapsed,
-    handleSetViewportLayout,
-    handleShowAll,
-    handleClearSelection,
-    floorMenuItems,
-    categoryMenuItems,
-    selectionHiderMenuItems,
-    clippingEnabled,
-    clippingGizmosVisible,
-    clipEdgesVisible,
-    clipOrthoY,
-    sectionBoxActive,
-    clippingToolMode,
-    clipPlaneOpacity,
-    clipPlaneSize,
-    clipEdgeColor,
-    clipEdgeWidth,
-    clipFillColor,
-    clipFillOpacity,
-    clipPlaneCount,
-    createAxisClippingPlane,
-    createSectionBox,
-    clearSectionBox,
-    clearAllClipping,
-    world,
-    transformActive,
-    disableTransform,
-    enableTransform,
-    resetTransform,
-    statsVisible,
-    toggleStatsOverlay,
-    selectStatsPanel,
-    minimapConfig,
-    toggleMinimapEnabled,
-    toggleMinimapVisible,
-    toggleMinimapLock,
-    nudgeMinimapZoom,
-    helpModal,
-    navMode,
-    projection,
-    setNavMode,
-    setProjection,
-    cameraAvailable,
-    saveProject,
-    saveProjectAs,
-    openProject,
-    canSaveProject,
-    projectBusy,
-    recentProjectsMenuItems,
-    renderCount,
-  ]);
+          {
+            label: 'Isolate or Hide...',
+            icon: <EyeIcon />,
+            onClick: () => setIsCategoryHiderModalOpen(true),
+          },
+        ],
+      },
+      {
+        label: 'Tools',
+        items: [
+          {
+            label: 'Clipping',
+            type: 'submenu',
+            icon: <ScissorsIcon />,
+            items: [
+              {
+                type: 'custom',
+                render: () => (
+                  <ClippingToolbarMenu
+                    enabled={clippingEnabled}
+                    onEnabledChange={setClippingEnabled}
+                    gizmosVisible={clippingGizmosVisible}
+                    onGizmosVisibleChange={setClippingGizmosVisible}
+                    edgesVisible={clipEdgesVisible}
+                    onEdgesVisibleChange={setClipEdgesVisible}
+                    orthoY={clipOrthoY}
+                    onOrthoYChange={setClipOrthoY}
+                    planeOpacity={clipPlaneOpacity}
+                    onPlaneOpacityChange={setClipPlaneOpacity}
+                    planeSize={clipPlaneSize}
+                    onPlaneSizeChange={setClipPlaneSize}
+                    edgeColor={clipEdgeColor}
+                    onEdgeColorChange={setClipEdgeColor}
+                    edgeWidth={clipEdgeWidth}
+                    onEdgeWidthChange={setClipEdgeWidth}
+                    fillColor={clipFillColor}
+                    onFillColorChange={setClipFillColor}
+                    fillOpacity={clipFillOpacity}
+                    onFillOpacityChange={setClipFillOpacity}
+                    toolMode={clippingToolMode}
+                    onToolModeChange={setClippingToolMode}
+                    sectionBoxActive={sectionBoxActive}
+                    onCreateSectionBox={createSectionBox}
+                    onClearSectionBox={clearSectionBox}
+                    onClearAll={clearAllClipping}
+                    onCreateAxisPlane={createAxisClippingPlane}
+                    planeCount={clipPlaneCount}
+                  />
+                ),
+              },
+            ],
+          },
+          {
+            label: 'Clash Detection',
+            type: 'submenu',
+            icon: <AlertTriangleIcon />,
+            items: [
+              {
+                type: 'custom',
+                render: () => <ClashDetectionSection />,
+              },
+            ],
+          },
+          {
+            label: transformActive ? 'Disable Model Transform' : 'Enable Model Transform',
+            icon: <CubeIcon />,
+            onClick: () => (transformActive ? disableTransform() : enableTransform()),
+            disabled: !world,
+          },
+          {
+            label: 'Reset Model Transform',
+            icon: <BoxIcon />,
+            onClick: resetTransform,
+            disabled: !transformActive,
+          },
+          { type: 'divider' },
+          {
+            label: 'Performance',
+            type: 'submenu',
+            icon: <TerminalIcon />,
+            items: [
+              {
+                label: statsVisible ? 'Hide Stats Overlay' : 'Show Stats Overlay',
+                onClick: toggleStatsOverlay,
+                disabled: !world,
+              },
+              { label: 'Show FPS', onClick: () => selectStatsPanel(0), disabled: !world },
+              { label: 'Show MS', onClick: () => selectStatsPanel(1), disabled: !world },
+              { label: 'Show MB', onClick: () => selectStatsPanel(2), disabled: !world },
+            ],
+          },
+          {
+            label: 'Minimap',
+            type: 'submenu',
+            icon: <GridIcon />,
+            items: [
+              {
+                label: minimapConfig.enabled ? 'Disable Minimap' : 'Enable Minimap',
+                onClick: toggleMinimapEnabled,
+              },
+              {
+                label: minimapConfig.visible ? 'Hide Minimap' : 'Show Minimap',
+                onClick: toggleMinimapVisible,
+                disabled: !minimapConfig.enabled,
+              },
+              {
+                label: minimapConfig.lockRotation ? 'Unlock Rotation' : 'Lock Rotation',
+                onClick: toggleMinimapLock,
+                disabled: !minimapConfig.enabled,
+              },
+              { type: 'divider' },
+              {
+                label: 'Zoom In',
+                onClick: () => nudgeMinimapZoom(0.02),
+                disabled: !minimapConfig.enabled,
+              },
+              {
+                label: 'Zoom Out',
+                onClick: () => nudgeMinimapZoom(-0.02),
+                disabled: !minimapConfig.enabled,
+              },
+            ],
+          },
+          { type: 'divider' },
+          { label: 'Show All', icon: <EyeIcon />, onClick: handleShowAll },
+          { label: 'Clear Selection', icon: <EyeOffIcon />, onClick: handleClearSelection },
+        ],
+      },
+      {
+        label: 'Help',
+        items: [
+          { label: 'Documentation', icon: <InfoIcon />, onClick: () => setHelpModal('docs') },
+          {
+            label: 'Keyboard Shortcuts',
+            shortcut: 'Cmd/Ctrl+/',
+            onClick: () => setHelpModal('shortcuts'),
+          },
+          { type: 'divider' },
+          { label: 'About', onClick: () => setHelpModal('about') },
+        ],
+      },
+    ],
+    [
+      handleOpenIfcClick,
+      handleScreenshot,
+      handleFitToModel,
+      handleTopView,
+      handleSetViewDirection,
+      handleToggleViewCube,
+      viewCubeEnabled,
+      isLeftPanelCollapsed,
+      isRightPanelCollapsed,
+      handleSetViewportLayout,
+      handleShowAll,
+      handleClearSelection,
+      floorMenuItems,
+      categoryMenuItems,
+      selectionHiderMenuItems,
+      clippingEnabled,
+      clippingGizmosVisible,
+      clipEdgesVisible,
+      clipOrthoY,
+      sectionBoxActive,
+      clippingToolMode,
+      clipPlaneOpacity,
+      clipPlaneSize,
+      clipEdgeColor,
+      clipEdgeWidth,
+      clipFillColor,
+      clipFillOpacity,
+      clipPlaneCount,
+      createAxisClippingPlane,
+      createSectionBox,
+      clearSectionBox,
+      clearAllClipping,
+      world,
+      transformActive,
+      disableTransform,
+      enableTransform,
+      resetTransform,
+      statsVisible,
+      toggleStatsOverlay,
+      selectStatsPanel,
+      minimapConfig,
+      toggleMinimapEnabled,
+      toggleMinimapVisible,
+      toggleMinimapLock,
+      nudgeMinimapZoom,
+      helpModal,
+      navMode,
+      projection,
+      setNavMode,
+      setProjection,
+      cameraAvailable,
+      saveProject,
+      saveProjectAs,
+      openProject,
+      canSaveProject,
+      projectBusy,
+      recentProjectsMenuItems,
+      renderCount,
+    ]
+  );
 
   // Toolbar right content
   const toolbarRightContent = useMemo(() => null, []);
 
   // Spacebar quick menu: top=Camera, right=Views, bottom=Info, left=Hider
-  const cameraQuickMenuChildren = useMemo<QuickMenuLeaf[]>(() => [
-    {
-      type: 'leaf', id: 'cam-orbit', label: 'Orbit', hint: 'Orbit Navigation', icon: <OrbitIcon />,
-      active: navMode === 'Orbit', onActivate: () => setNavMode('Orbit'),
-    },
-    {
-      type: 'leaf', id: 'cam-first-person', label: 'First Person', hint: 'First Person Navigation', icon: <PersonIcon />,
-      active: navMode === 'FirstPerson', disabled: projection === 'Orthographic', onActivate: () => setNavMode('FirstPerson'),
-    },
-    {
-      type: 'leaf', id: 'cam-plan', label: 'Plan', hint: 'Plan Navigation', icon: <TopDownIcon />,
-      active: navMode === 'Plan', onActivate: () => setNavMode('Plan'),
-    },
-    {
-      type: 'leaf', id: 'cam-perspective', label: 'Perspective', hint: 'Perspective Projection', icon: <PerspectiveIcon />,
-      active: projection === 'Perspective', onActivate: () => setProjection('Perspective'),
-    },
-    {
-      type: 'leaf', id: 'cam-orthographic', label: 'Orthographic', hint: 'Orthographic Projection', icon: <OrthographicIcon />,
-      active: projection === 'Orthographic', disabled: navMode === 'FirstPerson', onActivate: () => setProjection('Orthographic'),
-    },
-    {
-      type: 'leaf', id: 'cam-fit', label: 'Fit to Model', hint: 'Fit to Model', icon: <MaximizeIcon />,
-      onActivate: () => { void handleFitToModel(); },
-    },
-  ], [navMode, projection, setNavMode, setProjection, handleFitToModel]);
+  const cameraQuickMenuChildren = useMemo<QuickMenuLeaf[]>(
+    () => [
+      {
+        type: 'leaf',
+        id: 'cam-orbit',
+        label: 'Orbit',
+        hint: 'Orbit Navigation',
+        icon: <OrbitIcon />,
+        active: navMode === 'Orbit',
+        onActivate: () => setNavMode('Orbit'),
+      },
+      {
+        type: 'leaf',
+        id: 'cam-first-person',
+        label: 'First Person',
+        hint: 'First Person Navigation',
+        icon: <PersonIcon />,
+        active: navMode === 'FirstPerson',
+        disabled: projection === 'Orthographic',
+        onActivate: () => setNavMode('FirstPerson'),
+      },
+      {
+        type: 'leaf',
+        id: 'cam-plan',
+        label: 'Plan',
+        hint: 'Plan Navigation',
+        icon: <TopDownIcon />,
+        active: navMode === 'Plan',
+        onActivate: () => setNavMode('Plan'),
+      },
+      {
+        type: 'leaf',
+        id: 'cam-perspective',
+        label: 'Perspective',
+        hint: 'Perspective Projection',
+        icon: <PerspectiveIcon />,
+        active: projection === 'Perspective',
+        onActivate: () => setProjection('Perspective'),
+      },
+      {
+        type: 'leaf',
+        id: 'cam-orthographic',
+        label: 'Orthographic',
+        hint: 'Orthographic Projection',
+        icon: <OrthographicIcon />,
+        active: projection === 'Orthographic',
+        disabled: navMode === 'FirstPerson',
+        onActivate: () => setProjection('Orthographic'),
+      },
+      {
+        type: 'leaf',
+        id: 'cam-fit',
+        label: 'Fit to Model',
+        hint: 'Fit to Model',
+        icon: <MaximizeIcon />,
+        onActivate: () => {
+          void handleFitToModel();
+        },
+      },
+    ],
+    [navMode, projection, setNavMode, setProjection, handleFitToModel]
+  );
 
-  const viewsQuickMenuChildren = useMemo<QuickMenuLeaf[]>(() => STANDARD_VIEW_DIRECTIONS.map(({ direction, label }) => ({
-    type: 'leaf' as const,
-    id: `view-${direction}`,
-    label,
-    hint: `${label} View`,
-    icon: <BoxIcon />,
-    onActivate: () => { void handleSetViewDirection(direction); },
-  })), [handleSetViewDirection]);
+  const viewsQuickMenuChildren = useMemo<QuickMenuLeaf[]>(
+    () =>
+      STANDARD_VIEW_DIRECTIONS.map(({ direction, label }) => ({
+        type: 'leaf' as const,
+        id: `view-${direction}`,
+        label,
+        hint: `${label} View`,
+        icon: <BoxIcon />,
+        onActivate: () => {
+          void handleSetViewDirection(direction);
+        },
+      })),
+    [handleSetViewDirection]
+  );
 
-  const hiderQuickMenuChildren = useMemo<QuickMenuLeaf[]>(() => [
-    {
-      type: 'leaf', id: 'hider-hide', label: 'Hide', hint: 'Hide Selection', icon: <EyeOffIcon />,
-      disabled: !hasSelection, onActivate: () => { void runSelectionHiderAction('hide'); },
-    },
-    {
-      type: 'leaf', id: 'hider-isolate', label: 'Isolate', hint: 'Isolate Selection', icon: <EyeIcon />,
-      disabled: !hasSelection, onActivate: () => { void runSelectionHiderAction('isolate'); },
-    },
-    {
-      type: 'leaf', id: 'hider-show-all', label: 'Show All', hint: 'Reset Visibility', icon: <ResetIcon />,
-      onActivate: handleShowAll,
-    },
-  ], [hasSelection, runSelectionHiderAction, handleShowAll]);
+  const hiderQuickMenuChildren = useMemo<QuickMenuLeaf[]>(
+    () => [
+      {
+        type: 'leaf',
+        id: 'hider-hide',
+        label: 'Hide',
+        hint: 'Hide Selection',
+        icon: <EyeOffIcon />,
+        disabled: !hasSelection,
+        onActivate: () => {
+          void runSelectionHiderAction('hide');
+        },
+      },
+      {
+        type: 'leaf',
+        id: 'hider-isolate',
+        label: 'Isolate',
+        hint: 'Isolate Selection',
+        icon: <EyeIcon />,
+        disabled: !hasSelection,
+        onActivate: () => {
+          void runSelectionHiderAction('isolate');
+        },
+      },
+      {
+        type: 'leaf',
+        id: 'hider-show-all',
+        label: 'Show All',
+        hint: 'Reset Visibility',
+        icon: <ResetIcon />,
+        onActivate: handleShowAll,
+      },
+    ],
+    [hasSelection, runSelectionHiderAction, handleShowAll]
+  );
 
-  const quickMenuSegments = useMemo<[QuickMenuTopSegment, QuickMenuTopSegment, QuickMenuTopSegment, QuickMenuTopSegment]>(() => [
-    {
-      type: 'branch', id: 'camera', label: 'Camera', hint: 'Mode, Projection, Fit', icon: <CameraIcon />,
-      disabled: !world, children: cameraQuickMenuChildren,
-    },
-    {
-      type: 'branch', id: 'views', label: 'Views', hint: 'Standard Views', icon: <BoxIcon />,
-      disabled: !world, children: viewsQuickMenuChildren,
-    },
-    {
-      type: 'preview', id: 'info', label: 'Info', hint: 'Quick Properties', icon: <InfoIcon />,
-      disabled: !hasSelection, onActivate: () => setIsQuickInfoOpen(true),
-    },
-    {
-      type: 'branch', id: 'hider', label: 'Hider', hint: 'Hide, Isolate, Show All', icon: <EyeIcon />,
-      children: hiderQuickMenuChildren,
-    },
-  ], [world, cameraQuickMenuChildren, viewsQuickMenuChildren, hasSelection, hiderQuickMenuChildren]);
+  const quickMenuSegments = useMemo<
+    [QuickMenuTopSegment, QuickMenuTopSegment, QuickMenuTopSegment, QuickMenuTopSegment]
+  >(
+    () => [
+      {
+        type: 'branch',
+        id: 'camera',
+        label: 'Camera',
+        hint: 'Mode, Projection, Fit',
+        icon: <CameraIcon />,
+        disabled: !world,
+        children: cameraQuickMenuChildren,
+      },
+      {
+        type: 'branch',
+        id: 'views',
+        label: 'Views',
+        hint: 'Standard Views',
+        icon: <BoxIcon />,
+        disabled: !world,
+        children: viewsQuickMenuChildren,
+      },
+      {
+        type: 'preview',
+        id: 'info',
+        label: 'Info',
+        hint: 'Quick Properties',
+        icon: <InfoIcon />,
+        disabled: !hasSelection,
+        onActivate: () => setIsQuickInfoOpen(true),
+      },
+      {
+        type: 'branch',
+        id: 'hider',
+        label: 'Hider',
+        hint: 'Hide, Isolate, Show All',
+        icon: <EyeIcon />,
+        children: hiderQuickMenuChildren,
+      },
+    ],
+    [world, cameraQuickMenuChildren, viewsQuickMenuChildren, hasSelection, hiderQuickMenuChildren]
+  );
 
-  const isAnyModalOpen = helpModal !== null || isCategoryHiderModalOpen || isQuickInfoOpen || isGalleryOpen || isStudioOpen;
+  const isAnyModalOpen =
+    helpModal !== null ||
+    isCategoryHiderModalOpen ||
+    isQuickInfoOpen ||
+    isGalleryOpen ||
+    isStudioOpen;
 
   if (isLoading) {
     return (
@@ -2252,7 +2673,11 @@ export const Layout: React.FC = () => {
   }
 
   return (
-    <div ref={containerRef} className={`${containerClassName} multi-view--${presetKey}`} style={layoutStyle}>
+    <div
+      ref={containerRef}
+      className={`${containerClassName} multi-view--${presetKey}`}
+      style={layoutStyle}
+    >
       {/* Hidden file input for IFC loading */}
       <input
         ref={fileInputRef}
@@ -2284,7 +2709,7 @@ export const Layout: React.FC = () => {
           <LeftPropertiesPanel />
         </Panel>
 
-        {/* Center Area (Viewport + Bottom Panel) */}
+        {/* Center Area (Viewport) */}
         <div className="layout-center">
           {/* Viewport Area */}
           <main className={`main-content main-content--${presetKey}`}>
@@ -2293,27 +2718,15 @@ export const Layout: React.FC = () => {
                 <Viewport />
               </div>
               {extraViews.map((orientation, index) => (
-                <div key={`${orientation}-${index}`} className={`viewer-pane viewer-pane--${orientation}`}>
+                <div
+                  key={`${orientation}-${index}`}
+                  className={`viewer-pane viewer-pane--${orientation}`}
+                >
                   <SecondaryViewport orientation={orientation} preset={presetKey} />
                 </div>
               ))}
             </div>
           </main>
-
-          {/* Bottom Panel */}
-          <Panel
-            position="bottom"
-            title="AI Visualizer"
-            icon={<SparklesIcon />}
-            collapsed={isBottomPanelCollapsed}
-            onCollapsedChange={setBottomPanelCollapsed}
-            defaultSize={200}
-            minSize={100}
-            maxSize={400}
-            resizable={true}
-          >
-            <AiVisualizerBottomPanel />
-          </Panel>
         </div>
 
         {/* Right Panel (Properties) */}
@@ -2358,7 +2771,12 @@ export const Layout: React.FC = () => {
         </div>
       )}
 
-      <Modal isOpen={isQuickInfoOpen} onClose={() => setIsQuickInfoOpen(false)} title="Quick Properties" size="sm">
+      <Modal
+        isOpen={isQuickInfoOpen}
+        onClose={() => setIsQuickInfoOpen(false)}
+        title="Quick Properties"
+        size="sm"
+      >
         <React.Suspense fallback={<div />}>
           <PropertyEditor selectedModel={quickInfoModel} selectedExpressID={quickInfoExpressID} />
         </React.Suspense>
@@ -2374,13 +2792,22 @@ export const Layout: React.FC = () => {
 
       <RenderStudioModal isOpen={isStudioOpen} onClose={() => setIsStudioOpen(false)} />
 
-      <Modal isOpen={helpModal === 'docs'} onClose={() => setHelpModal(null)} title="Documentation" size="sm">
+      <Modal
+        isOpen={helpModal === 'docs'}
+        onClose={() => setHelpModal(null)}
+        title="Documentation"
+        size="sm"
+      >
         <Stack gap="sm">
           <Text variant="muted" size="sm" as="div">
             Useful links:
           </Text>
           <Text as="div">
-            <a href="https://github.com/go36dic/deployable-ifc-viewer" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://github.com/go36dic/deployable-ifc-viewer"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Project repository
             </a>
           </Text>
@@ -2392,22 +2819,41 @@ export const Layout: React.FC = () => {
         </Stack>
       </Modal>
 
-      <Modal isOpen={helpModal === 'shortcuts'} onClose={() => setHelpModal(null)} title="Keyboard Shortcuts" size="sm">
+      <Modal
+        isOpen={helpModal === 'shortcuts'}
+        onClose={() => setHelpModal(null)}
+        title="Keyboard Shortcuts"
+        size="sm"
+      >
         <Stack gap="sm">
-          <Text as="div"><strong>Cmd/Ctrl+O</strong> — Open IFC file</Text>
-          <Text as="div"><strong>F</strong> — Fit to model</Text>
-          <Text as="div"><strong>Cmd/Ctrl+/</strong> — Show this dialog</Text>
-          <Text as="div"><strong>Esc</strong> — Close dialogs/previews</Text>
+          <Text as="div">
+            <strong>Cmd/Ctrl+O</strong> — Open IFC file
+          </Text>
+          <Text as="div">
+            <strong>F</strong> — Fit to model
+          </Text>
+          <Text as="div">
+            <strong>Cmd/Ctrl+/</strong> — Show this dialog
+          </Text>
+          <Text as="div">
+            <strong>Esc</strong> — Close dialogs/previews
+          </Text>
         </Stack>
       </Modal>
 
-      <Modal isOpen={helpModal === 'about'} onClose={() => setHelpModal(null)} title="About" size="sm">
+      <Modal
+        isOpen={helpModal === 'about'}
+        onClose={() => setHelpModal(null)}
+        title="About"
+        size="sm"
+      >
         <Stack gap="sm">
           <Text as="div">
-            IFC Viewer — desktop-ready IFC/BIM viewer built with React, Three.js and That Open components.
+            IFC Viewer — desktop-ready IFC/BIM viewer built with React, Three.js and That Open
+            components.
           </Text>
           <Text variant="muted" size="sm" as="div">
-            AI Visualizer uses your Replicate API token stored locally in this app.
+            AI Visualization uses your Replicate API token stored locally in this app.
           </Text>
         </Stack>
       </Modal>

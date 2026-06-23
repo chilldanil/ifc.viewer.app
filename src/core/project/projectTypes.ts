@@ -91,13 +91,13 @@ export interface ProjectRenderMeta {
   id: string;
   /** Path of the image inside the bundle, e.g. "renders/render-0.png". */
   path: string;
-  /** "ai" for AI Visualizer output, "screenshot" for a plain capture. */
+  /** "ai" for AI Visualization output, "screenshot" for a plain capture. */
   kind: 'ai' | 'screenshot';
   /** ISO timestamp. */
   createdAt: string;
-  /** Prompt used, for AI renders. */
+  /** Prompt used, for AI visualizations. */
   prompt?: string;
-  /** Path of the source/original frame the AI render was based on. */
+  /** Path of the source/original frame the AI visualization was based on. */
   sourcePath?: string;
 }
 

@@ -11,7 +11,7 @@ interface RenderGalleryModalProps {
   onClear: () => void;
 }
 
-const kindLabel = (kind: RenderItem['kind']) => (kind === 'ai' ? 'AI render' : 'Screenshot');
+const kindLabel = (kind: RenderItem['kind']) => (kind === 'ai' ? 'AI visualization' : 'Screenshot');
 
 export const RenderGalleryModal: React.FC<RenderGalleryModalProps> = ({
   isOpen,
@@ -28,12 +28,17 @@ export const RenderGalleryModal: React.FC<RenderGalleryModalProps> = ({
       {renders.length === 0 ? (
         <div className="render-gallery-empty">
           <Text variant="muted" as="div">
-            No renders yet. Generate an AI render or capture a screenshot and it will appear here.
+            No renders yet. Generate an AI visualization or capture a screenshot and it will appear
+            here.
           </Text>
         </div>
       ) : selected ? (
         <div className="render-gallery-detail">
-          <img className="render-gallery-detail-img" src={selected.url} alt={kindLabel(selected.kind)} />
+          <img
+            className="render-gallery-detail-img"
+            src={selected.url}
+            alt={kindLabel(selected.kind)}
+          />
           <div className="render-gallery-detail-meta">
             <Text variant="muted" size="sm" as="div">
               {kindLabel(selected.kind)} · {new Date(selected.createdAt).toLocaleString()}
@@ -46,7 +51,9 @@ export const RenderGalleryModal: React.FC<RenderGalleryModalProps> = ({
           </div>
           <Row>
             <Button onClick={() => setSelectedId(null)}>← Back</Button>
-            <Button variant="primary" onClick={() => downloadRenderItem(selected)}>Export PNG</Button>
+            <Button variant="primary" onClick={() => downloadRenderItem(selected)}>
+              Export PNG
+            </Button>
             <Button
               variant="danger"
               onClick={() => {
@@ -99,7 +106,9 @@ export const RenderGalleryModal: React.FC<RenderGalleryModalProps> = ({
             <Text variant="muted" size="sm" as="div">
               {renders.length} render{renders.length === 1 ? '' : 's'}
             </Text>
-            <Button variant="danger" size="sm" onClick={onClear}>Clear All</Button>
+            <Button variant="danger" size="sm" onClick={onClear}>
+              Clear All
+            </Button>
           </div>
         </>
       )}

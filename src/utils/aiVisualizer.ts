@@ -1,4 +1,14 @@
 import { getElectronAPI, isElectron } from './electronUtils';
+import {
+  DEFAULT_AI_RENDER_MODE,
+  buildAIVisualizationPrompt,
+  coerceAiRenderMode,
+  getAIVisualizationMode,
+  type AiRenderMode,
+  type RenderIntensity,
+} from './aiVisualizationRouter';
+
+export type { AiRenderMode, RenderIntensity } from './aiVisualizationRouter';
 
 export interface AiRenderPreset {
   label: string;
@@ -28,12 +38,24 @@ export const AI_RENDER_PRESETS: AiRenderPreset[] = [
   },
 ];
 
-export type RenderIntensity = 'subtle' | 'balanced' | 'strong';
-
 export interface AiGenerationParams {
   prompt: string;
   imageBase64: string;
   apiKey: string;
+  mode?: AiRenderMode;
+  negativePrompt?: string;
+  seed?: number;
+  /** 'match_input_image' | '16:9' | '1:1' | '4:3' | '3:2' | '9:16' | '21:9' */
+  aspectRatio?: string;
+  outputFormat?: 'jpg' | 'png';
+  intensity?: RenderIntensity;
+}
+
+export interface AIVisualizationParams {
+  prompt: string;
+  image: string;
+  mode?: AiRenderMode;
+  apiKey?: string;
   negativePrompt?: string;
   seed?: number;
   /** 'match_input_image' | '16:9' | '1:1' | '4:3' | '3:2' | '9:16' | '21:9' */
@@ -52,17 +74,7 @@ export const buildEnhancedPrompt = (
   intensity: RenderIntensity = 'balanced',
   negativePrompt = ''
 ): string => {
-  const subject = prompt.trim() || 'this architectural view';
-  let base: string;
-  if (intensity === 'subtle') {
-    base = `Subtly enhance this architectural view into a photorealistic render: ${subject}. Keep the exact same building structure, geometry, camera angle and composition; only gently refine materials, textures and lighting.`;
-  } else if (intensity === 'strong') {
-    base = `Transform this architectural view into a fully photorealistic render: ${subject}. Preserve the overall building geometry and camera composition, but completely realize materials, textures, lighting and atmosphere.`;
-  } else {
-    base = `Edit this image: ${subject}. Keep the exact same building structure, camera angle, and composition. Only change the materials, textures, and lighting to make it look photorealistic.`;
-  }
-  const negative = negativePrompt.trim();
-  return negative ? `${base} Avoid: ${negative}.` : base;
+  return buildAIVisualizationPrompt({ prompt, intensity, negativePrompt });
 };
 
 export const REPLICATE_API_KEY_STORAGE_KEY = 'replicate_api_key';
@@ -103,137 +115,70 @@ export const saveReplicateApiKey = async (apiKey: string): Promise<void> => {
   }
 };
 
-export async function generateAiImage(args: AiGenerationParams): Promise<string> {
-  const runReplicateDirect = async () => {
-    const MODEL_VERSION = '2c8a3b5b81554aa195bde461e2caa6afacd69a66c48a64fb0e650c9789f8b8a0';
-    const dataUrl = args.imageBase64.startsWith('data:')
-      ? args.imageBase64
-      : `data:image/png;base64,${args.imageBase64}`;
-    const enhancedPrompt = buildEnhancedPrompt(args.prompt, args.intensity, args.negativePrompt);
+export async function generateAIVisualization(args: AIVisualizationParams): Promise<string> {
+  const mode = coerceAiRenderMode(args.mode ?? DEFAULT_AI_RENDER_MODE);
+  const selectedMode = getAIVisualizationMode(mode);
+  const image = args.image.trim();
 
-    const headers = {
-      Authorization: `Bearer ${args.apiKey}`,
-      'Content-Type': 'application/json',
-    };
+  console.info('[AI Visualization] generation requested', {
+    mode,
+    model: selectedMode.model,
+    hasImage: Boolean(image),
+    status: 'queued',
+  });
 
-    const input: Record<string, unknown> = {
-      prompt: enhancedPrompt,
-      image_input: [dataUrl],
-      aspect_ratio: args.aspectRatio || 'match_input_image',
-      output_format: args.outputFormat || 'jpg',
-    };
-    if (typeof args.seed === 'number') {
-      input.seed = args.seed;
-    }
+  if (!image) {
+    throw new Error('Current viewport screenshot is missing. Capture a view before generating.');
+  }
+  if (!selectedMode.supportsViewportReference) {
+    throw new Error(
+      `${selectedMode.label} uses ${selectedMode.model}, which is not enabled for strict viewport-reference editing here. Choose a reference-image AI model to preserve the same IFC building geometry.`
+    );
+  }
 
-    const postPrediction = (predictionInput: Record<string, unknown>) =>
-      fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ version: MODEL_VERSION, input: predictionInput }),
-      });
-
-    let initRes = await postPrediction(input);
-    // Some models reject unknown inputs (e.g. seed); retry once without it.
-    if (!initRes.ok && initRes.status === 422 && 'seed' in input) {
-      const { seed: _omitSeed, ...withoutSeed } = input;
-      initRes = await postPrediction(withoutSeed);
-    }
-
-    if (!initRes.ok) {
-      let detail = '';
-      try {
-        const errJson = await initRes.json();
-        detail = errJson?.detail || errJson?.error || '';
-      } catch {
-        /* ignore */
-      }
-      throw new Error(`Replicate request failed (${initRes.status}) ${detail ? `- ${detail}` : ''}`);
-    }
-
-    let prediction = await initRes.json();
-
-    const poll = async () => {
-      if (!prediction?.urls?.get) {
-        throw new Error('Replicate response missing polling URL');
-      }
-      const res = await fetch(prediction.urls.get, { headers });
-      if (!res.ok) {
-        throw new Error(`Replicate poll failed (${res.status})`);
-      }
-      prediction = await res.json();
-    };
-
-    const terminalStates = new Set(['succeeded', 'failed', 'canceled']);
-    const maxPolls = 30;
-    let polls = 0;
-    while (!terminalStates.has(prediction?.status) && polls < maxPolls) {
-      polls += 1;
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      await poll();
-    }
-
-    if (prediction?.status !== 'succeeded') {
-      const detail = prediction?.error || prediction?.status || 'unknown error';
-      throw new Error(`Replicate generation failed: ${detail}`);
-    }
-
-    let imageUrl: string | null = null;
-    const output = prediction?.output;
-    if (typeof output === 'string') {
-      imageUrl = output;
-    } else if (Array.isArray(output) && output.length > 0) {
-      const first = output[0];
-      if (typeof first === 'string') {
-        imageUrl = first;
-      } else if (first && typeof first === 'object' && 'url' in first) {
-        const value: any = (first as any).url;
-        imageUrl = typeof value === 'function' ? value() : value;
-      }
-    } else if (output && typeof output === 'object' && 'url' in output) {
-      const value: any = (output as any).url;
-      imageUrl = typeof value === 'function' ? value() : value;
-    }
-
-    if (!imageUrl) {
-      throw new Error('No image URL in Replicate response');
-    }
-
-    const imageRes = await fetch(imageUrl);
-    if (!imageRes.ok) {
-      throw new Error(`Failed to fetch generated image (${imageRes.status})`);
-    }
-    const arrayBuffer = await imageRes.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    // Chunked base64 encode to avoid call stack issues
-    let binary = '';
-    const chunk = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunk) {
-      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-    }
-    const base64Image = typeof btoa === 'function'
-      ? btoa(binary)
-      : Buffer.from(arrayBuffer).toString('base64');
-    return `data:image/png;base64,${base64Image}`;
+  const requestPayload = {
+    prompt: args.prompt,
+    imageBase64: image,
+    mode,
+    apiKey: args.apiKey ?? '',
+    negativePrompt: args.negativePrompt,
+    seed: args.seed,
+    aspectRatio: args.aspectRatio,
+    outputFormat: args.outputFormat,
+    intensity: args.intensity,
   };
-
   const electronAPI = getElectronAPI() as any;
+
   if (isElectron()) {
     if (!electronAPI?.generateAiImage) {
-      // Fallback to direct Replicate HTTP in Electron if the bridge is missing
-      return runReplicateDirect();
+      throw new Error('AI Visualization backend bridge is unavailable.');
     }
 
-    const data = await electronAPI.generateAiImage(args);
+    let data: unknown;
+    try {
+      data = await electronAPI.generateAiImage(requestPayload);
+    } catch (err) {
+      console.error('[AI Visualization] generation failed', {
+        mode,
+        model: selectedMode.model,
+        hasImage: Boolean(image),
+        status: 'failed',
+        error: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
 
     if (typeof data === 'string') {
       return data;
     }
-    if (typeof data === 'object' && data?.url) {
-      return data.url as string;
-    }
-    if (typeof data === 'object' && data?.image) {
-      return `data:image/png;base64,${String(data.image)}`;
+    if (data && typeof data === 'object') {
+      const responseData = data as Record<string, unknown>;
+      if (typeof responseData.url === 'string') {
+        return responseData.url;
+      }
+      if (responseData.image) {
+        return `data:image/png;base64,${String(responseData.image)}`;
+      }
     }
 
     throw new Error('No image in response');
@@ -243,7 +188,7 @@ export async function generateAiImage(args: AiGenerationParams): Promise<string>
     const response = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(args),
+      body: JSON.stringify(requestPayload),
     });
 
     if (!response.ok) {
@@ -281,6 +226,27 @@ export async function generateAiImage(args: AiGenerationParams): Promise<string>
     throw new Error('No image in response');
   } catch (err: any) {
     const message = err instanceof Error ? err.message : String(err);
+    console.error('[AI Visualization] generation failed', {
+      mode,
+      model: selectedMode.model,
+      hasImage: Boolean(image),
+      status: 'failed',
+      error: message,
+    });
     throw new Error(`AI request failed: ${message}`);
   }
+}
+
+export async function generateAiImage(args: AiGenerationParams): Promise<string> {
+  return generateAIVisualization({
+    prompt: args.prompt,
+    image: args.imageBase64,
+    mode: args.mode,
+    apiKey: args.apiKey,
+    negativePrompt: args.negativePrompt,
+    seed: args.seed,
+    aspectRatio: args.aspectRatio,
+    outputFormat: args.outputFormat,
+    intensity: args.intensity,
+  });
 }

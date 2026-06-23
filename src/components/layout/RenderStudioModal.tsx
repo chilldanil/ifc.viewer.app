@@ -1,15 +1,38 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Button, Select, Slider, Toggle, Textarea, Input, Text, Row, Stack, Status } from '../../ui';
+import {
+  Modal,
+  Button,
+  Select,
+  Slider,
+  Toggle,
+  Textarea,
+  Input,
+  Text,
+  Row,
+  Stack,
+  Status,
+} from '../../ui';
 import { useBIM } from '../../context/BIMContext';
 import { useRenderGallery } from '../../context/RenderGalleryContext';
 import { useElementSelection } from '../../hooks/useElementSelection';
-import { captureRenderPlate, cropPlate, type NormalizedRect, type RenderPlate } from '../../utils/renderPlate';
 import {
-  generateAiImage,
+  captureRenderPlate,
+  cropPlate,
+  type NormalizedRect,
+  type RenderPlate,
+} from '../../utils/renderPlate';
+import {
+  generateAIVisualization,
   loadReplicateApiKey,
   saveReplicateApiKey,
+  type AiRenderMode,
   type RenderIntensity,
 } from '../../utils/aiVisualizer';
+import {
+  AI_RENDER_MODE_OPTIONS,
+  DEFAULT_AI_RENDER_MODE,
+  getAIVisualizationMode,
+} from '../../utils/aiVisualizationRouter';
 import './RenderStudioModal.css';
 
 interface RenderStudioModalProps {
@@ -23,9 +46,19 @@ interface Fragment {
 }
 
 const STYLE_PRESETS: Fragment[] = [
-  { label: 'Photoreal', fragment: 'photorealistic architectural visualization, professional rendering, detailed textures, 8k' },
-  { label: 'Interior', fragment: 'modern interior design, luxury materials, ambient lighting, contemporary' },
-  { label: 'Exterior', fragment: 'photorealistic exterior, architectural photography, high detail' },
+  {
+    label: 'Photoreal',
+    fragment:
+      'photorealistic architectural visualization, professional rendering, detailed textures, 8k',
+  },
+  {
+    label: 'Interior',
+    fragment: 'modern interior design, luxury materials, ambient lighting, contemporary',
+  },
+  {
+    label: 'Exterior',
+    fragment: 'photorealistic exterior, architectural photography, high detail',
+  },
   { label: 'Sketch', fragment: 'architectural concept sketch, hand-drawn, soft pencil shading' },
 ];
 const TIME_PRESETS: Fragment[] = [
@@ -72,7 +105,9 @@ const CropSelector: React.FC<{
 
   const toLocal = (clientX: number, clientY: number) => {
     const el = ref.current;
-    if (!el) {return { x: 0, y: 0 };}
+    if (!el) {
+      return { x: 0, y: 0 };
+    }
     const b = el.getBoundingClientRect();
     return {
       x: Math.max(0, Math.min(1, (clientX - b.left) / b.width)),
@@ -87,7 +122,9 @@ const CropSelector: React.FC<{
     onChange(null);
   };
   const handleMove = (e: React.PointerEvent) => {
-    if (!dragStart.current) {return;}
+    if (!dragStart.current) {
+      return;
+    }
     const p = toLocal(e.clientX, e.clientY);
     const s = dragStart.current;
     onChange({
@@ -98,7 +135,9 @@ const CropSelector: React.FC<{
     });
   };
   const handleUp = () => {
-    if (rect && (rect.w < 0.02 || rect.h < 0.02)) {onChange(null);}
+    if (rect && (rect.w < 0.02 || rect.h < 0.02)) {
+      onChange(null);
+    }
     dragStart.current = null;
   };
 
@@ -173,6 +212,7 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
 
   // Settings
   const [variations, setVariations] = useState(2);
+  const [renderMode, setRenderMode] = useState<AiRenderMode>(DEFAULT_AI_RENDER_MODE);
   const [intensity, setIntensity] = useState<RenderIntensity>('balanced');
   const [negativePrompt, setNegativePrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('match_input_image');
@@ -188,11 +228,18 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
   const [enlarge, setEnlarge] = useState<string | null>(null);
 
   const hasSelection = Boolean(selectedModel);
+  const selectedMode = useMemo(() => getAIVisualizationMode(renderMode), [renderMode]);
 
   useEffect(() => {
     let cancelled = false;
-    void loadReplicateApiKey().then((k) => { if (!cancelled) {setApiKey(k);} });
-    return () => { cancelled = true; };
+    void loadReplicateApiKey().then((k) => {
+      if (!cancelled) {
+        setApiKey(k);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const fragmentsFor = (presets: Fragment[], selected: string[]) =>
@@ -204,7 +251,9 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
       ...fragmentsFor(TIME_PRESETS, times),
       ...fragmentsFor(MOOD_PRESETS, moods),
       customPrompt.trim(),
-    ].filter(Boolean).join(', ');
+    ]
+      .filter(Boolean)
+      .join(', ');
   }, [styles, times, moods, customPrompt]);
 
   const capture = useCallback(() => {
@@ -246,7 +295,8 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, world]);
 
-  const toggle = (setter: React.Dispatch<React.SetStateAction<string[]>>, single = false) =>
+  const toggle =
+    (setter: React.Dispatch<React.SetStateAction<string[]>>, single = false) =>
     (label: string) =>
       setter((prev) =>
         prev.includes(label) ? prev.filter((l) => l !== label) : single ? [label] : [...prev, label]
@@ -257,12 +307,18 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
       setError('Capture a view first.');
       return;
     }
-    if (!apiKey.trim()) {
-      setError('Enter your Replicate API token.');
-      return;
-    }
     if (!finalPrompt) {
       setError('Pick a style or write a prompt.');
+      return;
+    }
+    if (!selectedMode.supportsViewportReference) {
+      setError(
+        `${selectedMode.label} uses ${selectedMode.model}, which is not enabled for strict viewport-reference editing here. Choose a reference-image AI model to preserve the same IFC building geometry.`
+      );
+      return;
+    }
+    if (!apiKey.trim()) {
+      setError('Enter your Replicate API token.');
       return;
     }
 
@@ -285,9 +341,10 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
     for (let i = 0; i < variations; i += 1) {
       const useSeed = seedLocked ? seed : randomSeed();
       try {
-        const result = await generateAiImage({
+        const result = await generateAIVisualization({
           prompt: finalPrompt,
-          imageBase64: base,
+          image: base,
+          mode: renderMode,
           apiKey,
           negativePrompt,
           seed: useSeed,
@@ -311,7 +368,45 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
       setError(lastError || 'All renders failed.');
     }
     setLoading(false);
-  }, [plate, apiKey, finalPrompt, variations, crop, seedLocked, seed, negativePrompt, aspectRatio, outputFormat, intensity, addRender]);
+  }, [
+    plate,
+    apiKey,
+    finalPrompt,
+    variations,
+    crop,
+    seedLocked,
+    seed,
+    negativePrompt,
+    aspectRatio,
+    outputFormat,
+    intensity,
+    renderMode,
+    selectedMode,
+    addRender,
+  ]);
+
+  const closeLightbox = useCallback(() => {
+    setEnlarge(null);
+  }, []);
+
+  useEffect(() => {
+    if (!enlarge) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        closeLightbox();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [enlarge, closeLightbox]);
 
   const applyResultAsBase = useCallback((url: string) => {
     setPlate({ dataUrl: url, width: 0, height: 0 });
@@ -345,9 +440,50 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
             )}
 
             <section>
-              <Text variant="label" as="div">1 · Shot</Text>
+              <Text variant="label" as="div">
+                AI Visualization
+              </Text>
+              <div className="render-studio-mode-seg">
+                {AI_RENDER_MODE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={renderMode === option.value ? 'on' : ''}
+                    onClick={() => {
+                      if (!option.disabled) {
+                        setRenderMode(option.value);
+                      }
+                    }}
+                    disabled={option.disabled}
+                    title={
+                      option.disabled
+                        ? 'Unavailable for same-building viewport reference output'
+                        : `${option.purpose}. Estimated cost: ${option.estimatedCost}`
+                    }
+                  >
+                    <span>{option.label}</span>
+                    <small>{option.estimatedCost}</small>
+                  </button>
+                ))}
+              </div>
+              <Text variant="subtle" size="xs" as="div" className="render-studio-ai-note">
+                AI Visualization is a conceptual enhancement of the current viewport and may not
+                preserve exact BIM geometry.
+              </Text>
+            </section>
+
+            <section>
+              <Text variant="label" as="div">
+                1 · Shot
+              </Text>
               <div className="render-studio-seg">
-                <button type="button" className={subject === 'whole' ? 'on' : ''} onClick={() => setSubject('whole')}>Whole scene</button>
+                <button
+                  type="button"
+                  className={subject === 'whole' ? 'on' : ''}
+                  onClick={() => setSubject('whole')}
+                >
+                  Whole scene
+                </button>
                 <button
                   type="button"
                   className={subject === 'selection' ? 'on' : ''}
@@ -361,23 +497,51 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
               <Toggle checked={cleanPlate} onChange={setCleanPlate} label="Hide grid & gizmos" />
               <div className="render-studio-seg render-studio-seg--scale">
                 {[1, 2, 4].map((s) => (
-                  <button key={s} type="button" className={scale === s ? 'on' : ''} onClick={() => setScale(s)}>{s}×</button>
+                  <button
+                    key={s}
+                    type="button"
+                    className={scale === s ? 'on' : ''}
+                    onClick={() => setScale(s)}
+                  >
+                    {s}×
+                  </button>
                 ))}
               </div>
               <Row>
-                <Button size="sm" variant="primary" onClick={capture} block>Recapture view</Button>
-                <Button size="sm" variant="ghost" onClick={() => setCrop(null)} disabled={!crop} block>Clear crop</Button>
+                <Button size="sm" variant="primary" onClick={capture} block>
+                  Recapture view
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setCrop(null)}
+                  disabled={!crop}
+                  block
+                >
+                  Clear crop
+                </Button>
               </Row>
-              <Text variant="subtle" size="xs" as="div">Close the studio to reframe the camera, then reopen. Drag on the plate to crop a region.</Text>
+              <Text variant="subtle" size="xs" as="div">
+                Close the studio to reframe the camera, then reopen. Drag on the plate to crop a
+                region.
+              </Text>
             </section>
 
             <section>
-              <Text variant="label" as="div">2 · Look</Text>
-              <Text variant="muted" size="xs" as="div">Style</Text>
+              <Text variant="label" as="div">
+                2 · Look
+              </Text>
+              <Text variant="muted" size="xs" as="div">
+                Style
+              </Text>
               <Chips options={STYLE_PRESETS} selected={styles} onToggle={toggle(setStyles)} />
-              <Text variant="muted" size="xs" as="div">Time of day</Text>
+              <Text variant="muted" size="xs" as="div">
+                Time of day
+              </Text>
               <Chips options={TIME_PRESETS} selected={times} onToggle={toggle(setTimes, true)} />
-              <Text variant="muted" size="xs" as="div">Mood</Text>
+              <Text variant="muted" size="xs" as="div">
+                Mood
+              </Text>
               <Chips options={MOOD_PRESETS} selected={moods} onToggle={toggle(setMoods, true)} />
               <Textarea
                 label="Custom prompt"
@@ -389,7 +553,9 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
             </section>
 
             <section>
-              <Text variant="label" as="div">3 · Settings</Text>
+              <Text variant="label" as="div">
+                3 · Settings
+              </Text>
               <Slider
                 label="Variations"
                 min={1}
@@ -400,11 +566,31 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
               />
               <div className="render-studio-seg">
                 {(['subtle', 'balanced', 'strong'] as RenderIntensity[]).map((i) => (
-                  <button key={i} type="button" className={intensity === i ? 'on' : ''} onClick={() => setIntensity(i)}>{i}</button>
+                  <button
+                    key={i}
+                    type="button"
+                    className={intensity === i ? 'on' : ''}
+                    onClick={() => setIntensity(i)}
+                  >
+                    {i}
+                  </button>
                 ))}
               </div>
-              <Select label="Aspect ratio" value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} options={ASPECT_OPTIONS} />
-              <Select label="Format" value={outputFormat} onChange={(e) => setOutputFormat(e.target.value as 'jpg' | 'png')} options={[{ value: 'jpg', label: 'JPG' }, { value: 'png', label: 'PNG' }]} />
+              <Select
+                label="Aspect ratio"
+                value={aspectRatio}
+                onChange={(e) => setAspectRatio(e.target.value)}
+                options={ASPECT_OPTIONS}
+              />
+              <Select
+                label="Format"
+                value={outputFormat}
+                onChange={(e) => setOutputFormat(e.target.value as 'jpg' | 'png')}
+                options={[
+                  { value: 'jpg', label: 'JPG' },
+                  { value: 'png', label: 'PNG' },
+                ]}
+              />
               <Input
                 label="Negative prompt"
                 placeholder="blurry, people, text..."
@@ -420,14 +606,28 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
                   disabled={!seedLocked}
                   onChange={(e) => setSeed(Number(e.target.value) || 0)}
                 />
-                <button type="button" className="render-studio-seed-shuffle" onClick={() => setSeed(randomSeed())} title="Shuffle seed">⟳</button>
+                <button
+                  type="button"
+                  className="render-studio-seed-shuffle"
+                  onClick={() => setSeed(randomSeed())}
+                  title="Shuffle seed"
+                >
+                  ⟳
+                </button>
               </div>
             </section>
 
             {error && <Status variant="error">{error}</Status>}
 
-            <Button variant="primary" onClick={generate} disabled={loading || !plate} block>
-              {loading ? `Rendering ${progress.done}/${progress.total}...` : `Render ${variations} ${variations === 1 ? 'image' : 'images'}`}
+            <Button
+              variant="primary"
+              onClick={generate}
+              disabled={loading || !plate || !selectedMode.supportsViewportReference}
+              block
+            >
+              {loading
+                ? `Generating ${progress.done}/${progress.total}...`
+                : `Generate ${variations} ${selectedMode.label} ${variations === 1 ? 'visualization' : 'visualizations'}`}
             </Button>
           </Stack>
         </div>
@@ -442,33 +642,65 @@ export const RenderStudioModal: React.FC<RenderStudioModalProps> = ({ isOpen, on
             )}
           </div>
 
-          <Text variant="label" as="div">Results</Text>
+          <Text variant="label" as="div">
+            Results
+          </Text>
           <div className="render-studio-results">
             {results.length === 0 && !loading && (
               <div className="render-studio-results-empty">Your renders will appear here.</div>
             )}
             {results.map((r) => (
               <div key={r.id} className="render-studio-result">
-                <button type="button" className="render-studio-result-thumb" onClick={() => setEnlarge(r.url)}>
-                  <img src={r.url} alt="AI render" loading="lazy" />
+                <button
+                  type="button"
+                  className="render-studio-result-thumb"
+                  onClick={() => setEnlarge(r.url)}
+                >
+                  <img src={r.url} alt="AI visualization" loading="lazy" />
                 </button>
                 <div className="render-studio-result-actions">
-                  <button type="button" onClick={() => applyResultAsBase(r.url)} title="Use as base for the next render">↺ Base</button>
-                  <button type="button" onClick={() => exportResult(r.url)} title="Export PNG">⤓</button>
+                  <button
+                    type="button"
+                    onClick={() => applyResultAsBase(r.url)}
+                    title="Use as base for the next render"
+                  >
+                    ↺ Base
+                  </button>
+                  <button type="button" onClick={() => exportResult(r.url)} title="Export PNG">
+                    ⤓
+                  </button>
                 </div>
               </div>
             ))}
-            {loading && Array.from({ length: Math.max(0, progress.total - results.length) }).map((_, i) => (
-              <div key={`pending-${i}`} className="render-studio-result render-studio-result--pending">
-                <div className="render-studio-spinner" />
-              </div>
-            ))}
+            {loading &&
+              Array.from({ length: Math.max(0, progress.total - results.length) }).map((_, i) => (
+                <div
+                  key={`pending-${i}`}
+                  className="render-studio-result render-studio-result--pending"
+                >
+                  <div className="render-studio-spinner" />
+                </div>
+              ))}
           </div>
         </div>
       </div>
 
       {enlarge && (
-        <div className="render-studio-lightbox" onClick={() => setEnlarge(null)}>
+        <div
+          className="render-studio-lightbox"
+          onClick={closeLightbox}
+          role="dialog"
+          aria-modal="true"
+          aria-label="AI visualization preview"
+        >
+          <button
+            type="button"
+            className="render-studio-lightbox-close"
+            onClick={closeLightbox}
+            aria-label="Close preview"
+          >
+            ×
+          </button>
           <img src={enlarge} alt="Render preview" onClick={(e) => e.stopPropagation()} />
         </div>
       )}

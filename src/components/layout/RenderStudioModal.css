@@ -48,7 +48,9 @@
   font-size: var(--ifc-font-size-sm);
   text-transform: capitalize;
   cursor: pointer;
-  transition: background-color var(--ifc-transition-fast), color var(--ifc-transition-fast);
+  transition:
+    background-color var(--ifc-transition-fast),
+    color var(--ifc-transition-fast);
 }
 
 .render-studio-seg button:hover:not(:disabled) {
@@ -58,6 +60,66 @@
 .render-studio-seg button.on {
   background: var(--ifc-color-primary);
   color: #fff;
+}
+
+.render-studio-mode-seg {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.render-studio-mode-seg button {
+  display: flex;
+  min-height: 46px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid var(--ifc-color-border);
+  border-radius: var(--ifc-radius-sm);
+  background: var(--ifc-color-surface);
+  color: var(--ifc-color-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.render-studio-mode-seg button span,
+.render-studio-mode-seg button small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.render-studio-mode-seg button small {
+  color: var(--ifc-color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.render-studio-mode-seg button:hover:not(:disabled) {
+  background: var(--ifc-color-surface-hover);
+}
+
+.render-studio-mode-seg button.on {
+  background: var(--ifc-color-primary);
+  border-color: var(--ifc-color-primary);
+  color: #fff;
+}
+
+.render-studio-mode-seg button.on small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.render-studio-mode-seg button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.render-studio-ai-note {
+  line-height: 1.35;
 }
 
 .render-studio-seg button:disabled {
@@ -189,7 +251,7 @@
 .render-studio-crop-rect {
   position: absolute;
   border: 1.5px solid var(--ifc-color-primary);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.0);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0);
   background: rgba(94, 124, 255, 0.08);
   pointer-events: none;
   /* punch the selection through the shade */
@@ -289,7 +351,9 @@
 }
 
 @keyframes render-studio-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Lightbox */
@@ -310,4 +374,25 @@
   max-height: 100%;
   object-fit: contain;
   border-radius: var(--ifc-radius-md);
+}
+
+.render-studio-lightbox-close {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  background: rgba(13, 18, 28, 0.82);
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.render-studio-lightbox-close:hover,
+.render-studio-lightbox-close:focus-visible {
+  background: rgba(30, 38, 55, 0.95);
 }

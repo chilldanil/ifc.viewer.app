@@ -11,7 +11,7 @@ A modern React + TypeScript BIM viewer for IFC files. Built with Three.js and th
 - **Minimap** - Real-time overhead view
 - **Measurements** - Volume measurement tools
 - **Clipping Planes** - Axis-aligned section cuts
-- **AI Visualizer** - Transform views into photorealistic renders
+- **AI Visualization** - Transform viewport captures into conceptual render enhancements
 - **Screenshots** - Capture and export views
 - **Electron Support** - Desktop app packaging
 
@@ -54,6 +54,7 @@ npm run electron:build:win
 ```
 
 Notes:
+
 - Building macOS artifacts requires macOS. Windows artifacts can be built on Windows or cross-built from macOS/Linux via `electron-builder` (it will download required tooling).
 - Unsigned builds will run locally, but for distribution you’ll want code-signing (macOS notarization / Windows Authenticode).
 
@@ -93,7 +94,7 @@ await viewer.loadModelFromUrl('/model.ifc');
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` for AI Visualizer features:
+Copy `.env.example` to `.env` for AI Visualization features:
 
 ```bash
 cp .env.example .env
